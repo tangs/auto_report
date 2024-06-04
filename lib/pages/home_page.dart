@@ -1,6 +1,5 @@
 import 'package:auto_report/pages/accouts_page.dart';
 import 'package:flutter/material.dart';
-import 'package:oktoast/oktoast.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key, required this.title});
@@ -71,7 +70,6 @@ class _HomePageState extends State<HomePage> {
         visible: _navIndex == 0,
         child: FloatingActionButton(
           onPressed: () {
-            showToast("msg", position: ToastPosition.bottom);
             Navigator.of(context).pushNamed("/auth");
           },
           tooltip: 'Increment',
