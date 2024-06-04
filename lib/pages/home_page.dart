@@ -1,5 +1,6 @@
 import 'package:auto_report/pages/accouts_page.dart';
 import 'package:flutter/material.dart';
+import 'package:oktoast/oktoast.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key, required this.title});
@@ -35,6 +36,7 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text(widget.title),
+        centerTitle: true,
       ),
       body: Stack(
         alignment: Alignment.bottomCenter,
@@ -68,7 +70,10 @@ class _HomePageState extends State<HomePage> {
       floatingActionButton: Visibility(
         visible: _navIndex == 0,
         child: FloatingActionButton(
-          onPressed: () {},
+          onPressed: () {
+            showToast("msg", position: ToastPosition.bottom);
+            Navigator.of(context).pushNamed("/auth");
+          },
           tooltip: 'Increment',
           child: const Icon(Icons.add),
         ),
