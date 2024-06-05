@@ -1,6 +1,16 @@
+import 'dart:convert';
+
+import 'package:auto_report/config/config.dart';
+import 'package:auto_report/data/proto/response/generate_otp_response.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:http/http.dart' as http;
+import 'package:logger/logger.dart';
+import 'package:rsa_encrypt/rsa_encrypt.dart';
+
+var logger = Logger(
+  printer: PrettyPrinter(),
+);
 
 class AuthPage extends StatefulWidget {
   const AuthPage({super.key});
@@ -10,36 +20,192 @@ class AuthPage extends StatefulWidget {
 }
 
 class _AuthPageState extends State<AuthPage> {
+  static const wmtMfsKey = 'wmt-mfs';
+
   String? _phoneNumber;
-  String? _passoword;
+  String? _pin;
+  String? _authCode;
+
+  String? _wmtMfs;
 
   void auth() async {
-    // EasyLoading.show(status: 'loading...');
+    if (_phoneNumber?.isEmpty ?? true) {
+      EasyLoading.showToast('phone number is empty.');
+      return;
+    }
+    EasyLoading.show(status: 'loading...');
+    final url = Uri.https(
+        Config.host, 'wmt-mfs-otp/generate-otp', {'msisdn': '$_phoneNumber'});
+    final headers = Config.getHeaders()
+      ..addAll({
+        "user-agent": "okhttp/4.9.0",
+        wmtMfsKey: _wmtMfs ?? '',
+      });
+    try {
+      final response = await http.get(url, headers: headers);
+      _wmtMfs = response.headers[wmtMfsKey] ?? _wmtMfs;
 
-    var url = Uri.https('api.wavemoney.io:8100', 'wmt-mfs-otp/generate-otp',
-        {'msisdn': '$_phoneNumber'});
-    var response = await http.get(url, headers: {
-      "fingerprint":
-          "87EC104C0FFBB8E749CD59D9C64851441B38D1C13C9746DC124BB9E71E66DCB9",
-      "appid": "mm.com.wavemoney.wavepay",
-      "userlanguage": "en",
-      "accept-encoding": "gzip, deflate, br",
-      "versioncode": "1460",
-      "appversion": "2.2.0",
-      "user-agent": "okhttp/4.9.0",
-      // 以下是模拟Pixel 5的设备
-      "deviceid":
-          "fd701ebcc3dcc6342ab647f5b9800f76ba3a7b5a", // 随机生成40位的uuid,用于确定是否当前登录设备
-      "device": "redfin", // 设备驱动名称
-      "product": "redfin", // 产品的名称
-      "cpuabi": "arm64-v8a,armeabi-v7a,armeabi", // 设备指令集名称（CPU的类型）
-      "manufacturer": "Google", // 设备制造商
-      "model": "Pixel 5", // 手机的型号 设备名称
-      "osversion": "11", // OS系统版本
-    });
+      logger.i('auto');
+      logger.i('Phone number: $_phoneNumber');
+      logger.i('Response status: ${response.statusCode}');
+      logger.i('Response body: ${response.body}');
+      logger.i('$wmtMfsKey: ${response.headers[wmtMfsKey]}');
+
+      final resBody = GeneralResponse.fromJson(jsonDecode(response.body));
+      if (response.statusCode != 200 || resBody.statusCode != 'Success') {
+        EasyLoading.showToast(
+            resBody.message ?? 'err code: ${response.statusCode}');
+        // EasyLoading.dismiss();
+        return;
+      }
+      EasyLoading.showInfo('send auth code success.');
+    } catch (e) {
+      logger.e('auth err: $e');
+      EasyLoading.showError('request err, code: $e',
+          dismissOnTap: true, duration: const Duration(seconds: 60));
+      return;
+    } finally {
+      EasyLoading.dismiss();
+    }
+  }
+
+  Future<String?> getAuthCode() async {
+    final url = Uri.https(
+        Config.host, 'wmt-mfs-otp/security-token', {'msisdn': '$_phoneNumber'});
+    final headers = Config.getHeaders()
+      ..addAll({
+        'user-agent': 'okhttp/4.9.0',
+        wmtMfsKey: _wmtMfs ?? '',
+      });
+    try {
+      final response = await http.get(url, headers: headers);
+      print('Phone number: $_phoneNumber');
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      final resBody = GeneralResponse.fromJson(jsonDecode(response.body));
+      if (response.statusCode != 200 || resBody.statusCode != 'Success') {
+        EasyLoading.showToast(
+            resBody.message ?? 'err code: ${response.statusCode}');
+        // EasyLoading.dismiss();
+        return null;
+      }
+      EasyLoading.showInfo('send auth code success.');
+      return resBody.responseMap?.securityCounter;
+    } catch (e) {
+      EasyLoading.showError('request err, code: $e',
+          dismissOnTap: true, duration: const Duration(seconds: 60));
+      return null;
+    }
+  }
+
+  Future<bool> confirmAuthCode() async {
+    final url = Uri.https(Config.host, 'wmt-mfs-otp/confirm-otp');
+    final headers = Config.getHeaders()
+      ..addAll({
+        "user-agent": "okhttp/4.9.0",
+        wmtMfsKey: _wmtMfs ?? '',
+      });
+
+    final response = await http.post(
+      url,
+      headers: headers,
+      body: {
+        'msisdn': _phoneNumber,
+        'otp': _authCode,
+      },
+    );
+    _wmtMfs = response.headers[wmtMfsKey] ?? _wmtMfs;
+
+    print('Phone number: $_phoneNumber');
+    print('auth code: $_authCode');
     print('Response status: ${response.statusCode}');
     print('Response body: ${response.body}');
-    if (response.statusCode == 200) {}
+    print('$wmtMfsKey: ${response.headers[wmtMfsKey]}');
+
+    final resBody = GeneralResponse.fromJson(jsonDecode(response.body));
+    if (response.statusCode != 200 || resBody.statusCode != 'Success') {
+      EasyLoading.showToast(
+          resBody.message ?? 'err code: ${response.statusCode}');
+      return false;
+    }
+    return true;
+  }
+
+  void login() async {
+    if (_phoneNumber?.isEmpty ?? true) {
+      EasyLoading.showToast('phone number is empty.');
+      return;
+    }
+    if (_pin?.isEmpty ?? true) {
+      EasyLoading.showToast('password is empty.');
+      return;
+    }
+    if (_authCode?.isEmpty ?? true) {
+      EasyLoading.showToast('auth code is empty.');
+      return;
+    }
+
+    EasyLoading.show(status: 'loading...');
+
+    try {
+      // 验证验证码
+      if (!await confirmAuthCode()) {
+        EasyLoading.showError('confirm auth code fail.');
+        return;
+      }
+      print('confirm auth code success.');
+
+      var token1 = await getAuthCode();
+      var token2 = await getAuthCode();
+
+      print('token1: $token1, token2: $token2');
+
+      var helper = RsaKeyHelper();
+      var publicKey = helper.parsePublicKeyFromPem(Config.rsaPublicKey);
+      var password =
+          base64Encode(utf8.encode(encrypt('$_pin:$token1', publicKey)));
+      var pin = base64Encode(utf8.encode(encrypt('$_pin:$token2', publicKey)));
+
+      final url = Uri.https(Config.host, 'v2/mfs-customer/login');
+      final headers = Config.getHeaders()
+        ..addAll({
+          "user-agent": "okhttp/4.9.0",
+          wmtMfsKey: _wmtMfs ?? '',
+        });
+
+      final response = await http.post(
+        url,
+        headers: headers,
+        body: {
+          'msisdn': _phoneNumber,
+          'password': password,
+          'pin': pin,
+        },
+      );
+      _wmtMfs = response.headers[wmtMfsKey] ?? _wmtMfs;
+
+      print('Phone number: $_phoneNumber');
+      // print('auth code: $_authCode');
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+      print('$wmtMfsKey: ${response.headers[wmtMfsKey]}');
+
+      final resBody = GeneralResponse.fromJson(jsonDecode(response.body));
+      if (response.statusCode != 200 || resBody.statusCode != 'Success') {
+        EasyLoading.showToast(
+            resBody.message ?? 'err code: ${response.statusCode}');
+        return;
+      }
+
+      // print(base64);
+    } catch (e) {
+      EasyLoading.showError('request err, code: $e',
+          dismissOnTap: true, duration: const Duration(seconds: 60));
+      return;
+    } finally {
+      EasyLoading.dismiss();
+    }
   }
 
   InputDecoration buildInputDecoration(String hit, IconData icon) {
@@ -81,15 +247,26 @@ class _AuthPageState extends State<AuthPage> {
           Padding(
             padding: const EdgeInsets.fromLTRB(15, 15, 15, 15),
             child: TextFormField(
-              controller: TextEditingController()..text = _passoword ?? "",
-              onChanged: (value) => _passoword = value,
+              controller: TextEditingController()..text = _pin ?? "",
+              onChanged: (value) => _pin = value,
               // validator: _validator,
               keyboardType: TextInputType.number,
-              decoration: buildInputDecoration("password", Icons.phone),
+              decoration: buildInputDecoration("pin", Icons.password),
             ),
           ),
           OutlinedButton(
-              onPressed: auth, child: const Text('request auth code.'))
+              onPressed: auth, child: const Text('request auth code.')),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(15, 15, 15, 15),
+            child: TextFormField(
+              controller: TextEditingController()..text = _authCode ?? "",
+              onChanged: (value) => _authCode = value,
+              // validator: _validator,
+              keyboardType: TextInputType.number,
+              decoration: buildInputDecoration("auth code", Icons.security),
+            ),
+          ),
+          OutlinedButton(onPressed: login, child: const Text('login')),
         ],
       ),
     );

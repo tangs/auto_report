@@ -37,6 +37,8 @@ dependencies:
   cupertino_icons: ^1.0.8
   flutter_easyloading: ^3.0.5
   http: ^1.2.1
+  rsa_encrypt: ^2.0.0
+  logger: ^2.3.0
 
 dev_dependencies:
   flutter_test:
