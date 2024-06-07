@@ -33,6 +33,10 @@ class GeneralResponse {
     }
     return data;
   }
+
+  bool isSuccess() {
+    return statusCode == 'SC0000' || statusCode == 'Success';
+  }
 }
 
 class ResponseMap {
