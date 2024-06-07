@@ -9,4 +9,9 @@ class AccountData {
       required this.pin,
       required this.authCode,
       required this.wmtMfs});
+
+  @override
+  String toString() {
+    return 'phone number: $phoneNumber, pin: $pin, auth code: $authCode, wmt mfs: $wmtMfs';
+  }
 }

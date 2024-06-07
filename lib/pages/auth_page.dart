@@ -189,7 +189,7 @@ class _AuthPageState extends State<AuthPage> {
       var pin = RSAHelper.encrypt('$_pin:$token2', Config.rsaPublicKey);
 
       var formData = [
-        '${Uri.encodeQueryComponent('msisdn')}=${Uri.encodeQueryComponent(_phoneNumber ?? '')}',
+        '${Uri.encodeQueryComponent('msisdn')}=${Uri.encodeQueryComponent(_phoneNumber!)}',
         '${Uri.encodeQueryComponent('password')}=${Uri.encodeQueryComponent(password)}',
         '${Uri.encodeQueryComponent('pin')}=${Uri.encodeQueryComponent(pin)}',
       ].join('&');
@@ -213,17 +213,13 @@ class _AuthPageState extends State<AuthPage> {
         body: formData,
       );
       _wmtMfs = response.headers[wmtMfsKey] ?? _wmtMfs;
-      // logger.i('auth code: $_authCode');
       logger.i('Response status: ${response.statusCode}');
       logger.i('Response body: ${response.body}, len: ${response.body.length}');
       logger.i('$wmtMfsKey: ${response.headers[wmtMfsKey]}');
-
-      // final resBody = GeneralResponse.fromJson(jsonDecode(response.body));
+      ;
       if (response.statusCode != 200) {
         logger.e('login err: ${response.statusCode}');
         EasyLoading.showToast('login err: ${response.statusCode}');
-        // EasyLoading.showToast(
-        //     resBody.message ?? 'err code: ${response.statusCode}');
         return;
       }
 
@@ -309,6 +305,21 @@ class _AuthPageState extends State<AuthPage> {
           OutlinedButton(
             onPressed: () => login(context),
             child: const Text('login'),
+          ),
+          const Padding(padding: EdgeInsets.fromLTRB(0, 15, 0, 0)),
+          OutlinedButton(
+            onPressed: () async {
+              if (!context.mounted) return;
+              Navigator.pop(
+                context,
+                AccountData(
+                    phoneNumber: '12345678',
+                    pin: '1234',
+                    authCode: '6666',
+                    wmtMfs: 'abcdefghijk'),
+              );
+            },
+            child: const Text('test'),
           ),
         ],
       ),
