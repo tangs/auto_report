@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:auto_report/config/config.dart';
@@ -228,10 +229,12 @@ class _AuthPageState extends State<AuthPage> {
       Navigator.pop(
         context,
         AccountData(
-            phoneNumber: _phoneNumber!,
-            pin: pin,
-            authCode: _authCode!,
-            wmtMfs: _wmtMfs!),
+          phoneNumber: _phoneNumber!,
+          pin: pin,
+          authCode: _authCode!,
+          wmtMfs: _wmtMfs!,
+          isWmtMfsInvalid: false,
+        ),
       );
       // logger.i(base64);
     } catch (e) {
@@ -313,10 +316,12 @@ class _AuthPageState extends State<AuthPage> {
               Navigator.pop(
                 context,
                 AccountData(
-                    phoneNumber: '123456789',
-                    pin: '4321',
-                    authCode: '2222',
-                    wmtMfs: 'abcdefghijk'),
+                  phoneNumber: '123456789',
+                  pin: '4321',
+                  authCode: '2222',
+                  wmtMfs: 'abcdefghijk',
+                  isWmtMfsInvalid: false,
+                ),
               );
             },
             child: const Text('test'),

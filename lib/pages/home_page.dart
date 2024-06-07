@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:auto_report/data/account/account_data.dart';
 import 'package:auto_report/pages/accounts_page.dart';
 import 'package:flutter/material.dart';
@@ -29,6 +31,16 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     _pageViewController = PageController();
     logger.i('initState');
+    Timer.periodic(const Duration(seconds: 3), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      for (final info in accountsData) {
+        info.updateOrder();
+      }
+      logger.i('update');
+    });
   }
 
   @override
