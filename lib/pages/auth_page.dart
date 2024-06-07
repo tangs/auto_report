@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:auto_report/config/config.dart';
+import 'package:auto_report/data/account/account_data.dart';
 import 'package:auto_report/data/proto/response/generate_otp_response.dart';
 import 'package:auto_report/rsa/rsa_helper.dart';
 import 'package:flutter/material.dart';
@@ -158,7 +159,7 @@ class _AuthPageState extends State<AuthPage> {
     return true;
   }
 
-  void login() async {
+  void login(BuildContext context) async {
     if (_phoneNumber?.isEmpty ?? true) {
       EasyLoading.showToast('phone number is empty.');
       return;
@@ -184,12 +185,6 @@ class _AuthPageState extends State<AuthPage> {
       var token1 = await getToken();
       var token2 = await getToken();
 
-      // const codec = Utf8Codec(allowMalformed: true);
-      // var helper = RsaKeyHelper();
-      // var publicKey = helper.parsePublicKeyFromPem(Config.rsaPublicKey);
-      // var password =
-      //     base64Encode(codec.encode(encrypt('$_pin:$token1', publicKey)));
-      // var pin = base64Encode(codec.encode(encrypt('$_pin:$token2', publicKey)));
       var password = RSAHelper.encrypt('$_pin:$token1', Config.rsaPublicKey);
       var pin = RSAHelper.encrypt('$_pin:$token2', Config.rsaPublicKey);
 
@@ -220,18 +215,28 @@ class _AuthPageState extends State<AuthPage> {
       _wmtMfs = response.headers[wmtMfsKey] ?? _wmtMfs;
       // logger.i('auth code: $_authCode');
       logger.i('Response status: ${response.statusCode}');
-      logger.i('Response body: ${response.body}');
+      logger.i('Response body: ${response.body}, len: ${response.body.length}');
       logger.i('$wmtMfsKey: ${response.headers[wmtMfsKey]}');
 
-      final resBody = GeneralResponse.fromJson(jsonDecode(response.body));
-      if (response.statusCode != 200 || !resBody.isSuccess()) {
+      // final resBody = GeneralResponse.fromJson(jsonDecode(response.body));
+      if (response.statusCode != 200) {
         logger.e('login err: ${response.statusCode}');
-        EasyLoading.showToast(
-            resBody.message ?? 'err code: ${response.statusCode}');
+        EasyLoading.showToast('login err: ${response.statusCode}');
+        // EasyLoading.showToast(
+        //     resBody.message ?? 'err code: ${response.statusCode}');
         return;
       }
 
       logger.i('login success');
+      if (!context.mounted) return;
+      Navigator.pop(
+        context,
+        AccountData(
+            phoneNumber: _phoneNumber!,
+            pin: pin,
+            authCode: _authCode!,
+            wmtMfs: _wmtMfs!),
+      );
       // logger.i(base64);
     } catch (e) {
       logger.e('err: $e');
@@ -301,7 +306,10 @@ class _AuthPageState extends State<AuthPage> {
               decoration: buildInputDecoration("auth code", Icons.security),
             ),
           ),
-          OutlinedButton(onPressed: login, child: const Text('login')),
+          OutlinedButton(
+            onPressed: () => login(context),
+            child: const Text('login'),
+          ),
         ],
       ),
     );

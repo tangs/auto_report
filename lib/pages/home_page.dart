@@ -1,5 +1,11 @@
+import 'package:auto_report/data/account/account_data.dart';
 import 'package:auto_report/pages/accouts_page.dart';
 import 'package:flutter/material.dart';
+import 'package:logger/logger.dart';
+
+var logger = Logger(
+  printer: PrettyPrinter(),
+);
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key, required this.title});
@@ -52,27 +58,20 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      // body: Center(
-      //   // child: Column(
-      //   //   mainAxisAlignment: MainAxisAlignment.center,
-      //   //   children: <Widget>[
-      //   //     const Text(
-      //   //       'You have pushed the button this many times:',
-      //   //     ),
-      //   //     Text(
-      //   //       '$_counter',
-      //   //       style: Theme.of(context).textTheme.headlineMedium,
-      //   //     ),
-      //   //   ],
-      //   // ),
-      // ),
       floatingActionButton: Visibility(
         visible: _navIndex == 0,
         child: FloatingActionButton(
-          onPressed: () {
-            Navigator.of(context).pushNamed("/auth");
+          onPressed: () async {
+            var result = await Navigator.of(context).pushNamed("/auth");
+            if (result == null) {
+              logger.i('cancel login.');
+              return;
+            }
+            if (result is AccountData) {
+              logger.i('add accout $result');
+            }
           },
-          tooltip: 'Increment',
+          tooltip: 'new account',
           child: const Icon(Icons.add),
         ),
       ),
