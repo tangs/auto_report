@@ -4,11 +4,14 @@ class AccountData {
   String authCode;
   String wmtMfs;
 
-  AccountData(
-      {required this.phoneNumber,
-      required this.pin,
-      required this.authCode,
-      required this.wmtMfs});
+  DateTime lastUpdateTime = DateTime.now();
+
+  AccountData({
+    required this.phoneNumber,
+    required this.pin,
+    required this.authCode,
+    required this.wmtMfs,
+  });
 
   @override
   String toString() {

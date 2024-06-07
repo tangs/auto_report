@@ -20,18 +20,22 @@ class _HomePageState extends State<HomePage> {
   // int _counter = 0;
   int _navIndex = 0;
 
+  List<AccountData> accountsData = [];
+
   late PageController _pageViewController;
 
   @override
   void initState() {
     super.initState();
     _pageViewController = PageController();
+    logger.i('initState');
   }
 
   @override
   void dispose() {
     super.dispose();
     _pageViewController.dispose();
+    logger.i('dispose');
   }
 
   @override
@@ -50,7 +54,9 @@ class _HomePageState extends State<HomePage> {
             controller: _pageViewController,
             onPageChanged: (index) => setState(() => _navIndex = index),
             children: <Widget>[
-              const AccountsPage(),
+              AccountsPage(
+                accountsData: accountsData,
+              ),
               Center(
                 child: Text('Second Page', style: textTheme.titleLarge),
               ),
@@ -69,6 +75,11 @@ class _HomePageState extends State<HomePage> {
             }
             if (result is AccountData) {
               logger.i('add accout $result');
+              setState(() {
+                accountsData.removeWhere(
+                    (data) => data.phoneNumber == result.phoneNumber);
+                accountsData.add(result);
+              });
             }
           },
           tooltip: 'new account',

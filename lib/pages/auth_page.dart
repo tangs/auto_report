@@ -216,7 +216,7 @@ class _AuthPageState extends State<AuthPage> {
       logger.i('Response status: ${response.statusCode}');
       logger.i('Response body: ${response.body}, len: ${response.body.length}');
       logger.i('$wmtMfsKey: ${response.headers[wmtMfsKey]}');
-      ;
+
       if (response.statusCode != 200) {
         logger.e('login err: ${response.statusCode}');
         EasyLoading.showToast('login err: ${response.statusCode}');
@@ -313,9 +313,9 @@ class _AuthPageState extends State<AuthPage> {
               Navigator.pop(
                 context,
                 AccountData(
-                    phoneNumber: '12345678',
-                    pin: '1234',
-                    authCode: '6666',
+                    phoneNumber: '123456789',
+                    pin: '4321',
+                    authCode: '2222',
                     wmtMfs: 'abcdefghijk'),
               );
             },
