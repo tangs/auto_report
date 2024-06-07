@@ -29,7 +29,7 @@ class _AuthPageState extends State<AuthPage> {
 
   String? _wmtMfs;
 
-  void auth() async {
+  void _auth() async {
     // var encryptStr = RSAHelper.encrypt(
     //     '123456:0d63104e-de16-49b7-8c07-aee6ef8d53f8', Config.rsaPublicKey);
     // logger.i('message: $encryptStr');
@@ -88,7 +88,7 @@ class _AuthPageState extends State<AuthPage> {
     }
   }
 
-  Future<String?> getToken() async {
+  Future<String?> _generateToken() async {
     logger.i('get token start.');
     logger.i('Phone number: $_phoneNumber');
     final url = Uri.https(
@@ -121,7 +121,7 @@ class _AuthPageState extends State<AuthPage> {
     }
   }
 
-  Future<bool> confirmAuthCode() async {
+  Future<bool> _confirmAuthCode() async {
     final url = Uri.https(Config.host, 'wmt-mfs-otp/confirm-otp');
     final headers = Config.getHeaders()
       ..addAll({
@@ -159,7 +159,7 @@ class _AuthPageState extends State<AuthPage> {
     return true;
   }
 
-  void login(BuildContext context) async {
+  void _login(BuildContext context) async {
     if (_phoneNumber?.isEmpty ?? true) {
       EasyLoading.showToast('phone number is empty.');
       return;
@@ -177,13 +177,13 @@ class _AuthPageState extends State<AuthPage> {
 
     try {
       // 验证验证码
-      if (!await confirmAuthCode()) {
+      if (!await _confirmAuthCode()) {
         EasyLoading.showError('confirm auth code fail.');
         return;
       }
 
-      var token1 = await getToken();
-      var token2 = await getToken();
+      var token1 = await _generateToken();
+      var token2 = await _generateToken();
 
       var password = RSAHelper.encrypt('$_pin:$token1', Config.rsaPublicKey);
       var pin = RSAHelper.encrypt('$_pin:$token2', Config.rsaPublicKey);
@@ -244,7 +244,7 @@ class _AuthPageState extends State<AuthPage> {
     }
   }
 
-  InputDecoration buildInputDecoration(String hit, IconData icon) {
+  InputDecoration _buildInputDecoration(String hit, IconData icon) {
     return InputDecoration(
       border: const OutlineInputBorder(),
       prefixIcon: Icon(
@@ -277,7 +277,7 @@ class _AuthPageState extends State<AuthPage> {
               onChanged: (value) => _phoneNumber = value,
               // validator: _validator,
               keyboardType: TextInputType.number,
-              decoration: buildInputDecoration("phone number", Icons.phone),
+              decoration: _buildInputDecoration("phone number", Icons.phone),
             ),
           ),
           Padding(
@@ -287,11 +287,11 @@ class _AuthPageState extends State<AuthPage> {
               onChanged: (value) => _pin = value,
               // validator: _validator,
               keyboardType: TextInputType.number,
-              decoration: buildInputDecoration("pin", Icons.password),
+              decoration: _buildInputDecoration("pin", Icons.password),
             ),
           ),
           OutlinedButton(
-              onPressed: auth, child: const Text('request auth code.')),
+              onPressed: _auth, child: const Text('request auth code.')),
           Padding(
             padding: const EdgeInsets.fromLTRB(15, 15, 15, 15),
             child: TextFormField(
@@ -299,11 +299,11 @@ class _AuthPageState extends State<AuthPage> {
               onChanged: (value) => _authCode = value,
               // validator: _validator,
               keyboardType: TextInputType.number,
-              decoration: buildInputDecoration("auth code", Icons.security),
+              decoration: _buildInputDecoration("auth code", Icons.security),
             ),
           ),
           OutlinedButton(
-            onPressed: () => login(context),
+            onPressed: () => _login(context),
             child: const Text('login'),
           ),
           const Padding(padding: EdgeInsets.fromLTRB(0, 15, 0, 0)),

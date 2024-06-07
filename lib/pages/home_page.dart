@@ -1,5 +1,5 @@
 import 'package:auto_report/data/account/account_data.dart';
-import 'package:auto_report/pages/accouts_page.dart';
+import 'package:auto_report/pages/accounts_page.dart';
 import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 
