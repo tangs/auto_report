@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:auto_report/data/account/account_data.dart';
-import 'package:auto_report/rsa/rsa_helper.dart';
+import 'package:auto_report/main.dart';
 import 'package:localstorage/localstorage.dart';
 
 class Accounts {
@@ -54,7 +54,7 @@ class Accounts {
       var data = jsonDecode(str) as List<dynamic>;
       accountsData = data.map((acc) => AccountData.fromJson(acc)).toList();
     } catch (e) {
-      logger.e('e: $e');
+      logger.e('e: $e', stackTrace: StackTrace.current);
     }
   }
 }

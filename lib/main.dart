@@ -3,6 +3,11 @@ import 'package:auto_report/pages/home_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:localstorage/localstorage.dart';
+import 'package:logger/logger.dart';
+
+var logger = Logger(
+  printer: PrettyPrinter(lineLength: 10240),
+);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

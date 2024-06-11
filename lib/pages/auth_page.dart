@@ -5,15 +5,11 @@ import 'dart:math';
 import 'package:auto_report/config/config.dart';
 import 'package:auto_report/data/account/account_data.dart';
 import 'package:auto_report/data/proto/response/generate_otp_response.dart';
+import 'package:auto_report/main.dart';
 import 'package:auto_report/rsa/rsa_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:http/http.dart' as http;
-import 'package:logger/logger.dart';
-
-var logger = Logger(
-  printer: PrettyPrinter(),
-);
 
 class AuthPage extends StatefulWidget {
   const AuthPage({super.key});
@@ -106,7 +102,7 @@ class _AuthPageState extends State<AuthPage> {
       EasyLoading.showInfo('send auth code success.');
       logger.i('request auth code success');
     } catch (e) {
-      logger.e('auth err: $e');
+      logger.e('auth err: $e', stackTrace: StackTrace.current);
       EasyLoading.showError('request err, code: $e',
           dismissOnTap: true, duration: const Duration(seconds: 60));
       return;
@@ -142,7 +138,7 @@ class _AuthPageState extends State<AuthPage> {
       logger.i('get token success.');
       return resBody.responseMap?.securityCounter;
     } catch (e) {
-      logger.e('get token err: $e');
+      logger.e('get token err: $e', stackTrace: StackTrace.current);
       EasyLoading.showError('get token err, code: $e',
           dismissOnTap: true, duration: const Duration(seconds: 60));
       return null;
@@ -179,7 +175,8 @@ class _AuthPageState extends State<AuthPage> {
 
     final resBody = GeneralResponse.fromJson(jsonDecode(response.body));
     if (response.statusCode != 200 || !resBody.isSuccess()) {
-      logger.e('confim auth code errr: ${response.statusCode}');
+      logger.e('confim auth code errr: ${response.statusCode}',
+          stackTrace: StackTrace.current);
       EasyLoading.showToast(
           resBody.message ?? 'err code: ${response.statusCode}');
       return false;
@@ -248,7 +245,8 @@ class _AuthPageState extends State<AuthPage> {
       logger.i('$Config.wmtMfsKey: ${response.headers[Config.wmtMfsKey]}');
 
       if (response.statusCode != 200) {
-        logger.e('login err: ${response.statusCode}');
+        logger.e('login err: ${response.statusCode}',
+            stackTrace: StackTrace.current);
         EasyLoading.showToast('login err: ${response.statusCode}');
         return;
       }
@@ -270,7 +268,7 @@ class _AuthPageState extends State<AuthPage> {
       );
       // logger.i(base64);
     } catch (e) {
-      logger.e('err: $e');
+      logger.e('err: $e', stackTrace: StackTrace.current);
       EasyLoading.showError('request err, code: $e',
           dismissOnTap: true, duration: const Duration(seconds: 60));
       return;

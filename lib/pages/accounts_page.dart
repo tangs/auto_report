@@ -1,7 +1,6 @@
 import 'package:auto_report/data/account/account_data.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:logger/logger.dart';
 
 class AccountsPage extends StatefulWidget {
   final List<AccountData> accountsData;
@@ -15,10 +14,6 @@ class AccountsPage extends StatefulWidget {
 }
 
 class _AccountsPageState extends State<AccountsPage> {
-  var logger = Logger(
-    printer: PrettyPrinter(),
-  );
-
   List<Widget> _buildList() {
     return widget.accountsData.map((data) => _item1(data)).toList();
   }
@@ -64,6 +59,10 @@ class _AccountsPageState extends State<AccountsPage> {
         _buildSub('deviceId', data.deviceId, null, null),
         _buildSub('model', data.model, null, null),
         _buildSub('os version', data.osVersion, null, null),
+        OutlinedButton(
+          onPressed: () => data.updateOrder(() => setState(() => data = data)),
+          child: const Text('Update orders'),
+        ),
         Column(
           children: [
             Center(
@@ -87,9 +86,7 @@ class _AccountsPageState extends State<AccountsPage> {
                             child: const Text('OK'),
                           ),
                           TextButton(
-                            onPressed: () {
-                              Navigator.of(context).pop();
-                            },
+                            onPressed: () => Navigator.of(context).pop(),
                             child: const Text('Cancel'),
                           ),
                         ],
@@ -100,7 +97,7 @@ class _AccountsPageState extends State<AccountsPage> {
               ),
             )
           ],
-        )
+        ),
       ],
     );
   }
