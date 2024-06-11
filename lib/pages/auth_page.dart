@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:auto_report/config/config.dart';
 import 'package:auto_report/data/account/account_data.dart';
@@ -30,6 +31,32 @@ class _AuthPageState extends State<AuthPage> {
 
   String? _wmtMfs;
 
+  late String _deviceId;
+  late String _model;
+  late String _osVersion;
+
+  final _modes = ['Pixel 5', 'Pixel 6', 'Pixel 5 pro'];
+  final _osVersions = ['12', '13', '14'];
+
+  @override
+  void initState() {
+    super.initState();
+
+    // generate device id
+    var deviceId = '';
+    var ran = Random.secure();
+    for (var i = 0; i < 40; ++i) {
+      var num = ran.nextInt(16);
+      deviceId += num.toRadixString(16);
+    }
+
+    _model = _modes[ran.nextInt(_modes.length)];
+    _osVersion = _osVersions[ran.nextInt(_osVersions.length)];
+    _deviceId = deviceId;
+
+    logger.i('device id: $_deviceId, model: $_model, os version: $_osVersion');
+  }
+
   void _auth() async {
     // var encryptStr = RSAHelper.encrypt(
     //     '123456:0d63104e-de16-49b7-8c07-aee6ef8d53f8', Config.rsaPublicKey);
@@ -59,7 +86,8 @@ class _AuthPageState extends State<AuthPage> {
 
     final url = Uri.https(
         Config.host, 'wmt-mfs-otp/generate-otp', {'msisdn': '$_phoneNumber'});
-    final headers = Config.getHeaders()
+    final headers = Config.getHeaders(
+        deviceid: _deviceId, model: _model, osversion: _osVersion)
       ..addAll({
         "user-agent": "okhttp/4.9.0",
         wmtMfsKey: _wmtMfs ?? '',
@@ -94,7 +122,8 @@ class _AuthPageState extends State<AuthPage> {
     logger.i('Phone number: $_phoneNumber');
     final url = Uri.https(
         Config.host, 'wmt-mfs-otp/security-token', {'msisdn': '$_phoneNumber'});
-    final headers = Config.getHeaders()
+    final headers = Config.getHeaders(
+        deviceid: _deviceId, model: _model, osversion: _osVersion)
       ..addAll({
         'user-agent': 'okhttp/4.9.0',
         wmtMfsKey: _wmtMfs ?? '',
@@ -124,7 +153,8 @@ class _AuthPageState extends State<AuthPage> {
 
   Future<bool> _confirmAuthCode() async {
     final url = Uri.https(Config.host, 'wmt-mfs-otp/confirm-otp');
-    final headers = Config.getHeaders()
+    final headers = Config.getHeaders(
+        deviceid: _deviceId, model: _model, osversion: _osVersion)
       ..addAll({
         'Content-Type': 'application/x-www-form-urlencoded',
         "user-agent": "okhttp/4.9.0",
@@ -201,7 +231,8 @@ class _AuthPageState extends State<AuthPage> {
       logger.i('form data: $formData');
 
       final url = Uri.https(Config.host, 'v2/mfs-customer/login');
-      final headers = Config.getHeaders()
+      final headers = Config.getHeaders(
+          deviceid: _deviceId, model: _model, osversion: _osVersion)
         ..addAll({
           'Content-Type': 'application/x-www-form-urlencoded',
           'user-agent': 'okhttp/4.9.0',
@@ -234,6 +265,9 @@ class _AuthPageState extends State<AuthPage> {
           authCode: _authCode!,
           wmtMfs: _wmtMfs!,
           isWmtMfsInvalid: false,
+          deviceId: _deviceId,
+          model: _model,
+          osVersion: _osVersion,
         ),
       );
       // logger.i(base64);
@@ -321,6 +355,9 @@ class _AuthPageState extends State<AuthPage> {
                   authCode: '2222',
                   wmtMfs: 'abcdefghijk',
                   isWmtMfsInvalid: false,
+                  deviceId: 'fd701ebde3dcc9342ab647f5b5800f76ba3a7b5d',
+                  model: 'Pixel 5',
+                  osVersion: '13',
                 ),
               );
             },

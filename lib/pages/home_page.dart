@@ -39,7 +39,7 @@ class _HomePageState extends State<HomePage> {
       for (final info in accountsData) {
         info.updateOrder();
       }
-      logger.i('update');
+      // logger.i('update');
     });
   }
 
