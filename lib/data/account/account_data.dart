@@ -5,20 +5,22 @@ import 'dart:ui';
 import 'package:auto_report/config/config.dart';
 import 'package:auto_report/data/proto/response/wallet_balance_response.dart';
 import 'package:auto_report/pages/auth_page.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:http/http.dart' as http;
 
 class AccountData {
-  String phoneNumber;
-  String pin;
-  String authCode;
-  String wmtMfs;
+  late String phoneNumber;
+  late String pin;
+  late String authCode;
+  late String wmtMfs;
 
-  String deviceId;
-  String model;
-  String osVersion;
+  late String deviceId;
+  late String model;
+  late String osVersion;
 
-  bool isWmtMfsInvalid;
+  late bool isWmtMfsInvalid;
+  bool needRemove = false;
 
   double? balance;
 
@@ -40,24 +42,60 @@ class AccountData {
     required this.osVersion,
   });
 
+  Map<String, dynamic> restore() {
+    return {
+      'phoneNumber': phoneNumber,
+      'pin': pin,
+      'authCode': authCode,
+      'wmtMfs': wmtMfs,
+      'deviceId': deviceId,
+      'model': model,
+      'osVersion': osVersion,
+      'isWmtMfsInvalid': isWmtMfsInvalid,
+    };
+  }
+
+  AccountData.fromJson(Map<String, dynamic> json) {
+    phoneNumber = json['phoneNumber'];
+    pin = json['pin'];
+    authCode = json['authCode'];
+    wmtMfs = json['wmtMfs'];
+    deviceId = json['deviceId'];
+    model = json['model'];
+    osVersion = json['osVersion'];
+    isWmtMfsInvalid = json['isWmtMfsInvalid'];
+  }
+
   @override
   String toString() {
     return 'phone number: $phoneNumber, pin: $pin, auth code: $authCode, wmt mfs: $wmtMfs';
   }
 
-  updateOrder() async {
+  update(VoidCallback? dataUpdated) {
+    if (!isUpdatingOrders &&
+        DateTime.now().difference(lastUpdateTime).inSeconds > 60) {
+      updateOrder(dataUpdated);
+    }
+  }
+
+  updateOrder(VoidCallback? dataUpdated) async {
     if (isUpdatingOrders) return;
+    logger.i('start update order.phone: $phoneNumber');
     isUpdatingOrders = true;
+    dataUpdated?.call();
 
     // 等待余额更新结束
     while (isUpdatingBalance) {
       await Future.delayed(const Duration(seconds: 1));
     }
 
-    var seconds = DateTime.now().difference(lastUpdateTime).inSeconds;
-    logger.i('seconds: $seconds');
+    // var seconds = DateTime.now().difference(lastUpdateTime).inSeconds;
+    // logger.i('seconds: $seconds');
 
+    logger.i('end update order.phone: $phoneNumber');
+    lastUpdateTime = DateTime.now();
     isUpdatingOrders = false;
+    dataUpdated?.call();
   }
 
   updateBalance(VoidCallback? dataUpdated) async {

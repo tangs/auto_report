@@ -1,17 +1,24 @@
 import 'package:auto_report/data/account/account_data.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:logger/logger.dart';
 
 class AccountsPage extends StatefulWidget {
   final List<AccountData> accountsData;
 
-  const AccountsPage({super.key, required this.accountsData});
+  final VoidCallback onRemoved;
+  const AccountsPage(
+      {super.key, required this.accountsData, required this.onRemoved});
 
   @override
   State<AccountsPage> createState() => _AccountsPageState();
 }
 
 class _AccountsPageState extends State<AccountsPage> {
+  var logger = Logger(
+    printer: PrettyPrinter(),
+  );
+
   List<Widget> _buildList() {
     return widget.accountsData.map((data) => _item1(data)).toList();
   }
@@ -57,6 +64,43 @@ class _AccountsPageState extends State<AccountsPage> {
         _buildSub('deviceId', data.deviceId, null, null),
         _buildSub('model', data.model, null, null),
         _buildSub('os version', data.osVersion, null, null),
+        Column(
+          children: [
+            Center(
+              child: IconButton(
+                color: Colors.red,
+                icon: const Icon(Icons.delete_forever),
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return AlertDialog(
+                        title: const Icon(Icons.delete_forever),
+                        content: const Text('delete this account?'),
+                        actions: [
+                          TextButton(
+                            onPressed: () {
+                              setState(() => data.needRemove = true);
+                              widget.onRemoved();
+                              Navigator.of(context).pop();
+                            },
+                            child: const Text('OK'),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                            },
+                            child: const Text('Cancel'),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                },
+              ),
+            )
+          ],
+        )
       ],
     );
   }

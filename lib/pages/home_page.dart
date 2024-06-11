@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:auto_report/data/account/account_data.dart';
+import 'package:auto_report/data/account/accounts.dart';
 import 'package:auto_report/pages/accounts_page.dart';
 import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
@@ -22,7 +23,8 @@ class _HomePageState extends State<HomePage> {
   // int _counter = 0;
   int _navIndex = 0;
 
-  List<AccountData> accountsData = [];
+  // List<AccountData> accountsData = [];
+  final accounts = Accounts();
 
   late PageController _pageViewController;
 
@@ -36,8 +38,9 @@ class _HomePageState extends State<HomePage> {
         timer.cancel();
         return;
       }
-      for (final info in accountsData) {
-        info.updateOrder();
+      for (final info in accounts.accountsData) {
+        info.update(() =>
+            setState(() => accounts.accountsData = accounts.accountsData));
       }
       // logger.i('update');
     });
@@ -52,6 +55,7 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    accounts.restore();
     final TextTheme textTheme = Theme.of(context).textTheme;
     return Scaffold(
       appBar: AppBar(
@@ -67,7 +71,8 @@ class _HomePageState extends State<HomePage> {
             onPageChanged: (index) => setState(() => _navIndex = index),
             children: <Widget>[
               AccountsPage(
-                accountsData: accountsData,
+                accountsData: accounts.accountsData,
+                onRemoved: () => setState(() => accounts.update()),
               ),
               Center(
                 child: Text('Second Page', style: textTheme.titleLarge),
@@ -88,9 +93,10 @@ class _HomePageState extends State<HomePage> {
             if (result is AccountData) {
               logger.i('add accout $result');
               setState(() {
-                accountsData.removeWhere(
-                    (data) => data.phoneNumber == result.phoneNumber);
-                accountsData.add(result);
+                // accounts.accountsData.removeWhere(
+                //     (data) => data.phoneNumber == result.phoneNumber);
+                // accounts.accountsData.add(result);
+                accounts.add(result, true);
               });
             }
           },

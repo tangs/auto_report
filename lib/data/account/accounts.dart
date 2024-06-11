@@ -1,0 +1,60 @@
+import 'dart:convert';
+
+import 'package:auto_report/data/account/account_data.dart';
+import 'package:auto_report/rsa/rsa_helper.dart';
+import 'package:localstorage/localstorage.dart';
+
+class Accounts {
+  List<AccountData> accountsData = [];
+
+  String _lastRestoreStr = '';
+
+  Accounts() {
+    resume();
+  }
+
+  void add(AccountData account, bool removeDuplicated) {
+    if (removeDuplicated) {
+      removeByPhoneNumber(account.phoneNumber, true);
+    }
+    accountsData.add(account);
+    restore();
+  }
+
+  void removeByPhoneNumber(String phoneNumber, bool skipRestore) {
+    accountsData.removeWhere((account) => account.phoneNumber == phoneNumber);
+    if (skipRestore) return;
+    restore();
+  }
+
+  AccountData getAccountByPhoneNumber(String phoneNumber) {
+    return accountsData
+        .firstWhere((account) => account.phoneNumber == phoneNumber);
+  }
+
+  void update() {
+    accountsData.removeWhere((acc) => acc.needRemove);
+  }
+
+  void restore() {
+    var data = accountsData.map((acc) => acc.restore()).toList();
+    var str = jsonEncode(data);
+    if (str == _lastRestoreStr) return;
+
+    logger.i('restore: $str');
+    localStorage.setItem('accounts', str);
+    _lastRestoreStr = str;
+  }
+
+  void resume() {
+    var str = localStorage.getItem('accounts');
+    if (str == null) return;
+
+    try {
+      var data = jsonDecode(str) as List<dynamic>;
+      accountsData = data.map((acc) => AccountData.fromJson(acc)).toList();
+    } catch (e) {
+      logger.e('e: $e');
+    }
+  }
+}
