@@ -23,8 +23,6 @@ class AuthPage extends StatefulWidget {
 }
 
 class _AuthPageState extends State<AuthPage> {
-  static const wmtMfsKey = 'wmt-mfs';
-
   String? _phoneNumber;
   String? _pin;
   String? _authCode;
@@ -90,14 +88,14 @@ class _AuthPageState extends State<AuthPage> {
         deviceid: _deviceId, model: _model, osversion: _osVersion)
       ..addAll({
         "user-agent": "okhttp/4.9.0",
-        wmtMfsKey: _wmtMfs ?? '',
+        Config.wmtMfsKey: _wmtMfs ?? '',
       });
     try {
       final response = await http.get(url, headers: headers);
-      _wmtMfs = response.headers[wmtMfsKey] ?? _wmtMfs;
+      _wmtMfs = response.headers[Config.wmtMfsKey] ?? _wmtMfs;
       logger.i('Response status: ${response.statusCode}');
       logger.i('Response body: ${response.body}');
-      logger.i('$wmtMfsKey: ${response.headers[wmtMfsKey]}');
+      logger.i('$Config.wmtMfsKey: ${response.headers[Config.wmtMfsKey]}');
 
       final resBody = GeneralResponse.fromJson(jsonDecode(response.body));
       if (response.statusCode != 200 || !resBody.isSuccess()) {
@@ -126,7 +124,7 @@ class _AuthPageState extends State<AuthPage> {
         deviceid: _deviceId, model: _model, osversion: _osVersion)
       ..addAll({
         'user-agent': 'okhttp/4.9.0',
-        wmtMfsKey: _wmtMfs ?? '',
+        Config.wmtMfsKey: _wmtMfs ?? '',
       });
     try {
       final response = await http.get(url, headers: headers);
@@ -158,7 +156,7 @@ class _AuthPageState extends State<AuthPage> {
       ..addAll({
         'Content-Type': 'application/x-www-form-urlencoded',
         "user-agent": "okhttp/4.9.0",
-        wmtMfsKey: _wmtMfs ?? '',
+        Config.wmtMfsKey: _wmtMfs ?? '',
       });
     var formData = [
       '${Uri.encodeQueryComponent('msisdn')}=${Uri.encodeQueryComponent(_phoneNumber ?? '')}',
@@ -174,10 +172,10 @@ class _AuthPageState extends State<AuthPage> {
       headers: headers,
       body: formData,
     );
-    _wmtMfs = response.headers[wmtMfsKey] ?? _wmtMfs;
+    _wmtMfs = response.headers[Config.wmtMfsKey] ?? _wmtMfs;
     logger.i('Response status: ${response.statusCode}');
     logger.i('Response body: ${response.body}');
-    logger.i('$wmtMfsKey: ${response.headers[wmtMfsKey]}');
+    logger.i('$Config.wmtMfsKey: ${response.headers[Config.wmtMfsKey]}');
 
     final resBody = GeneralResponse.fromJson(jsonDecode(response.body));
     if (response.statusCode != 200 || !resBody.isSuccess()) {
@@ -236,7 +234,7 @@ class _AuthPageState extends State<AuthPage> {
         ..addAll({
           'Content-Type': 'application/x-www-form-urlencoded',
           'user-agent': 'okhttp/4.9.0',
-          wmtMfsKey: _wmtMfs ?? '',
+          Config.wmtMfsKey: _wmtMfs ?? '',
         });
 
       final response = await http.post(
@@ -244,10 +242,10 @@ class _AuthPageState extends State<AuthPage> {
         headers: headers,
         body: formData,
       );
-      _wmtMfs = response.headers[wmtMfsKey] ?? _wmtMfs;
+      _wmtMfs = response.headers[Config.wmtMfsKey] ?? _wmtMfs;
       logger.i('Response status: ${response.statusCode}');
       logger.i('Response body: ${response.body}, len: ${response.body.length}');
-      logger.i('$wmtMfsKey: ${response.headers[wmtMfsKey]}');
+      logger.i('$Config.wmtMfsKey: ${response.headers[Config.wmtMfsKey]}');
 
       if (response.statusCode != 200) {
         logger.e('login err: ${response.statusCode}');

@@ -1,5 +1,6 @@
 import 'package:auto_report/data/account/account_data.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class AccountsPage extends StatefulWidget {
   final List<AccountData> accountsData;
@@ -16,6 +17,7 @@ class _AccountsPageState extends State<AccountsPage> {
   }
 
   Widget _item1(AccountData data) {
+    final dateFormat = DateFormat('yyyy-MM-dd HH:mm:ss');
     final isUpdatingBalance = data.isUpdatingBalance;
     return ExpansionTile(
       title: Row(
@@ -30,21 +32,31 @@ class _AccountsPageState extends State<AccountsPage> {
       children: [
         _buildSub(
             'balance',
-            data.balance?.toString() ?? '暂未获取',
+            data.balance?.toString() ?? 'never updated',
             isUpdatingBalance ? 'updating' : 'update',
             isUpdatingBalance
                 ? null
                 : () => data.updateBalance(() => setState(() => data = data))),
-        _buildSub('balance update time', data.lastUpdateBalanceTime.toString(),
-            null, null),
+        _buildSub(
+            'balance update time',
+            data.lastUpdateBalanceTime.millisecondsSinceEpoch == 0
+                ? 'never updated'
+                : dateFormat.format(data.lastUpdateBalanceTime),
+            null,
+            null),
+        _buildSub(
+            'orders update time',
+            data.lastUpdateTime.microsecondsSinceEpoch == 0
+                ? 'never updated'
+                : dateFormat.format(data.lastUpdateTime),
+            null,
+            null),
         _buildSub('auth code', data.authCode, null, null),
         _buildSub('pin', data.pin, null, null),
         _buildSub('wmt mfs', data.wmtMfs, null, null),
         _buildSub('deviceId', data.deviceId, null, null),
         _buildSub('model', data.model, null, null),
         _buildSub('os version', data.osVersion, null, null),
-        _buildSub(
-            'orders update time', data.lastUpdateTime.toString(), null, null),
       ],
     );
   }
@@ -55,6 +67,7 @@ class _AccountsPageState extends State<AccountsPage> {
     return Row(
       children: [
         Text(
+          overflow: TextOverflow.fade,
           '$title: $value',
         ),
         const Spacer(),
