@@ -49,6 +49,26 @@ class _HomePageState extends State<HomePage> {
     logger.i('dispose');
   }
 
+  void newAccount({String? phoneNumber = '', String? pin = ''}) async {
+    var result = await Navigator.of(context).pushNamed("/auth", arguments: {
+      'phoneNumber': phoneNumber ?? '',
+      'pin': pin ?? '',
+    });
+    if (result == null) {
+      logger.i('cancel login.');
+      return;
+    }
+    if (result is AccountData) {
+      logger.i('add accout $result');
+      setState(() {
+        // accounts.accountsData.removeWhere(
+        //     (data) => data.phoneNumber == result.phoneNumber);
+        // accounts.accountsData.add(result);
+        accounts.add(result, true);
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     accounts.restore();
@@ -69,6 +89,10 @@ class _HomePageState extends State<HomePage> {
               AccountsPage(
                 accountsData: accounts.accountsData,
                 onRemoved: () => setState(() => accounts.update()),
+                onReLogin: ({String? phoneNumber, String? pin}) => newAccount(
+                  phoneNumber: phoneNumber,
+                  pin: pin,
+                ),
               ),
               Center(
                 child: Text('Second Page', style: textTheme.titleLarge),
@@ -80,22 +104,7 @@ class _HomePageState extends State<HomePage> {
       floatingActionButton: Visibility(
         visible: _navIndex == 0,
         child: FloatingActionButton(
-          onPressed: () async {
-            var result = await Navigator.of(context).pushNamed("/auth");
-            if (result == null) {
-              logger.i('cancel login.');
-              return;
-            }
-            if (result is AccountData) {
-              logger.i('add accout $result');
-              setState(() {
-                // accounts.accountsData.removeWhere(
-                //     (data) => data.phoneNumber == result.phoneNumber);
-                // accounts.accountsData.add(result);
-                accounts.add(result, true);
-              });
-            }
-          },
+          onPressed: newAccount,
           tooltip: 'new account',
           child: const Icon(Icons.add),
         ),

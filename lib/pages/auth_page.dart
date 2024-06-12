@@ -12,7 +12,10 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:http/http.dart' as http;
 
 class AuthPage extends StatefulWidget {
-  const AuthPage({super.key});
+  const AuthPage({super.key, this.phoneNumber, this.pin});
+
+  final String? phoneNumber;
+  final String? pin;
 
   @override
   State<AuthPage> createState() => _AuthPageState();
@@ -35,6 +38,9 @@ class _AuthPageState extends State<AuthPage> {
   @override
   void initState() {
     super.initState();
+
+    _phoneNumber = widget.phoneNumber ?? '';
+    _pin = widget.pin ?? '';
 
     // generate device id
     var deviceId = '';
@@ -257,7 +263,7 @@ class _AuthPageState extends State<AuthPage> {
         context,
         AccountData(
           phoneNumber: _phoneNumber!,
-          pin: pin,
+          pin: _pin!,
           authCode: _authCode!,
           wmtMfs: _wmtMfs!,
           isWmtMfsInvalid: false,

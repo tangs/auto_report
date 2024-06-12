@@ -2,12 +2,19 @@ import 'package:auto_report/data/account/account_data.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+typedef ReLoginCallback = void Function({String phoneNumber, String pin});
+
 class AccountsPage extends StatefulWidget {
   final List<AccountData> accountsData;
 
   final VoidCallback onRemoved;
-  const AccountsPage(
-      {super.key, required this.accountsData, required this.onRemoved});
+  final ReLoginCallback onReLogin;
+  const AccountsPage({
+    super.key,
+    required this.accountsData,
+    required this.onRemoved,
+    required this.onReLogin,
+  });
 
   @override
   State<AccountsPage> createState() => _AccountsPageState();
@@ -21,22 +28,57 @@ class _AccountsPageState extends State<AccountsPage> {
   Widget _item1(AccountData data) {
     final dateFormat = DateFormat('yyyy-MM-dd HH:mm:ss');
     final isUpdatingBalance = data.isUpdatingBalance;
+    final invalid = data.isWmtMfsInvalid;
+    final showDetail = data.showDetail;
     return ExpansionTile(
       title: Row(
         children: [
           const Icon(Icons.phone_android_sharp),
-          Text(
-            data.phoneNumber,
-            style: const TextStyle(color: Colors.black54, fontSize: 20),
-          ),
+          Row(
+            children: [
+              Text(
+                data.phoneNumber,
+                style: const TextStyle(color: Colors.black54, fontSize: 20),
+              ),
+              const Padding(padding: EdgeInsets.only(left: 10)),
+              Text(
+                style: TextStyle(color: invalid ? Colors.red : Colors.blue),
+                'state: ${invalid ? 'invalid' : 'normal'}',
+              )
+            ],
+          )
         ],
       ),
       children: [
+        Row(
+          children: [
+            const Text('Disable Report:'),
+            const Spacer(),
+            Switch(
+              value: data.pauseReport,
+              activeColor: Colors.red,
+              onChanged: (bool value) =>
+                  setState(() => data.pauseReport = value),
+            ),
+          ],
+        ),
+        Row(
+          children: [
+            const Text('Show detail:'),
+            const Spacer(),
+            Switch(
+              value: data.showDetail,
+              activeColor: Colors.red,
+              onChanged: (bool value) =>
+                  setState(() => data.showDetail = value),
+            ),
+          ],
+        ),
         _buildSub(
             'balance',
             data.balance?.toString() ?? 'never updated',
             isUpdatingBalance ? 'updating' : 'update',
-            isUpdatingBalance
+            isUpdatingBalance || invalid
                 ? null
                 : () => data.updateBalance(() => setState(() => data = data))),
         _buildSub(
@@ -53,15 +95,38 @@ class _AccountsPageState extends State<AccountsPage> {
                 : dateFormat.format(data.lastUpdateTime),
             null,
             null),
-        _buildSub('auth code', data.authCode, null, null),
-        _buildSub('pin', data.pin, null, null),
-        _buildSub('wmt mfs', data.wmtMfs, null, null),
-        _buildSub('deviceId', data.deviceId, null, null),
-        _buildSub('model', data.model, null, null),
-        _buildSub('os version', data.osVersion, null, null),
-        OutlinedButton(
-          onPressed: () => data.updateOrder(() => setState(() => data = data)),
-          child: const Text('Update orders'),
+        Visibility(
+          visible: showDetail,
+          child: Column(
+            children: [
+              _buildSub('auth code', data.authCode, null, null),
+              _buildSub('pin', data.pin, null, null),
+              _buildSub('wmt mfs', data.wmtMfs, null, null),
+              _buildSub('deviceId', data.deviceId, null, null),
+              _buildSub('model', data.model, null, null),
+              _buildSub('os version', data.osVersion, null, null),
+            ],
+          ),
+        ),
+        Visibility(
+          visible: !invalid,
+          child: OutlinedButton(
+            onPressed: data.isUpdatingOrders || invalid
+                ? null
+                : () => data.updateOrder(() => setState(() => data = data)),
+            child: Text(
+                data.isUpdatingOrders ? 'Updating orders' : 'Update orders'),
+          ),
+        ),
+        Visibility(
+          visible: invalid,
+          child: OutlinedButton(
+            onPressed: () => widget.onReLogin(
+              phoneNumber: data.phoneNumber,
+              pin: data.pin,
+            ),
+            child: const Text('ReLogin'),
+          ),
         ),
         Column(
           children: [

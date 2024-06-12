@@ -24,7 +24,14 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo',
       routes: {
-        '/auth': (context) => const AuthPage(),
+        '/auth': (context) {
+          final data =
+              ModalRoute.of(context)?.settings.arguments as Map<String, String>;
+          return AuthPage(
+            phoneNumber: data['phoneNumber'],
+            pin: data['pin'],
+          );
+        },
       },
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),

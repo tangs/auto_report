@@ -3,9 +3,9 @@ import 'dart:convert';
 import 'dart:ui';
 
 import 'package:auto_report/config/config.dart';
+import 'package:auto_report/data/account/histories_response.dart';
 import 'package:auto_report/data/proto/response/wallet_balance_response.dart';
 import 'package:auto_report/main.dart';
-import 'package:auto_report/pages/auth_page.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:http/http.dart' as http;
@@ -22,6 +22,8 @@ class AccountData {
 
   late bool isWmtMfsInvalid;
   bool needRemove = false;
+  bool pauseReport = false;
+  bool showDetail = false;
 
   double? balance;
 
@@ -31,6 +33,10 @@ class AccountData {
 
   DateTime lastUpdateTime = DateTime.fromMicrosecondsSinceEpoch(0);
   DateTime lastUpdateBalanceTime = DateTime.fromMicrosecondsSinceEpoch(0);
+
+  final List<HistoriesResponseResponseMapTnxHistoryList> _waitReportList = [];
+  String _lastTransId = '';
+  DateTime _lasttransDate = DateTime.now();
 
   AccountData({
     required this.phoneNumber,
@@ -72,7 +78,8 @@ class AccountData {
     return 'phone number: $phoneNumber, pin: $pin, auth code: $authCode, wmt mfs: $wmtMfs';
   }
 
-  Future getOrders(int offset) async {
+  Future<bool> getOrders(int offset) async {
+    return false;
     try {
       final url =
           Uri.https(Config.host, 'v3/mfs-customer/utility/tnx-histories', {
@@ -99,19 +106,26 @@ class AccountData {
       if (response.statusCode != 200) {
         logger.e('login err: ${response.statusCode}',
             stackTrace: StackTrace.current);
+        isWmtMfsInvalid = true;
         EasyLoading.showToast('login err: ${response.statusCode}');
-        return;
+        return false;
       }
+      var histories = HistoriesResponse.fromJson(jsonDecode(response.body));
+      histories.responseMap?.tnxHistoryList
+          ?.where((cell) => cell?.isReceve() ?? false)
+          .where((cell) => cell?.toDateTime().isAfter(_lasttransDate) ?? false)
+          .map((cell) {});
     } catch (e) {
       logger.e('err: ${e.toString()}', stackTrace: StackTrace.current);
       EasyLoading.showError('request err, code: $e',
           dismissOnTap: true, duration: const Duration(seconds: 60));
     }
-    return null;
+    return true;
   }
 
   update(VoidCallback? dataUpdated) {
     if (!isUpdatingOrders &&
+        !pauseReport &&
         DateTime.now().difference(lastUpdateTime).inSeconds > 60) {
       updateOrder(dataUpdated);
     }
@@ -125,13 +139,21 @@ class AccountData {
 
     // 等待余额更新结束
     while (isUpdatingBalance) {
-      await Future.delayed(const Duration(seconds: 1));
+      await Future.delayed(const Duration(milliseconds: 100));
     }
 
-    await getOrders(0);
+    _waitReportList.clear();
+
+    var offset = 0;
+    while (!isWmtMfsInvalid && await getOrders(offset)) {
+      offset += 10;
+    }
 
     // var seconds = DateTime.now().difference(lastUpdateTime).inSeconds;
     // logger.i('seconds: $seconds');
+
+    // todo report
+    _waitReportList.clear();
 
     logger.i('end update order.phone: $phoneNumber');
     lastUpdateTime = DateTime.now();
@@ -146,7 +168,7 @@ class AccountData {
 
     // 等待订单更新结束
     while (isUpdatingOrders) {
-      await Future.delayed(const Duration(seconds: 1));
+      await Future.delayed(const Duration(milliseconds: 100));
     }
 
     try {
@@ -171,6 +193,7 @@ class AccountData {
         logger.e('login err: ${response.statusCode}',
             stackTrace: StackTrace.current);
         EasyLoading.showToast('login err: ${response.statusCode}');
+        isWmtMfsInvalid = true;
         return;
       }
       final resBody = WalletBalanceResponse.fromJson(jsonDecode(response.body));
