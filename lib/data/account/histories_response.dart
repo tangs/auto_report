@@ -172,12 +172,13 @@ class HistoriesResponseResponseMap {
     data['statusCode'] = statusCode;
     data['respTime'] = respTime;
     if (tnxHistoryList != null) {
-      final v = tnxHistoryList;
-      final arr0 = [];
-      v!.forEach((v) {
-        arr0.add(v!.toJson());
-      });
-      data['tnxHistoryList'] = arr0;
+      // final v = tnxHistoryList;
+      // final arr0 = [];
+      // v!.forEach((v) {
+      //   arr0.add(v!.toJson());
+      // });
+      // data['tnxHistoryList'] = arr0;
+      data['tnxHistoryList'] = tnxHistoryList!.map((v) => v!.toJson()).toList();
     }
     data['totalCount'] = totalCount;
     return data;

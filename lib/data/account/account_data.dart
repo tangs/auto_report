@@ -34,9 +34,9 @@ class AccountData {
   DateTime lastUpdateTime = DateTime.fromMicrosecondsSinceEpoch(0);
   DateTime lastUpdateBalanceTime = DateTime.fromMicrosecondsSinceEpoch(0);
 
-  final List<HistoriesResponseResponseMapTnxHistoryList> _waitReportList = [];
-  String _lastTransId = '';
-  DateTime _lasttransDate = DateTime.now();
+  final List<HistoriesResponseResponseMapTnxHistoryList?> _waitReportList = [];
+  String? _lastTransId;
+  DateTime? _lasttransDate;
 
   AccountData({
     required this.phoneNumber,
@@ -70,7 +70,8 @@ class AccountData {
     deviceId = json['deviceId'];
     model = json['model'];
     osVersion = json['osVersion'];
-    isWmtMfsInvalid = json['isWmtMfsInvalid'];
+    // isWmtMfsInvalid = json['isWmtMfsInvalid'];
+    isWmtMfsInvalid = false;
   }
 
   @override
@@ -79,7 +80,6 @@ class AccountData {
   }
 
   Future<bool> getOrders(int offset) async {
-    return false;
     try {
       final url =
           Uri.https(Config.host, 'v3/mfs-customer/utility/tnx-histories', {
@@ -110,24 +110,43 @@ class AccountData {
         EasyLoading.showToast('login err: ${response.statusCode}');
         return false;
       }
-      var histories = HistoriesResponse.fromJson(jsonDecode(response.body));
-      histories.responseMap?.tnxHistoryList
+      final lastTime = _lasttransDate ?? DateTime.fromMicrosecondsSinceEpoch(0);
+      final histories = HistoriesResponse.fromJson(jsonDecode(response.body));
+      final tnxHistoryList = histories.responseMap?.tnxHistoryList;
+      final cells = tnxHistoryList
           ?.where((cell) => cell?.isReceve() ?? false)
-          .where((cell) => cell?.toDateTime().isAfter(_lasttransDate) ?? false)
-          .map((cell) {});
+          .where((cell) {
+        final time = cell!.toDateTime();
+        return time.isAfter(lastTime) ||
+            (time == lastTime && cell.transId != _lastTransId);
+      }).toList();
+      if (cells != null) {
+        _waitReportList.addAll(cells);
+      }
+      // 第一次只需要获取最新的订单
+      if (_lasttransDate == null) return false;
+      // 没有多余订单了
+      if (tnxHistoryList == null || tnxHistoryList.length < 20) return false;
+      return tnxHistoryList.last?.toDateTime().isAfter(lastTime) ?? false;
     } catch (e) {
       logger.e('err: ${e.toString()}', stackTrace: StackTrace.current);
       EasyLoading.showError('request err, code: $e',
           dismissOnTap: true, duration: const Duration(seconds: 60));
     }
-    return true;
+    return false;
   }
 
   update(VoidCallback? dataUpdated) {
+    if (isWmtMfsInvalid) return;
+
     if (!isUpdatingOrders &&
         !pauseReport &&
         DateTime.now().difference(lastUpdateTime).inSeconds > 60) {
       updateOrder(dataUpdated);
+    }
+    if (!isUpdatingBalance &&
+        DateTime.now().difference(lastUpdateBalanceTime).inMinutes > 10) {
+      updateBalance(dataUpdated);
     }
   }
 
@@ -147,6 +166,37 @@ class AccountData {
     var offset = 0;
     while (!isWmtMfsInvalid && await getOrders(offset)) {
       offset += 10;
+    }
+    final ids = <String>{};
+
+    if (_lasttransDate == null) {
+      if (_waitReportList.isEmpty) {
+        _lasttransDate = DateTime.fromMicrosecondsSinceEpoch(0);
+        _lastTransId = '-1';
+      } else {
+        final cell = _waitReportList.first;
+        _lastTransId = cell!.transId;
+        _lasttransDate = cell.toDateTime();
+      }
+      logger.i('report: init last date time: $_lasttransDate');
+    } else {
+      var needReportList = _waitReportList.where((cell) {
+        if (cell?.transId == null) return false;
+        if (ids.contains(cell?.transId ?? true)) return false;
+        ids.add(cell!.transId!);
+        return true;
+      }).map((cell) {
+        logger.i(
+            'report: phone: $phoneNumber id: ${cell!.transId}, amount: ${cell.amount}, time: ${cell.transDate}');
+        return cell;
+      }).toList();
+      logger.i('report: cnt: ${needReportList.length}, phone: $phoneNumber');
+
+      if (needReportList.isNotEmpty) {
+        final lastCell = needReportList.last;
+        _lastTransId = lastCell.transId!;
+        _lasttransDate = lastCell.toDateTime();
+      }
     }
 
     // var seconds = DateTime.now().difference(lastUpdateTime).inSeconds;
