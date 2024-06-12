@@ -5,15 +5,19 @@ import 'dart:math';
 import 'package:auto_report/config/config.dart';
 import 'package:auto_report/data/account/account_data.dart';
 import 'package:auto_report/data/proto/response/generate_otp_response.dart';
+import 'package:auto_report/data/proto/response/get_platforms_response.dart';
 import 'package:auto_report/main.dart';
 import 'package:auto_report/rsa/rsa_helper.dart';
+import 'package:auto_report/widges/platform_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:http/http.dart' as http;
 
 class AuthPage extends StatefulWidget {
-  const AuthPage({super.key, this.phoneNumber, this.pin});
+  const AuthPage(
+      {super.key, required this.platforms, this.phoneNumber, this.pin});
 
+  final List<GetPlatformsResponseData?>? platforms;
   final String? phoneNumber;
   final String? pin;
 
@@ -25,6 +29,8 @@ class _AuthPageState extends State<AuthPage> {
   String? _phoneNumber;
   String? _pin;
   String? _authCode;
+  String? _token;
+  String? _remark;
 
   String? _wmtMfs;
 
@@ -58,23 +64,6 @@ class _AuthPageState extends State<AuthPage> {
   }
 
   void _auth() async {
-    // var encryptStr = RSAHelper.encrypt(
-    //     '123456:0d63104e-de16-49b7-8c07-aee6ef8d53f8', Config.rsaPublicKey);
-    // logger.i('message: $encryptStr');
-    // return;
-    // var password = RSAHelper.encrypt(
-    //     '123456:0d63104e-de16-49b7-8c07-aee6ef8d53f8', Config.rsaPublicKey);
-    // var pin = RSAHelper.encrypt(
-    //     '123456:0d63104e-de16-49b7-8c07-abc6ef8d53f8', Config.rsaPublicKey);
-
-    // var formData = [
-    //   '${Uri.encodeQueryComponent('msisdn')}=${Uri.encodeQueryComponent(_phoneNumber ?? '')}',
-    //   '${Uri.encodeQueryComponent('password')}=${Uri.encodeQueryComponent(password)}',
-    //   '${Uri.encodeQueryComponent('pin')}=${Uri.encodeQueryComponent(pin)}',
-    // ].join('&');
-
-    // logger.i('data: $formData');
-    // return;
     if (_phoneNumber?.isEmpty ?? true) {
       EasyLoading.showToast('phone number is empty.');
       return;
@@ -204,6 +193,14 @@ class _AuthPageState extends State<AuthPage> {
       EasyLoading.showToast('auth code is empty.');
       return;
     }
+    if (_token?.isEmpty ?? true) {
+      EasyLoading.showToast('token is empty.');
+      return;
+    }
+    if (_remark?.isEmpty ?? true) {
+      EasyLoading.showToast('remark is empty.');
+      return;
+    }
 
     EasyLoading.show(status: 'loading...');
 
@@ -228,7 +225,7 @@ class _AuthPageState extends State<AuthPage> {
 
       logger.i('token1: $token1, token2: $token2');
       logger.i('Phone number: $_phoneNumber');
-      logger.i('login start');
+      logger.i('login wave start');
       logger.i('form data: $formData');
 
       final url = Uri.https(Config.host, 'v2/mfs-customer/login');
@@ -251,17 +248,19 @@ class _AuthPageState extends State<AuthPage> {
       logger.i('$Config.wmtMfsKey: ${response.headers[Config.wmtMfsKey]}');
 
       if (response.statusCode != 200) {
-        logger.e('login err: ${response.statusCode}',
+        logger.e('login wave err: ${response.statusCode}',
             stackTrace: StackTrace.current);
         EasyLoading.showToast('login err: ${response.statusCode}');
         return;
       }
 
-      logger.i('login success');
+      logger.i('login wave success');
       if (!context.mounted) return;
       Navigator.pop(
         context,
         AccountData(
+          token: _token!,
+          remark: _remark!,
           phoneNumber: _phoneNumber!,
           pin: _pin!,
           authCode: _authCode!,
@@ -311,6 +310,10 @@ class _AuthPageState extends State<AuthPage> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(15, 15, 15, 0),
+            child: PlatformSelector(platforms: widget.platforms),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(15, 15, 15, 0),
             child: TextFormField(
               controller: TextEditingController()..text = _phoneNumber ?? "",
               onChanged: (value) => _phoneNumber = value,
@@ -352,6 +355,8 @@ class _AuthPageState extends State<AuthPage> {
               Navigator.pop(
                 context,
                 AccountData(
+                  token: '1234355',
+                  remark: 'test',
                   phoneNumber: '123456789',
                   pin: '4321',
                   authCode: '2222',
@@ -360,6 +365,7 @@ class _AuthPageState extends State<AuthPage> {
                   deviceId: 'fd701ebde3dcc9342ab647f5b5800f76ba3a7b5d',
                   model: 'Pixel 5',
                   osVersion: '13',
+                  pauseReport: true,
                 ),
               );
             },

@@ -2,14 +2,20 @@ import 'dart:async';
 
 import 'package:auto_report/data/account/account_data.dart';
 import 'package:auto_report/data/account/accounts.dart';
+import 'package:auto_report/data/proto/response/get_platforms_response.dart';
 import 'package:auto_report/main.dart';
 import 'package:auto_report/pages/accounts_page.dart';
 import 'package:flutter/material.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key, required this.title});
+  const HomePage({
+    super.key,
+    required this.title,
+    required this.platforms,
+  });
 
   final String title;
+  final List<GetPlatformsResponseData?>? platforms;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -53,6 +59,7 @@ class _HomePageState extends State<HomePage> {
     var result = await Navigator.of(context).pushNamed("/auth", arguments: {
       'phoneNumber': phoneNumber ?? '',
       'pin': pin ?? '',
+      'platforms': widget.platforms,
     });
     if (result == null) {
       logger.i('cancel login.');

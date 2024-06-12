@@ -33,11 +33,11 @@ class _AccountsPageState extends State<AccountsPage> {
     return ExpansionTile(
       title: Row(
         children: [
-          const Icon(Icons.phone_android_sharp),
+          // const Icon(Icons.phone_android_sharp),
           Row(
             children: [
               Text(
-                data.phoneNumber,
+                data.remark,
                 style: const TextStyle(color: Colors.black54, fontSize: 20),
               ),
               const Padding(padding: EdgeInsets.only(left: 10)),
@@ -50,6 +50,12 @@ class _AccountsPageState extends State<AccountsPage> {
         ],
       ),
       children: [
+        Row(
+          children: [
+            const Icon(Icons.phone_android_sharp),
+            Text(data.phoneNumber),
+          ],
+        ),
         Row(
           children: [
             const Text('Disable Report:'),

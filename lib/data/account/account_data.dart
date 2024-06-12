@@ -11,6 +11,9 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:http/http.dart' as http;
 
 class AccountData {
+  late String token;
+  late String remark;
+
   late String phoneNumber;
   late String pin;
   late String authCode;
@@ -22,6 +25,7 @@ class AccountData {
 
   late bool isWmtMfsInvalid;
   bool needRemove = false;
+
   bool pauseReport = false;
   bool showDetail = false;
 
@@ -39,6 +43,8 @@ class AccountData {
   DateTime? _lasttransDate;
 
   AccountData({
+    required this.token,
+    required this.remark,
     required this.phoneNumber,
     required this.pin,
     required this.authCode,
@@ -47,10 +53,14 @@ class AccountData {
     required this.deviceId,
     required this.model,
     required this.osVersion,
+    this.pauseReport = false,
+    this.showDetail = false,
   });
 
   Map<String, dynamic> restore() {
     return {
+      'token': token,
+      'remark': remark,
       'phoneNumber': phoneNumber,
       'pin': pin,
       'authCode': authCode,
@@ -63,10 +73,14 @@ class AccountData {
   }
 
   AccountData.fromJson(Map<String, dynamic> json) {
+    token = json['token'];
+    remark = json['remark'];
+
     phoneNumber = json['phoneNumber'];
     pin = json['pin'];
     authCode = json['authCode'];
     wmtMfs = json['wmtMfs'];
+
     deviceId = json['deviceId'];
     model = json['model'];
     osVersion = json['osVersion'];
@@ -138,9 +152,9 @@ class AccountData {
 
   update(VoidCallback? dataUpdated) {
     if (isWmtMfsInvalid) return;
+    if (pauseReport) return;
 
     if (!isUpdatingOrders &&
-        !pauseReport &&
         DateTime.now().difference(lastUpdateTime).inSeconds > 60) {
       updateOrder(dataUpdated);
     }
