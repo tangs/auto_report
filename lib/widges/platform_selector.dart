@@ -30,6 +30,7 @@ class _PlatformSelectorState extends State<PlatformSelector> {
 
   @override
   Widget build(BuildContext context) {
+    final platforms = widget.platforms;
     return DropdownMenu<GetPlatformsResponseData?>(
       initialSelection: dropdownValue,
       onSelected: (GetPlatformsResponseData? value) {
@@ -38,13 +39,13 @@ class _PlatformSelectorState extends State<PlatformSelector> {
           widget.onValueChangedCallback?.call(dropdownValue);
         });
       },
-      dropdownMenuEntries: widget.platforms
-              ?.map<DropdownMenuEntry<GetPlatformsResponseData?>>((value) {
-            final name = value?.name ?? '';
-            return DropdownMenuEntry<GetPlatformsResponseData?>(
-                value: value, label: name);
-          }).toList() ??
-          [],
+      dropdownMenuEntries:
+          platforms?.map<DropdownMenuEntry<GetPlatformsResponseData?>>((value) {
+                final name = value?.name ?? '';
+                return DropdownMenuEntry<GetPlatformsResponseData?>(
+                    value: value, label: name);
+              }).toList() ??
+              [],
     );
   }
 }

@@ -4,6 +4,7 @@ import 'dart:ui';
 
 import 'package:auto_report/config/config.dart';
 import 'package:auto_report/data/account/histories_response.dart';
+import 'package:auto_report/data/proto/response/report/general_response.dart';
 import 'package:auto_report/data/proto/response/wallet_balance_response.dart';
 import 'package:auto_report/main.dart';
 import 'package:flutter/widgets.dart';
@@ -39,6 +40,7 @@ class AccountData {
   /// 当前正在更新余额
   bool isUpdatingBalance = false;
   bool isUpdatingOrders = false;
+  bool reporting = false;
 
   DateTime lastUpdateTime = DateTime.fromMicrosecondsSinceEpoch(0);
   DateTime lastUpdateBalanceTime = DateTime.fromMicrosecondsSinceEpoch(0);
@@ -46,6 +48,9 @@ class AccountData {
   final List<HistoriesResponseResponseMapTnxHistoryList?> _waitReportList = [];
   String? _lastTransId;
   DateTime? _lasttransDate;
+
+  int reportSuccessCnt = 0;
+  int reportFailCnt = 0;
 
   AccountData({
     required this.token,
@@ -232,16 +237,90 @@ class AccountData {
         _lasttransDate = lastCell.toDateTime();
       }
     }
-
     // var seconds = DateTime.now().difference(lastUpdateTime).inSeconds;
     // logger.i('seconds: $seconds');
 
-    // todo report
+    reports(dataUpdated);
     _waitReportList.clear();
 
     logger.i('end update order.phone: $phoneNumber');
     lastUpdateTime = DateTime.now();
     isUpdatingOrders = false;
+    dataUpdated?.call();
+  }
+
+  int payId = 0;
+  Future<bool> report(
+      HistoriesResponseResponseMapTnxHistoryList data, int payId) async {
+    try {
+      final host = platformUrl.replaceAll('http://', '');
+      const path = 'api/pay/payinfo_app';
+      final url = Uri.http(host, path);
+      logger.i('url: ${url.toString()}');
+      logger.i('host: $host, path: $path');
+      final response = await Future.any([
+        http.post(url, body: {
+          'token': token,
+          'phone': phoneNumber,
+          'terminal': data.msisdn,
+          'platform': 'WavePay',
+          'pay_id': '$payId',
+          'type': '9002',
+          'pay_order_num': data.transId,
+          'order_type': data.transType,
+          'pay_money': data.amount,
+          'bank_time': data.transDate,
+        }),
+        Future.delayed(const Duration(seconds: 20)),
+      ]);
+
+      if (response is! http.Response) {
+        EasyLoading.showError('report order timeout');
+        logger.i(
+            'report order timeout, phone: $phoneNumber, id: ${data.transId}');
+        return false;
+      }
+
+      final body = response.body;
+      logger.i('res body: $body');
+
+      final res = ReportGeneralResponse.fromJson(jsonDecode(body));
+      if (res.status != 'T') {
+        EasyLoading.showError(
+            'report order fail. code: ${res.status}, msg: ${res.message}');
+      }
+    } catch (e) {
+      logger.e('e: $e', stackTrace: StackTrace.current);
+    }
+    return true;
+  }
+
+  reports(VoidCallback? dataUpdated) async {
+    final reportList = [];
+    reportList.addAll(_waitReportList);
+
+    while (!reporting) {
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+
+    reporting = true;
+    for (final cell in _waitReportList) {
+      if (cell == null) continue;
+      var isFail = true;
+      // 重试3次
+      for (var i = 0; i < 3; ++i) {
+        if (await report(cell, payId++)) {
+          isFail = true;
+          break;
+        }
+      }
+      if (isFail) {
+        reportFailCnt++;
+      } else {
+        reportSuccessCnt++;
+      }
+    }
+    reporting = false;
     dataUpdated?.call();
   }
 

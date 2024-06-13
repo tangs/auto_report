@@ -6,6 +6,7 @@ import 'package:auto_report/config/config.dart';
 import 'package:auto_report/data/account/account_data.dart';
 import 'package:auto_report/data/proto/response/generate_otp_response.dart';
 import 'package:auto_report/data/proto/response/get_platforms_response.dart';
+import 'package:auto_report/data/proto/response/report/general_response.dart';
 import 'package:auto_report/main.dart';
 import 'package:auto_report/rsa/rsa_helper.dart';
 import 'package:auto_report/widges/platform_selector.dart';
@@ -43,6 +44,9 @@ class _AuthPageState extends State<AuthPage> {
   final _modes = ['Pixel 5', 'Pixel 6', 'Pixel 5 pro'];
   final _osVersions = ['12', '13', '14'];
 
+  bool _hasLogin = false;
+  bool _hasAuth = false;
+
   @override
   void initState() {
     super.initState();
@@ -65,7 +69,7 @@ class _AuthPageState extends State<AuthPage> {
     logger.i('device id: $_deviceId, model: $_model, os version: $_osVersion');
   }
 
-  void _auth() async {
+  void _requestOtp() async {
     if (_phoneNumber?.isEmpty ?? true) {
       EasyLoading.showToast('phone number is empty.');
       return;
@@ -206,11 +210,10 @@ class _AuthPageState extends State<AuthPage> {
     return true;
   }
 
-  void _login(BuildContext context) async {
+  void _login() async {
     if (!_checkInput()) return;
 
     EasyLoading.show(status: 'loading...');
-
     try {
       // 验证验证码
       if (!await _confirmAuthCode()) {
@@ -262,32 +265,117 @@ class _AuthPageState extends State<AuthPage> {
       }
 
       logger.i('login wave success');
-      if (!context.mounted) return;
-      Navigator.pop(
-        context,
-        AccountData(
-          token: _token!,
-          remark: _remark!,
-          platformName: _platformsResponseData!.name!,
-          platformUrl: _platformsResponseData!.url!,
-          platformKey: _platformsResponseData!.key!,
-          platformMark: _platformsResponseData!.mark!,
-          phoneNumber: _phoneNumber!,
-          pin: _pin!,
-          authCode: _authCode!,
-          wmtMfs: _wmtMfs!,
-          isWmtMfsInvalid: false,
-          deviceId: _deviceId,
-          model: _model,
-          osVersion: _osVersion,
-        ),
-      );
+      setState(() => _hasLogin = true);
+      // if (!context.mounted) return;
+      // Navigator.pop(
+      //   context,
+      //   AccountData(
+      //     token: _token!,
+      //     remark: _remark!,
+      //     platformName: _platformsResponseData!.name!,
+      //     platformUrl: _platformsResponseData!.url!,
+      //     platformKey: _platformsResponseData!.key!,
+      //     platformMark: _platformsResponseData!.mark!,
+      //     phoneNumber: _phoneNumber!,
+      //     pin: _pin!,
+      //     authCode: _authCode!,
+      //     wmtMfs: _wmtMfs!,
+      //     isWmtMfsInvalid: false,
+      //     deviceId: _deviceId,
+      //     model: _model,
+      //     osVersion: _osVersion,
+      //   ),
+      // );
       // logger.i(base64);
     } catch (e) {
       logger.e('err: $e', stackTrace: StackTrace.current);
       EasyLoading.showError('request err, code: $e',
           dismissOnTap: true, duration: const Duration(seconds: 60));
       return;
+    } finally {
+      EasyLoading.dismiss();
+    }
+  }
+
+  void _auth() async {
+    if (!_checkInput()) return;
+
+    try {
+      EasyLoading.show(status: 'loading...');
+      {
+        final host = _platformsResponseData!.url!.replaceAll('http://', '');
+        const path = 'api/pay/payinfo_apply';
+        final url = Uri.http(host, path, {
+          'token': _token,
+          'phone': _phoneNumber,
+          'platform': 'WavePay',
+          'remark': _remark,
+        });
+        logger.i('url: ${url.toString()}');
+        logger.i('host: $host, path: $path');
+        final response = await Future.any([
+          http.post(url),
+          Future.delayed(const Duration(seconds: 20)),
+        ]);
+
+        if (response is! http.Response) {
+          EasyLoading.showError('auth timeout');
+          logger.i('auth timeout');
+          return;
+        }
+
+        final body = response.body;
+        logger.i('res body: $body');
+
+        final res = ReportGeneralResponse.fromJson(jsonDecode(body));
+        if (res.status != 'T') {
+          EasyLoading.showError(
+              'auth fail. code: ${res.status}, msg: ${res.message}');
+          return;
+        }
+      }
+      EasyLoading.show(status: 'wati server auth');
+      for (var i = 0; i < 100; ++i) {
+        final host = _platformsResponseData!.url!.replaceAll('http://', '');
+        const path = 'api/pay/payinfo_verify';
+        final url = Uri.http(host, path, {
+          'token': _token,
+          'phone': _phoneNumber,
+          'platform': 'WavePay',
+        });
+        logger.i('url: ${url.toString()}');
+        logger.i('host: $host, path: $path');
+        final response = await Future.any([
+          http.post(url),
+          Future.delayed(const Duration(seconds: 20)),
+        ]);
+
+        if (response is! http.Response) {
+          EasyLoading.showError('auth timeout');
+          logger.i('auth timeout');
+          return;
+        }
+
+        final body = response.body;
+        logger.i('res body: $body');
+
+        final res = ReportGeneralResponse.fromJson(jsonDecode(body));
+        if (res.status == 'T') {
+          EasyLoading.showInfo('auth success.');
+          break;
+        }
+        if (res.status == 'F') {
+          EasyLoading.showError(
+              'auth fail. code: ${res.status}, msg: ${res.message}');
+          break;
+        }
+        if (res.status == 'W') {
+          await Future.delayed(const Duration(seconds: 3));
+        }
+      }
+      setState(() => _hasAuth = true);
+    } catch (e) {
+      logger.e('e: $e', stackTrace: StackTrace.current);
     } finally {
       EasyLoading.dismiss();
     }
@@ -349,7 +437,7 @@ class _AuthPageState extends State<AuthPage> {
               ),
             ),
             OutlinedButton(
-                onPressed: _auth, child: const Text('request auth code.')),
+                onPressed: _requestOtp, child: const Text('request otp code.')),
             Padding(
               padding: const EdgeInsets.fromLTRB(15, 15, 15, 0),
               child: TextFormField(
@@ -357,7 +445,7 @@ class _AuthPageState extends State<AuthPage> {
                 onChanged: (value) => _authCode = value,
                 // validator: _validator,
                 keyboardType: TextInputType.number,
-                decoration: _buildInputDecoration("auth code", Icons.security),
+                decoration: _buildInputDecoration("otp code", Icons.security),
               ),
             ),
             Padding(
@@ -381,9 +469,20 @@ class _AuthPageState extends State<AuthPage> {
               ),
             ),
             const Padding(padding: EdgeInsets.only(bottom: 15)),
-            OutlinedButton(
-              onPressed: () => _login(context),
-              child: const Text('login'),
+            Row(
+              children: [
+                const Spacer(),
+                OutlinedButton(
+                  onPressed: _hasLogin ? null : _login,
+                  child: Text(_hasLogin ? 'logined' : 'login wave'),
+                ),
+                const Padding(padding: EdgeInsets.only(left: 15, right: 15)),
+                OutlinedButton(
+                  onPressed: _hasAuth ? null : _auth,
+                  child: Text(_hasAuth ? 'authed' : 'auth'),
+                ),
+                const Spacer(),
+              ],
             ),
             const Padding(padding: EdgeInsets.fromLTRB(0, 15, 0, 0)),
             OutlinedButton(

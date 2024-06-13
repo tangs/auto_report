@@ -42,8 +42,6 @@ class _AccountsPageState extends State<AccountsPage> {
     return ExpansionTile(
       title: Row(
         children: [
-          // Row(children: widget.,),
-          // const Icon(Icons.phone_android_sharp),
           Row(
             children: [
               Text(
@@ -68,8 +66,30 @@ class _AccountsPageState extends State<AccountsPage> {
         ),
         Row(
           children: [
-            const Text('Disable Report:'),
+            RichText(
+              text: TextSpan(
+                text: 'Report',
+                style: DefaultTextStyle.of(context).style,
+                children: [
+                  TextSpan(
+                    text: '    succ: ${data.reportSuccessCnt}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue,
+                    ),
+                  ),
+                  TextSpan(
+                    text: '    fail: ${data.reportFailCnt}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red,
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const Spacer(),
+            const Text('Disable Report:'),
             Switch(
               value: data.pauseReport,
               activeColor: Colors.red,
@@ -91,21 +111,21 @@ class _AccountsPageState extends State<AccountsPage> {
           ],
         ),
         _buildSub(
-            'balance',
+            'Balance',
             data.balance?.toString() ?? 'never updated',
             isUpdatingBalance ? 'updating' : 'update',
             isUpdatingBalance || invalid
                 ? null
                 : () => data.updateBalance(() => setState(() => data = data))),
         _buildSub(
-            'balance update time',
+            'Balance update time',
             data.lastUpdateBalanceTime.millisecondsSinceEpoch == 0
                 ? 'never updated'
                 : dateFormat.format(data.lastUpdateBalanceTime),
             null,
             null),
         _buildSub(
-            'orders update time',
+            'Orders update time',
             data.lastUpdateTime.microsecondsSinceEpoch == 0
                 ? 'never updated'
                 : dateFormat.format(data.lastUpdateTime),
@@ -218,8 +238,8 @@ class _AccountsPageState extends State<AccountsPage> {
           Text(data.name!),
           Checkbox(
               value: value,
-              onChanged: (value) => setState(
-                  () => _platformsCheckboxResults[key] = value ?? true)),
+              onChanged: (value) =>
+                  setState(() => _platformsCheckboxResults[key] = value!)),
         ],
       ),
     );
