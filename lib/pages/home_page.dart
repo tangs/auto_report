@@ -98,6 +98,7 @@ class _HomePageState extends State<HomePage> {
             children: <Widget>[
               AccountsPage(
                 accountsData: accounts.accountsData,
+                platforms: widget.platforms,
                 onRemoved: () => setState(() => accounts.update()),
                 onReLogin: ({String? phoneNumber, String? pin}) => newAccount(
                   phoneNumber: phoneNumber,

@@ -1,4 +1,5 @@
 import 'package:auto_report/data/account/account_data.dart';
+import 'package:auto_report/data/proto/response/get_platforms_response.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -6,14 +7,17 @@ typedef ReLoginCallback = void Function({String phoneNumber, String pin});
 
 class AccountsPage extends StatefulWidget {
   final List<AccountData> accountsData;
+  final List<GetPlatformsResponseData?>? platforms;
 
   final VoidCallback onRemoved;
   final ReLoginCallback onReLogin;
+
   const AccountsPage({
     super.key,
     required this.accountsData,
     required this.onRemoved,
     required this.onReLogin,
+    required this.platforms,
   });
 
   @override
@@ -21,8 +25,13 @@ class AccountsPage extends StatefulWidget {
 }
 
 class _AccountsPageState extends State<AccountsPage> {
+  final _platformsCheckboxResults = <String, bool>{};
+
   List<Widget> _buildList() {
-    return widget.accountsData.map((data) => _item1(data)).toList();
+    return widget.accountsData
+        .where((data) => _platformsCheckboxResults[data.platformKey] ?? true)
+        .map((data) => _item1(data))
+        .toList();
   }
 
   Widget _item1(AccountData data) {
@@ -33,12 +42,13 @@ class _AccountsPageState extends State<AccountsPage> {
     return ExpansionTile(
       title: Row(
         children: [
+          // Row(children: widget.,),
           // const Icon(Icons.phone_android_sharp),
           Row(
             children: [
               Text(
-                data.remark,
-                style: const TextStyle(color: Colors.black54, fontSize: 20),
+                '${data.remark}[${data.platformName}]',
+                style: const TextStyle(color: Colors.black54, fontSize: 16),
               ),
               const Padding(padding: EdgeInsets.only(left: 10)),
               Text(
@@ -111,6 +121,10 @@ class _AccountsPageState extends State<AccountsPage> {
               _buildSub('deviceId', data.deviceId, null, null),
               _buildSub('model', data.model, null, null),
               _buildSub('os version', data.osVersion, null, null),
+              _buildSub('platform name', data.platformName, null, null),
+              _buildSub('platform url', data.platformUrl, null, null),
+              _buildSub('platform key', data.platformKey, null, null),
+              _buildSub('platform mark', data.platformMark, null, null),
             ],
           ),
         ),
@@ -194,10 +208,43 @@ class _AccountsPageState extends State<AccountsPage> {
     );
   }
 
+  Widget _buildCheckbox(GetPlatformsResponseData? data) {
+    final key = data!.key!;
+    final value = _platformsCheckboxResults[key] ?? true;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+      child: Row(
+        children: [
+          Text(data.name!),
+          Checkbox(
+              value: value,
+              onChanged: (value) => setState(
+                  () => _platformsCheckboxResults[key] = value ?? true)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilter() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: widget.platforms
+                ?.map((platform) => _buildCheckbox(platform))
+                .toList() ??
+            [],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      children: _buildList(),
+    // return ListView(children: _buildList());
+    return Column(
+      children: [
+        _buildFilter(),
+        Flexible(child: ListView(children: _buildList())),
+      ],
     );
   }
 }

@@ -14,6 +14,11 @@ class AccountData {
   late String token;
   late String remark;
 
+  late String platformName;
+  late String platformUrl;
+  late String platformKey;
+  late String platformMark;
+
   late String phoneNumber;
   late String pin;
   late String authCode;
@@ -45,6 +50,10 @@ class AccountData {
   AccountData({
     required this.token,
     required this.remark,
+    required this.platformName,
+    required this.platformUrl,
+    required this.platformKey,
+    required this.platformMark,
     required this.phoneNumber,
     required this.pin,
     required this.authCode,
@@ -61,6 +70,10 @@ class AccountData {
     return {
       'token': token,
       'remark': remark,
+      'platformName': platformName,
+      'platformUrl': platformUrl,
+      'platformKey': platformKey,
+      'platformMark': platformMark,
       'phoneNumber': phoneNumber,
       'pin': pin,
       'authCode': authCode,
@@ -69,12 +82,18 @@ class AccountData {
       'model': model,
       'osVersion': osVersion,
       'isWmtMfsInvalid': isWmtMfsInvalid,
+      'pauseReport': pauseReport,
     };
   }
 
   AccountData.fromJson(Map<String, dynamic> json) {
     token = json['token'];
     remark = json['remark'];
+
+    platformName = json['platformName'];
+    platformUrl = json['platformUrl'];
+    platformKey = json['platformKey'];
+    platformMark = json['platformMark'];
 
     phoneNumber = json['phoneNumber'];
     pin = json['pin'];
@@ -84,8 +103,9 @@ class AccountData {
     deviceId = json['deviceId'];
     model = json['model'];
     osVersion = json['osVersion'];
-    // isWmtMfsInvalid = json['isWmtMfsInvalid'];
-    isWmtMfsInvalid = false;
+    isWmtMfsInvalid = json['isWmtMfsInvalid'];
+    pauseReport = json['pauseReport'];
+    // isWmtMfsInvalid = false;
   }
 
   @override

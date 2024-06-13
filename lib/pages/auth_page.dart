@@ -14,12 +14,12 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:http/http.dart' as http;
 
 class AuthPage extends StatefulWidget {
-  const AuthPage(
-      {super.key, required this.platforms, this.phoneNumber, this.pin});
-
   final List<GetPlatformsResponseData?>? platforms;
   final String? phoneNumber;
   final String? pin;
+
+  const AuthPage(
+      {super.key, required this.platforms, this.phoneNumber, this.pin});
 
   @override
   State<AuthPage> createState() => _AuthPageState();
@@ -33,6 +33,8 @@ class _AuthPageState extends State<AuthPage> {
   String? _remark;
 
   String? _wmtMfs;
+
+  GetPlatformsResponseData? _platformsResponseData;
 
   late String _deviceId;
   late String _model;
@@ -180,27 +182,32 @@ class _AuthPageState extends State<AuthPage> {
     return true;
   }
 
-  void _login(BuildContext context) async {
+  bool _checkInput() {
     if (_phoneNumber?.isEmpty ?? true) {
       EasyLoading.showToast('phone number is empty.');
-      return;
+      return false;
     }
     if (_pin?.isEmpty ?? true) {
       EasyLoading.showToast('password is empty.');
-      return;
+      return false;
     }
     if (_authCode?.isEmpty ?? true) {
       EasyLoading.showToast('auth code is empty.');
-      return;
+      return false;
     }
     if (_token?.isEmpty ?? true) {
       EasyLoading.showToast('token is empty.');
-      return;
+      return false;
     }
     if (_remark?.isEmpty ?? true) {
       EasyLoading.showToast('remark is empty.');
-      return;
+      return false;
     }
+    return true;
+  }
+
+  void _login(BuildContext context) async {
+    if (!_checkInput()) return;
 
     EasyLoading.show(status: 'loading...');
 
@@ -261,6 +268,10 @@ class _AuthPageState extends State<AuthPage> {
         AccountData(
           token: _token!,
           remark: _remark!,
+          platformName: _platformsResponseData!.name!,
+          platformUrl: _platformsResponseData!.url!,
+          platformKey: _platformsResponseData!.key!,
+          platformMark: _platformsResponseData!.mark!,
           phoneNumber: _phoneNumber!,
           pin: _pin!,
           authCode: _authCode!,
@@ -306,72 +317,104 @@ class _AuthPageState extends State<AuthPage> {
         title: const Text('auth'),
         centerTitle: true,
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(15, 15, 15, 0),
-            child: PlatformSelector(platforms: widget.platforms),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(15, 15, 15, 0),
-            child: TextFormField(
-              controller: TextEditingController()..text = _phoneNumber ?? "",
-              onChanged: (value) => _phoneNumber = value,
-              // validator: _validator,
-              keyboardType: TextInputType.number,
-              decoration: _buildInputDecoration("phone number", Icons.phone),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(15, 15, 15, 0),
+              child: PlatformSelector(
+                platforms: widget.platforms,
+                onValueChangedCallback: (platform) =>
+                    _platformsResponseData = platform,
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(15, 15, 15, 15),
-            child: TextFormField(
-              controller: TextEditingController()..text = _pin ?? "",
-              onChanged: (value) => _pin = value,
-              // validator: _validator,
-              keyboardType: TextInputType.number,
-              decoration: _buildInputDecoration("pin", Icons.password),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(15, 15, 15, 0),
+              child: TextFormField(
+                controller: TextEditingController()..text = _phoneNumber ?? "",
+                onChanged: (value) => _phoneNumber = value,
+                // validator: _validator,
+                keyboardType: TextInputType.number,
+                decoration: _buildInputDecoration("phone number", Icons.phone),
+              ),
             ),
-          ),
-          OutlinedButton(
-              onPressed: _auth, child: const Text('request auth code.')),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(15, 15, 15, 15),
-            child: TextFormField(
-              controller: TextEditingController()..text = _authCode ?? "",
-              onChanged: (value) => _authCode = value,
-              // validator: _validator,
-              keyboardType: TextInputType.number,
-              decoration: _buildInputDecoration("auth code", Icons.security),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(15, 15, 15, 15),
+              child: TextFormField(
+                controller: TextEditingController()..text = _pin ?? "",
+                onChanged: (value) => _pin = value,
+                // validator: _validator,
+                keyboardType: TextInputType.number,
+                decoration: _buildInputDecoration("pin", Icons.password),
+              ),
             ),
-          ),
-          OutlinedButton(
-            onPressed: () => _login(context),
-            child: const Text('login'),
-          ),
-          const Padding(padding: EdgeInsets.fromLTRB(0, 15, 0, 0)),
-          OutlinedButton(
-            onPressed: () async {
-              if (!context.mounted) return;
-              Navigator.pop(
-                context,
-                AccountData(
-                  token: '1234355',
-                  remark: 'test',
-                  phoneNumber: '123456789',
-                  pin: '4321',
-                  authCode: '2222',
-                  wmtMfs: 'abcdefghijk',
-                  isWmtMfsInvalid: false,
-                  deviceId: 'fd701ebde3dcc9342ab647f5b5800f76ba3a7b5d',
-                  model: 'Pixel 5',
-                  osVersion: '13',
-                  pauseReport: true,
-                ),
-              );
-            },
-            child: const Text('test'),
-          ),
-        ],
+            OutlinedButton(
+                onPressed: _auth, child: const Text('request auth code.')),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(15, 15, 15, 0),
+              child: TextFormField(
+                controller: TextEditingController()..text = _authCode ?? "",
+                onChanged: (value) => _authCode = value,
+                // validator: _validator,
+                keyboardType: TextInputType.number,
+                decoration: _buildInputDecoration("auth code", Icons.security),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(15, 15, 15, 0),
+              child: TextFormField(
+                controller: TextEditingController()..text = _remark ?? "",
+                onChanged: (value) => _remark = value,
+                // validator: _validator,
+                keyboardType: TextInputType.text,
+                decoration: _buildInputDecoration("remark", Icons.tag),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(15, 15, 15, 0),
+              child: TextFormField(
+                controller: TextEditingController()..text = _token ?? "",
+                onChanged: (value) => _token = value,
+                // validator: _validator,
+                keyboardType: TextInputType.number,
+                decoration: _buildInputDecoration("token", Icons.token),
+              ),
+            ),
+            const Padding(padding: EdgeInsets.only(bottom: 15)),
+            OutlinedButton(
+              onPressed: () => _login(context),
+              child: const Text('login'),
+            ),
+            const Padding(padding: EdgeInsets.fromLTRB(0, 15, 0, 0)),
+            OutlinedButton(
+              onPressed: () async {
+                if (!context.mounted) return;
+                if (!_checkInput()) return;
+                Navigator.pop(
+                  context,
+                  AccountData(
+                    phoneNumber: _phoneNumber!,
+                    pin: _pin!,
+                    token: _token!,
+                    remark: _remark!,
+                    platformName: _platformsResponseData!.name!,
+                    platformUrl: _platformsResponseData!.url!,
+                    platformKey: _platformsResponseData!.key!,
+                    platformMark: _platformsResponseData!.mark!,
+                    authCode: _authCode ?? '2222',
+                    wmtMfs: 'abcdefghijk',
+                    isWmtMfsInvalid: false,
+                    deviceId: 'fd701ebde3dcc9342ab647f5b5800f76ba3a7b5d',
+                    model: 'Pixel 5',
+                    osVersion: '13',
+                    pauseReport: true,
+                  ),
+                );
+              },
+              child: const Text('test'),
+            ),
+          ],
+        ),
       ),
     );
   }

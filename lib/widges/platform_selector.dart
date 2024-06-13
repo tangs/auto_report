@@ -1,39 +1,50 @@
 import 'package:auto_report/data/proto/response/get_platforms_response.dart';
 import 'package:flutter/material.dart';
 
+typedef OnPlatformSelectorValueChangedCallback = void Function(
+    GetPlatformsResponseData? platform);
+
 class PlatformSelector extends StatefulWidget {
-  const PlatformSelector({super.key, required this.platforms});
+  const PlatformSelector({
+    super.key,
+    required this.platforms,
+    required this.onValueChangedCallback,
+  });
 
   final List<GetPlatformsResponseData?>? platforms;
+  final OnPlatformSelectorValueChangedCallback? onValueChangedCallback;
 
   @override
   State<PlatformSelector> createState() => _PlatformSelectorState();
 }
 
 class _PlatformSelectorState extends State<PlatformSelector> {
-  late String? dropdownValue;
+  late GetPlatformsResponseData? dropdownValue;
 
   @override
   void initState() {
     super.initState();
-    dropdownValue = widget.platforms?.first?.name;
+    dropdownValue = widget.platforms?.first;
+    widget.onValueChangedCallback?.call(dropdownValue);
   }
 
   @override
   Widget build(BuildContext context) {
-    return DropdownMenu<String>(
+    return DropdownMenu<GetPlatformsResponseData?>(
       initialSelection: dropdownValue,
-      onSelected: (String? value) {
+      onSelected: (GetPlatformsResponseData? value) {
         setState(() {
-          dropdownValue = value!;
+          dropdownValue = value;
+          widget.onValueChangedCallback?.call(dropdownValue);
         });
       },
-      dropdownMenuEntries:
-          widget.platforms?.map<DropdownMenuEntry<String>>((value) {
-                final name = value?.name ?? '';
-                return DropdownMenuEntry<String>(value: name, label: name);
-              }).toList() ??
-              [],
+      dropdownMenuEntries: widget.platforms
+              ?.map<DropdownMenuEntry<GetPlatformsResponseData?>>((value) {
+            final name = value?.name ?? '';
+            return DropdownMenuEntry<GetPlatformsResponseData?>(
+                value: value, label: name);
+          }).toList() ??
+          [],
     );
   }
 }
