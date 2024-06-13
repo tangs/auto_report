@@ -237,12 +237,11 @@ class AccountData {
         _lastTransId = lastCell.transId!;
         _lasttransDate = lastCell.toDateTime();
       }
+      reports(needReportList, dataUpdated);
     }
     // var seconds = DateTime.now().difference(lastUpdateTime).inSeconds;
     // logger.i('seconds: $seconds');
-    if (!isFirst) {
-      reports(dataUpdated);
-    }
+
     _waitReportList.clear();
 
     logger.i('end update order.phone: $phoneNumber');
@@ -297,9 +296,10 @@ class AccountData {
     return true;
   }
 
-  reports(VoidCallback? dataUpdated) async {
-    final reportList = <HistoriesResponseResponseMapTnxHistoryList?>[];
-    reportList.addAll(_waitReportList);
+  reports(List<HistoriesResponseResponseMapTnxHistoryList> reportList,
+      VoidCallback? dataUpdated) async {
+    // final reportList = <HistoriesResponseResponseMapTnxHistoryList?>[];
+    // reportList.addAll(list);
 
     while (reporting) {
       await Future.delayed(const Duration(milliseconds: 100));
@@ -307,7 +307,6 @@ class AccountData {
 
     reporting = true;
     for (final cell in reportList) {
-      if (cell == null) continue;
       var isFail = true;
       // 重试3次
       for (var i = 0; i < 3; ++i) {
