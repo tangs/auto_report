@@ -225,14 +225,37 @@ class _AccountsPageState extends State<AccountsPage> {
     );
   }
 
+  bool _isAllPlatformsSelected() {
+    return !widget.platforms!.any((platform) =>
+        (_platformsCheckboxResults[platform!.key] ?? true) == false);
+  }
+
   Widget _buildFilter() {
+    final widgets = widget.platforms
+            ?.map((platform) => _buildCheckbox(platform))
+            .toList() ??
+        [];
+    widgets.insert(
+        0,
+        Padding(
+          padding: const EdgeInsets.fromLTRB(10, 0, 0, 10),
+          child: Row(
+            children: [
+              const Text('ALL'),
+              Checkbox(
+                  value: _isAllPlatformsSelected(),
+                  onChanged: (value) => setState(() {
+                        for (var platform in widget.platforms!) {
+                          _platformsCheckboxResults[platform!.key!] = value!;
+                        }
+                      })),
+            ],
+          ),
+        ));
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
-        children: widget.platforms
-                ?.map((platform) => _buildCheckbox(platform))
-                .toList() ??
-            [],
+        children: widgets,
       ),
     );
   }
