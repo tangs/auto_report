@@ -1,4 +1,5 @@
 import 'package:auto_report/data/account/account_data.dart';
+import 'package:auto_report/data/manager/data_manager.dart';
 import 'package:auto_report/data/proto/response/get_platforms_response.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -112,17 +113,20 @@ class _AccountsPageState extends State<AccountsPage> {
             ),
           ],
         ),
-        Row(
-          children: [
-            const Text('Show detail:'),
-            const Spacer(),
-            Switch(
-              value: data.showDetail,
-              activeColor: Colors.red,
-              onChanged: (bool value) =>
-                  setState(() => data.showDetail = value),
-            ),
-          ],
+        Visibility(
+          visible: DataManager().devMode,
+          child: Row(
+            children: [
+              const Text('Show detail:'),
+              const Spacer(),
+              Switch(
+                value: data.showDetail,
+                activeColor: Colors.red,
+                onChanged: (bool value) =>
+                    setState(() => data.showDetail = value),
+              ),
+            ],
+          ),
         ),
         // _buildSub(
         //     'Balance',

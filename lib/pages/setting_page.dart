@@ -9,8 +9,12 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  bool _isDark = false;
   double _orderRefreshTime = DataManager().orderRefreshTime;
+  bool _devMode = DataManager().devMode;
+  bool _devModeSwich = DataManager().devMode;
+  bool _isDark = false;
+
+  int _clickTime = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +45,15 @@ class _SettingsPageState extends State<SettingsPage> {
                     _CustomListTile(
                       title: "Order refresh seconds",
                       icon: Icons.notifications_none_rounded,
-                      trailing: Text('${_orderRefreshTime.toInt()}'),
+                      trailing: Text(
+                        '${_orderRefreshTime.toInt()}',
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                      callback: () {
+                        if (++_clickTime > 5) {
+                          setState(() => _devModeSwich = true);
+                        }
+                      },
                     ),
                     Slider(
                       value: _orderRefreshTime,
@@ -58,27 +70,39 @@ class _SettingsPageState extends State<SettingsPage> {
                         dm.save();
                       },
                     ),
-                    // const _CustomListTile(
-                    //     title: "Security Status",
-                    //     icon: CupertinoIcons.lock_shield),
+                    _CustomListTile(
+                      title: 'Version',
+                      icon: Icons.help_outline_rounded,
+                      trailing: Text(
+                        DataManager().appVersion ?? '',
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ),
                   ],
                 ),
                 const Divider(),
-                // const _SingleSection(
-                //   title: "Organization",
-                //   children: [
-                //     _CustomListTile(
-                //         title: "Profile", icon: Icons.person_outline_rounded),
-                //     _CustomListTile(
-                //         title: "Messaging", icon: Icons.message_outlined),
-                //     _CustomListTile(
-                //         title: "Calling", icon: Icons.phone_outlined),
-                //     _CustomListTile(
-                //         title: "People", icon: Icons.contacts_outlined),
-                //     _CustomListTile(
-                //         title: "Calendar", icon: Icons.calendar_today_rounded)
-                //   ],
-                // ),
+                Visibility(
+                  visible: _devModeSwich,
+                  child: _SingleSection(
+                    title: "Developer Tools",
+                    children: [
+                      _CustomListTile(
+                        title: "Dev Mode",
+                        icon: Icons.developer_mode,
+                        trailing: Switch(
+                          value: _devMode,
+                          onChanged: (value) {
+                            setState(() {
+                              _devMode = value;
+                              DataManager().devMode = value;
+                            });
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
                 // const Divider(),
                 // const _SingleSection(
                 //   children: [
@@ -104,8 +128,14 @@ class _CustomListTile extends StatelessWidget {
   final String title;
   final IconData icon;
   final Widget? trailing;
-  const _CustomListTile(
-      {required this.title, required this.icon, this.trailing});
+  final VoidCallback? callback;
+
+  const _CustomListTile({
+    required this.title,
+    required this.icon,
+    this.trailing,
+    this.callback,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -113,7 +143,7 @@ class _CustomListTile extends StatelessWidget {
       title: Text(title),
       leading: Icon(icon),
       trailing: trailing,
-      onTap: () {},
+      onTap: () => callback?.call(),
     );
   }
 }
