@@ -4,6 +4,7 @@ import 'dart:ui';
 
 import 'package:auto_report/config/config.dart';
 import 'package:auto_report/data/account/histories_response.dart';
+import 'package:auto_report/data/manager/data_manager.dart';
 import 'package:auto_report/data/proto/response/report/general_response.dart';
 import 'package:auto_report/data/proto/response/wallet_balance_response.dart';
 import 'package:auto_report/main.dart';
@@ -30,6 +31,9 @@ class AccountData {
   late String osVersion;
 
   late bool isWmtMfsInvalid;
+
+  /// 上报服务器授权失败
+  bool isAuthInvidWithReport = false;
   bool needRemove = false;
 
   bool pauseReport = false;
@@ -178,10 +182,12 @@ class AccountData {
 
   update(VoidCallback? dataUpdated) {
     if (isWmtMfsInvalid) return;
+    if (isAuthInvidWithReport) return;
     if (pauseReport) return;
 
     if (!isUpdatingOrders &&
-        DateTime.now().difference(lastUpdateTime).inSeconds > 60) {
+        DateTime.now().difference(lastUpdateTime).inSeconds >=
+            DataManager().orderRefreshTime) {
       updateOrder(dataUpdated);
     }
     if (!isUpdatingBalance &&
@@ -251,7 +257,7 @@ class AccountData {
   }
 
   int payId = 0;
-  Future<bool> report(
+  Future<bool> report(VoidCallback? dataUpdated,
       HistoriesResponseResponseMapTnxHistoryList data, int payId) async {
     try {
       final host = platformUrl.replaceAll('http://', '');
@@ -287,6 +293,10 @@ class AccountData {
 
       final res = ReportGeneralResponse.fromJson(jsonDecode(body));
       if (res.status != 'T') {
+        if (res.message == 'not authorized') {
+          isAuthInvidWithReport = true;
+          dataUpdated?.call();
+        }
         EasyLoading.showError(
             'report order fail. code: ${res.status}, msg: ${res.message}');
       }
@@ -310,7 +320,7 @@ class AccountData {
       var isFail = true;
       // 重试3次
       for (var i = 0; i < 3; ++i) {
-        if (await report(cell, payId++)) {
+        if (await report(dataUpdated, cell, payId++)) {
           isFail = false;
           break;
         }

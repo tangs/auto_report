@@ -5,6 +5,7 @@ import 'package:auto_report/data/account/accounts.dart';
 import 'package:auto_report/data/proto/response/get_platforms_response.dart';
 import 'package:auto_report/main.dart';
 import 'package:auto_report/pages/accounts_page.dart';
+import 'package:auto_report/pages/setting_page.dart';
 import 'package:flutter/material.dart';
 
 class HomePage extends StatefulWidget {
@@ -35,7 +36,7 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     _pageViewController = PageController();
     logger.i('initState');
-    Timer.periodic(const Duration(seconds: 3), (timer) {
+    Timer.periodic(const Duration(seconds: 5), (timer) {
       if (!mounted) {
         timer.cancel();
         return;
@@ -77,8 +78,8 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    accounts.restore();
-    final TextTheme textTheme = Theme.of(context).textTheme;
+    accounts.save();
+    // final TextTheme textTheme = Theme.of(context).textTheme;
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
@@ -101,8 +102,8 @@ class _HomePageState extends State<HomePage> {
                   pin: pin,
                 ),
               ),
-              Center(
-                child: Text('Second Page', style: textTheme.titleLarge),
+              const Center(
+                child: SettingsPage(),
               ),
             ],
           ),

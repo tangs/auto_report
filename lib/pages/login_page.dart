@@ -31,9 +31,22 @@ class _LoginPageState extends State<LoginPage> {
 
     try {
       final url = Uri.http('www.diyibuyu.com', 'api/getPlatformUrl');
-      final response = await http.post(url, body: {
-        'platform': '$_platform',
-      });
+      // final response = await http.post(url, body: {
+      //   'platform': '$_platform',
+      // });
+
+      final response = await Future.any([
+        http.post(url, body: {
+          'platform': '$_platform',
+        }),
+        Future.delayed(const Duration(seconds: 20)),
+      ]);
+
+      if (response is! http.Response) {
+        EasyLoading.showError('timeout');
+        logger.i('timeout');
+        return;
+      }
 
       final body = response.body.replaceAll(RegExp('[\\\\"]'), '');
       logger.i('res body: $body');

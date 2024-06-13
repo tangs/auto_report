@@ -37,8 +37,13 @@ class _AccountsPageState extends State<AccountsPage> {
   Widget _item1(AccountData data) {
     final dateFormat = DateFormat('yyyy-MM-dd HH:mm:ss');
     final isUpdatingBalance = data.isUpdatingBalance;
-    final invalid = data.isWmtMfsInvalid;
+    final invalid = data.isWmtMfsInvalid || data.isAuthInvidWithReport;
     final showDetail = data.showDetail;
+    final state = !invalid
+        ? 'normal'
+        : data.isWmtMfsInvalid
+            ? 'Wave invalid'
+            : 'Report invalid';
     return ExpansionTile(
       title: Row(
         children: [
@@ -51,7 +56,7 @@ class _AccountsPageState extends State<AccountsPage> {
               const Padding(padding: EdgeInsets.only(left: 10)),
               Text(
                 style: TextStyle(color: invalid ? Colors.red : Colors.blue),
-                'state: ${invalid ? 'invalid' : 'normal'}',
+                state,
               )
             ],
           )

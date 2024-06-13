@@ -10,7 +10,7 @@ class Accounts {
   String _lastRestoreStr = '';
 
   Accounts() {
-    resume();
+    restore();
   }
 
   void add(AccountData account, bool removeDuplicated) {
@@ -18,13 +18,13 @@ class Accounts {
       removeByPhoneNumber(account.phoneNumber, true);
     }
     accountsData.add(account);
-    restore();
+    save();
   }
 
   void removeByPhoneNumber(String phoneNumber, bool skipRestore) {
     accountsData.removeWhere((account) => account.phoneNumber == phoneNumber);
     if (skipRestore) return;
-    restore();
+    save();
   }
 
   AccountData getAccountByPhoneNumber(String phoneNumber) {
@@ -36,7 +36,7 @@ class Accounts {
     accountsData.removeWhere((acc) => acc.needRemove);
   }
 
-  void restore() {
+  void save() {
     var data = accountsData.map((acc) => acc.restore()).toList();
     var str = jsonEncode(data);
     if (str == _lastRestoreStr) return;
@@ -46,7 +46,7 @@ class Accounts {
     _lastRestoreStr = str;
   }
 
-  void resume() {
+  void restore() {
     var str = localStorage.getItem('accounts');
     if (str == null) return;
 
