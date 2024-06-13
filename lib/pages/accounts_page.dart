@@ -62,6 +62,15 @@ class _AccountsPageState extends State<AccountsPage> {
           children: [
             const Icon(Icons.phone_android_sharp),
             Text(data.phoneNumber),
+            const Spacer(),
+            Text('Balance: ${data.balance?.toString() ?? 'never updated'}'),
+            const Padding(padding: EdgeInsets.only(left: 10)),
+            OutlinedButton(
+              onPressed: (isUpdatingBalance || invalid)
+                  ? null
+                  : () => data.updateBalance(() => setState(() => data = data)),
+              child: Text(isUpdatingBalance ? 'updating' : 'update'),
+            )
           ],
         ),
         Row(
@@ -110,13 +119,13 @@ class _AccountsPageState extends State<AccountsPage> {
             ),
           ],
         ),
-        _buildSub(
-            'Balance',
-            data.balance?.toString() ?? 'never updated',
-            isUpdatingBalance ? 'updating' : 'update',
-            isUpdatingBalance || invalid
-                ? null
-                : () => data.updateBalance(() => setState(() => data = data))),
+        // _buildSub(
+        //     'Balance',
+        //     data.balance?.toString() ?? 'never updated',
+        //     isUpdatingBalance ? 'updating' : 'update',
+        //     isUpdatingBalance || invalid
+        //         ? null
+        //         : () => data.updateBalance(() => setState(() => data = data))),
         _buildSub(
             'Balance update time',
             data.lastUpdateBalanceTime.millisecondsSinceEpoch == 0

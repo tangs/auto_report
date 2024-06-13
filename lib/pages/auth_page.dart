@@ -191,6 +191,10 @@ class _AuthPageState extends State<AuthPage> {
       EasyLoading.showToast('phone number is empty.');
       return false;
     }
+    if (_phoneNumber?.startsWith('0') ?? false) {
+      EasyLoading.showToast('phone number must remove prefix 0.');
+      return false;
+    }
     if (_pin?.isEmpty ?? true) {
       EasyLoading.showToast('password is empty.');
       return false;
@@ -286,7 +290,6 @@ class _AuthPageState extends State<AuthPage> {
       //     osVersion: _osVersion,
       //   ),
       // );
-      // logger.i(base64);
     } catch (e) {
       logger.e('err: $e', stackTrace: StackTrace.current);
       EasyLoading.showError('request err, code: $e',
@@ -485,32 +488,60 @@ class _AuthPageState extends State<AuthPage> {
               ],
             ),
             const Padding(padding: EdgeInsets.fromLTRB(0, 15, 0, 0)),
+            // OutlinedButton(
+            //   onPressed: () async {
+            //     if (!context.mounted) return;
+            //     if (!_checkInput()) return;
+            //     Navigator.pop(
+            //       context,
+            //       AccountData(
+            //         phoneNumber: _phoneNumber!,
+            //         pin: _pin!,
+            //         token: _token!,
+            //         remark: _remark!,
+            //         platformName: _platformsResponseData!.name!,
+            //         platformUrl: _platformsResponseData!.url!,
+            //         platformKey: _platformsResponseData!.key!,
+            //         platformMark: _platformsResponseData!.mark!,
+            //         authCode: _authCode ?? '2222',
+            //         wmtMfs: 'abcdefghijk',
+            //         isWmtMfsInvalid: false,
+            //         deviceId: 'fd701ebde3dcc9342ab647f5b5800f76ba3a7b5d',
+            //         model: 'Pixel 5',
+            //         osVersion: '13',
+            //         pauseReport: true,
+            //       ),
+            //     );
+            //   },
+            //   child: const Text('test'),
+            // ),
             OutlinedButton(
-              onPressed: () async {
-                if (!context.mounted) return;
-                if (!_checkInput()) return;
-                Navigator.pop(
-                  context,
-                  AccountData(
-                    phoneNumber: _phoneNumber!,
-                    pin: _pin!,
-                    token: _token!,
-                    remark: _remark!,
-                    platformName: _platformsResponseData!.name!,
-                    platformUrl: _platformsResponseData!.url!,
-                    platformKey: _platformsResponseData!.key!,
-                    platformMark: _platformsResponseData!.mark!,
-                    authCode: _authCode ?? '2222',
-                    wmtMfs: 'abcdefghijk',
-                    isWmtMfsInvalid: false,
-                    deviceId: 'fd701ebde3dcc9342ab647f5b5800f76ba3a7b5d',
-                    model: 'Pixel 5',
-                    osVersion: '13',
-                    pauseReport: true,
-                  ),
-                );
-              },
-              child: const Text('test'),
+              onPressed: (!_hasAuth || !_hasLogin)
+                  ? null
+                  : () async {
+                      if (!context.mounted) return;
+                      if (!_checkInput()) return;
+                      Navigator.pop(
+                        context,
+                        AccountData(
+                          token: _token!,
+                          remark: _remark!,
+                          platformName: _platformsResponseData!.name!,
+                          platformUrl: _platformsResponseData!.url!,
+                          platformKey: _platformsResponseData!.key!,
+                          platformMark: _platformsResponseData!.mark!,
+                          phoneNumber: _phoneNumber!,
+                          pin: _pin!,
+                          authCode: _authCode!,
+                          wmtMfs: _wmtMfs!,
+                          isWmtMfsInvalid: false,
+                          deviceId: _deviceId,
+                          model: _model,
+                          osVersion: _osVersion,
+                        ),
+                      );
+                    },
+              child: const Text('OK'),
             ),
           ],
         ),

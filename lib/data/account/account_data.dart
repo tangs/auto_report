@@ -156,8 +156,9 @@ class AccountData {
           ?.where((cell) => cell?.isReceve() ?? false)
           .where((cell) {
         final time = cell!.toDateTime();
-        return time.isAfter(lastTime) ||
-            (time == lastTime && cell.transId != _lastTransId);
+        return time.isAfter(lastTime);
+        // return time.isAfter(lastTime) ||
+        //     (time == lastTime && cell.transId != _lastTransId);
       }).toList();
       if (cells != null) {
         _waitReportList.addAll(cells);
@@ -207,8 +208,8 @@ class AccountData {
       offset += 10;
     }
     final ids = <String>{};
-
-    if (_lasttransDate == null) {
+    final isFirst = _lasttransDate == null;
+    if (isFirst) {
       if (_waitReportList.isEmpty) {
         _lasttransDate = DateTime.fromMicrosecondsSinceEpoch(0);
         _lastTransId = '-1';
@@ -217,7 +218,7 @@ class AccountData {
         _lastTransId = cell!.transId;
         _lasttransDate = cell.toDateTime();
       }
-      logger.i('report: init last date time: $_lasttransDate');
+      logger.i('report: init last date time: $_lasttransDate, $_lastTransId');
     } else {
       var needReportList = _waitReportList.where((cell) {
         if (cell?.transId == null) return false;
@@ -239,8 +240,9 @@ class AccountData {
     }
     // var seconds = DateTime.now().difference(lastUpdateTime).inSeconds;
     // logger.i('seconds: $seconds');
-
-    reports(dataUpdated);
+    if (!isFirst) {
+      reports(dataUpdated);
+    }
     _waitReportList.clear();
 
     logger.i('end update order.phone: $phoneNumber');
@@ -268,7 +270,7 @@ class AccountData {
           'type': '9002',
           'pay_order_num': data.transId,
           'order_type': data.transType,
-          'pay_money': data.amount,
+          'pay_money': '${data.amount}',
           'bank_time': data.transDate,
         }),
         Future.delayed(const Duration(seconds: 20)),
@@ -296,24 +298,26 @@ class AccountData {
   }
 
   reports(VoidCallback? dataUpdated) async {
-    final reportList = [];
+    final reportList = <HistoriesResponseResponseMapTnxHistoryList?>[];
     reportList.addAll(_waitReportList);
 
-    while (!reporting) {
+    while (reporting) {
       await Future.delayed(const Duration(milliseconds: 100));
     }
 
     reporting = true;
-    for (final cell in _waitReportList) {
+    for (final cell in reportList) {
       if (cell == null) continue;
       var isFail = true;
       // 重试3次
       for (var i = 0; i < 3; ++i) {
         if (await report(cell, payId++)) {
-          isFail = true;
+          isFail = false;
           break;
         }
       }
+      logger.i(
+          'report: ret: ${!isFail}, phone: $phoneNumber, id: ${cell.transId}, amount: ${cell.amount}, date: ${cell.transDate}');
       if (isFail) {
         reportFailCnt++;
       } else {
