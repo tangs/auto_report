@@ -1,13 +1,19 @@
 import 'dart:async';
+import 'dart:collection';
 
+import 'package:auto_report/config/config.dart';
 import 'package:auto_report/data/account/account_data.dart';
 import 'package:auto_report/data/account/accounts.dart';
+import 'package:auto_report/data/log/log_item.dart';
 import 'package:auto_report/data/manager/data_manager.dart';
 import 'package:auto_report/data/proto/response/get_platforms_response.dart';
 import 'package:auto_report/main.dart';
 import 'package:auto_report/pages/accounts_page.dart';
+import 'package:auto_report/pages/log_page.dart';
 import 'package:auto_report/pages/setting_page.dart';
 import 'package:flutter/material.dart';
+
+typedef OnLogCallback = void Function(LogItem item);
 
 class HomePage extends StatefulWidget {
   const HomePage({
@@ -29,6 +35,7 @@ class _HomePageState extends State<HomePage> {
 
   // List<AccountData> accountsData = [];
   final accounts = Accounts();
+  final _logs = LinkedList<LogItem>();
 
   late PageController _pageViewController;
 
@@ -47,6 +54,27 @@ class _HomePageState extends State<HomePage> {
           if (!mounted) return;
           setState(() => accounts.accountsData = accounts.accountsData);
         });
+        // setState(() {
+        _logs.add(LogItem(
+          type: LogItemType.receive,
+          platformName: info.platformName,
+          platformKey: info.platformKey,
+          phone: info.phoneNumber,
+          time: DateTime.now(),
+          content: 'test',
+        ));
+        _logs.add(LogItem(
+          type: LogItemType.send,
+          platformName: info.platformName,
+          platformKey: info.platformKey,
+          phone: info.phoneNumber,
+          time: DateTime.now(),
+          content: 'test1',
+        ));
+        if (_logs.length > Config.logCountMax) {
+          _logs.remove(_logs.first);
+        }
+        // });
       }
       // logger.i('update');
     });
@@ -60,7 +88,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   void newAccount({String? phoneNumber = '', String? pin = ''}) async {
-    var result = await Navigator.of(context).pushNamed("/auth", arguments: {
+    final result = await Navigator.of(context).pushNamed("/auth", arguments: {
       'phoneNumber': phoneNumber ?? '',
       'pin': pin ?? '',
       'platforms': widget.platforms,
@@ -100,14 +128,23 @@ class _HomePageState extends State<HomePage> {
                   accountsData: accounts.accountsData,
                   platforms: widget.platforms,
                   onRemoved: () => setState(() => accounts.update()),
-                  onReLogin: ({String? phoneNumber, String? pin}) => newAccount(
-                    phoneNumber: phoneNumber,
-                    pin: pin,
-                  ),
+                  onReLogin: ({String? phoneNumber, String? pin}) =>
+                      newAccount(phoneNumber: phoneNumber, pin: pin),
+                  // onLog: (item) {
+                  //   setState(() {
+                  //     _logs.add(item);
+                  //     if (_logs.length > Config.logCountMax) {
+                  //       _logs.remove(_logs.first);
+                  //     }
+                  //   });
+                  // },
                 ),
-                const Center(
-                  child: SettingsPage(),
+                LogsPage(
+                  logs: _logs,
+                  platforms: widget.platforms,
+                  accountsData: accounts.accountsData,
                 ),
+                const SettingsPage(),
               ],
             ),
           ],
@@ -125,6 +162,10 @@ class _HomePageState extends State<HomePage> {
             BottomNavigationBarItem(
               icon: Icon(Icons.account_balance_outlined),
               label: 'Accounts',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.document_scanner),
+              label: 'Logs',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.settings),

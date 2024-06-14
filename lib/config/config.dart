@@ -96,6 +96,7 @@ w8UsJovG2xCw3FHr3Qzl1XRMb19BwYflGgikMbIfAsWhRHC1Gg==''';
   // static const osversion = '11';
 
   static const httpRequestTimeoutSeconds = 20;
+  static const logCountMax = 10240;
 
   static Map<String, String> getHeaders(
       {required String deviceid,

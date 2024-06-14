@@ -39,7 +39,8 @@ class _LoginPageState extends State<LoginPage> {
         http.post(url, body: {
           'platform': '$_platform',
         }),
-        Future.delayed(const Duration(seconds: 20)),
+        Future.delayed(
+            const Duration(seconds: Config.httpRequestTimeoutSeconds)),
       ]);
 
       if (response is! http.Response) {

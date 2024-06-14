@@ -38,7 +38,9 @@ class _SettingsPageState extends State<SettingsPage> {
                         trailing: Switch(
                             value: _isDark,
                             onChanged: (value) {
-                              DataManager().isDark = value;
+                              final dm = DataManager();
+                              dm.isDark = value;
+                              dm.save;
                               setState(() {
                                 _isDark = value;
                               });

@@ -16,9 +16,9 @@ class AccountsPage extends StatefulWidget {
   const AccountsPage({
     super.key,
     required this.accountsData,
+    required this.platforms,
     required this.onRemoved,
     required this.onReLogin,
-    required this.platforms,
   });
 
   @override

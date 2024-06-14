@@ -40,6 +40,7 @@ class Accounts {
     var data = accountsData.map((acc) => acc.restore()).toList();
     var str = jsonEncode(data);
     if (str == _lastRestoreStr) return;
+    if (accountsData.isNotEmpty && str.isEmpty) return;
 
     logger.i('restore: $str');
     localStorage.setItem('accounts', str);
