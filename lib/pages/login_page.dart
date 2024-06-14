@@ -110,7 +110,7 @@ class _LoginPageState extends State<LoginPage> {
               controller: TextEditingController()..text = _platform ?? "",
               onChanged: (value) => _platform = value,
               // validator: _validator,
-              keyboardType: TextInputType.number,
+              keyboardType: TextInputType.text,
               decoration: _buildInputDecoration("platform", Icons.login_sharp),
             ),
           ),

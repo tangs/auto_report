@@ -109,8 +109,12 @@ class _AccountsPageState extends State<AccountsPage> {
             Switch(
               value: data.pauseReport,
               activeColor: Colors.red,
-              onChanged: (bool value) =>
-                  setState(() => data.pauseReport = value),
+              onChanged: (bool value) {
+                setState(() => data.pauseReport = value);
+                if (value) {
+                  data.reopenReport();
+                }
+              },
             ),
           ],
         ),

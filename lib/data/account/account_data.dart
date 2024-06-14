@@ -204,6 +204,14 @@ class AccountData {
     }
   }
 
+  reopenReport() async {
+    while (isUpdatingOrders) {
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+    _lastTransId = null;
+    _lasttransDate = null;
+  }
+
   updateOrder(VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
     if (isUpdatingOrders) return;
     logger.i('start update order.phone: $phoneNumber');
