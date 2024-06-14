@@ -12,6 +12,7 @@ class DataManager {
 
   double orderRefreshTime = 20;
   bool devMode = false;
+  bool isDark = false;
   String? appVersion;
 
   factory DataManager() {
@@ -31,12 +32,19 @@ class DataManager {
 
   void save() {
     localStorage.setItem('orderRefreshTime', orderRefreshTime.toString());
+    localStorage.setItem('isDark', isDark.toString());
   }
 
   void restore() {
-    orderRefreshTime =
-        double.parse(localStorage.getItem('orderRefreshTime') ?? '20');
-    orderRefreshTime = min(orderRefreshTimeRange.end,
-        max(orderRefreshTimeRange.start, orderRefreshTime));
+    try {
+      orderRefreshTime =
+          double.parse(localStorage.getItem('orderRefreshTime') ?? '20');
+      orderRefreshTime = min(orderRefreshTimeRange.end,
+          max(orderRefreshTimeRange.start, orderRefreshTime));
+
+      isDark = bool.parse(localStorage.getItem('isDark') ?? 'false');
+    } catch (e) {
+      logger.e(e);
+    }
   }
 }

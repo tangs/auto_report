@@ -52,7 +52,7 @@ class _AccountsPageState extends State<AccountsPage> {
             children: [
               Text(
                 '${data.remark}[${data.platformName}]',
-                style: const TextStyle(color: Colors.black54, fontSize: 16),
+                style: const TextStyle(fontSize: 16),
               ),
               const Padding(padding: EdgeInsets.only(left: 10)),
               Text(

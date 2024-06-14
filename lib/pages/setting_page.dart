@@ -12,7 +12,7 @@ class _SettingsPageState extends State<SettingsPage> {
   double _orderRefreshTime = DataManager().orderRefreshTime;
   bool _devMode = DataManager().devMode;
   bool _devModeSwich = DataManager().devMode;
-  bool _isDark = false;
+  bool _isDark = DataManager().isDark;
 
   int _clickTime = 0;
 
@@ -38,22 +38,18 @@ class _SettingsPageState extends State<SettingsPage> {
                         trailing: Switch(
                             value: _isDark,
                             onChanged: (value) {
+                              DataManager().isDark = value;
                               setState(() {
                                 _isDark = value;
                               });
                             })),
                     _CustomListTile(
                       title: "Order refresh seconds",
-                      icon: Icons.notifications_none_rounded,
+                      icon: Icons.refresh,
                       trailing: Text(
                         '${_orderRefreshTime.toInt()}',
                         style: const TextStyle(fontSize: 14),
                       ),
-                      callback: () {
-                        if (++_clickTime > 5) {
-                          setState(() => _devModeSwich = true);
-                        }
-                      },
                     ),
                     Slider(
                       value: _orderRefreshTime,
@@ -72,11 +68,16 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                     _CustomListTile(
                       title: 'Version',
-                      icon: Icons.help_outline_rounded,
+                      icon: Icons.code,
                       trailing: Text(
                         DataManager().appVersion ?? '',
                         style: const TextStyle(fontSize: 14),
                       ),
+                      callback: () {
+                        if (++_clickTime > 5) {
+                          setState(() => _devModeSwich = true);
+                        }
+                      },
                     ),
                   ],
                 ),
