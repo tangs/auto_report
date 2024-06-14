@@ -529,12 +529,12 @@ class _AuthPageState extends State<AuthPage> {
                 const Spacer(),
                 OutlinedButton(
                   onPressed: _hasLogin ? null : _login,
-                  child: Text(_hasLogin ? 'logined' : 'login wave'),
+                  child: Text(_hasLogin ? 'logined wave' : 'login wave'),
                 ),
                 const Padding(padding: EdgeInsets.only(left: 15, right: 15)),
                 OutlinedButton(
                   onPressed: _hasAuth ? null : _auth,
-                  child: Text(_hasAuth ? 'authed' : 'auth'),
+                  child: Text(_hasAuth ? 'login report' : 'login report'),
                 ),
                 const Spacer(),
               ],

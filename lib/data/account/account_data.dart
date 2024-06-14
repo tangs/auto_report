@@ -199,7 +199,7 @@ class AccountData {
       updateOrder(dataUpdated, onLogged);
     }
     if (!isUpdatingBalance &&
-        DateTime.now().difference(lastUpdateBalanceTime).inMinutes > 10) {
+        DateTime.now().difference(lastUpdateBalanceTime).inMinutes > 30) {
       updateBalance(dataUpdated);
     }
   }
@@ -250,8 +250,10 @@ class AccountData {
         final lastCell = needReportList.last;
         _lastTransId = lastCell.transId!;
         _lasttransDate = lastCell.toDateTime();
+
+        reports(needReportList, dataUpdated, onLogged);
+        updateBalance(dataUpdated);
       }
-      reports(needReportList, dataUpdated, onLogged);
     }
     // var seconds = DateTime.now().difference(lastUpdateTime).inSeconds;
     // logger.i('seconds: $seconds');
