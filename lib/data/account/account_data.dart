@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:ui';
 
 import 'package:auto_report/config/config.dart';
 import 'package:auto_report/data/account/histories_response.dart';
+import 'package:auto_report/data/log/log_item.dart';
 import 'package:auto_report/data/manager/data_manager.dart';
 import 'package:auto_report/data/proto/response/report/general_response.dart';
 import 'package:auto_report/data/proto/response/wallet_balance_response.dart';
@@ -188,7 +188,7 @@ class AccountData {
     return false;
   }
 
-  update(VoidCallback? dataUpdated) {
+  update(VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) {
     if (isWmtMfsInvalid) return;
     if (isAuthInvidWithReport) return;
     if (pauseReport) return;
@@ -196,7 +196,7 @@ class AccountData {
     if (!isUpdatingOrders &&
         DateTime.now().difference(lastUpdateTime).inSeconds >=
             DataManager().orderRefreshTime) {
-      updateOrder(dataUpdated);
+      updateOrder(dataUpdated, onLogged);
     }
     if (!isUpdatingBalance &&
         DateTime.now().difference(lastUpdateBalanceTime).inMinutes > 10) {
@@ -204,7 +204,7 @@ class AccountData {
     }
   }
 
-  updateOrder(VoidCallback? dataUpdated) async {
+  updateOrder(VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
     if (isUpdatingOrders) return;
     logger.i('start update order.phone: $phoneNumber');
     isUpdatingOrders = true;
@@ -251,7 +251,7 @@ class AccountData {
         _lastTransId = lastCell.transId!;
         _lasttransDate = lastCell.toDateTime();
       }
-      reports(needReportList, dataUpdated);
+      reports(needReportList, dataUpdated, onLogged);
     }
     // var seconds = DateTime.now().difference(lastUpdateTime).inSeconds;
     // logger.i('seconds: $seconds');
@@ -316,7 +316,7 @@ class AccountData {
   }
 
   reports(List<HistoriesResponseResponseMapTnxHistoryList> reportList,
-      VoidCallback? dataUpdated) async {
+      VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
     // final reportList = <HistoriesResponseResponseMapTnxHistoryList?>[];
     // reportList.addAll(list);
 
@@ -334,6 +334,15 @@ class AccountData {
           break;
         }
       }
+      onLogged(LogItem(
+        type: LogItemType.receive,
+        platformName: platformName,
+        platformKey: platformKey,
+        phone: phoneNumber,
+        time: DateTime.now(),
+        content:
+            'transId: ${cell.transId}, amount: ${cell.amount}, transDate: ${cell.transDate}, report ret: ${!isFail}',
+      ));
       logger.i(
           'report: ret: ${!isFail}, phone: $phoneNumber, id: ${cell.transId}, amount: ${cell.amount}, date: ${cell.transDate}');
       if (isFail) {

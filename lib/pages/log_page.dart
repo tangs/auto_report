@@ -2,6 +2,7 @@ import 'dart:collection';
 
 import 'package:auto_report/data/account/account_data.dart';
 import 'package:auto_report/data/log/log_item.dart';
+import 'package:auto_report/data/manager/data_manager.dart';
 import 'package:auto_report/data/proto/response/get_platforms_response.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -25,6 +26,8 @@ class LogsPage extends StatefulWidget {
 class _LogsPageState extends State<LogsPage> {
   final _platformsCheckboxResults = <String, bool>{};
   final _accountsCheckboxResults = <String, bool>{};
+
+  bool _autoRefresh = DataManager().autoRefreshLog;
 
   bool isPlatformSelected(String platformKey) {
     return _platformsCheckboxResults[platformKey] ?? true;
@@ -141,6 +144,21 @@ class _LogsPageState extends State<LogsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Logs'),
+        actions: [
+          Row(children: [
+            const Icon(Icons.refresh),
+            Switch(
+              value: _autoRefresh,
+              onChanged: (value) {
+                setState(() => _autoRefresh = value);
+                DataManager().autoRefreshLog = value;
+              },
+            )
+          ])
+        ],
+      ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

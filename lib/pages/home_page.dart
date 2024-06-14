@@ -53,28 +53,7 @@ class _HomePageState extends State<HomePage> {
         info.update(() {
           if (!mounted) return;
           setState(() => accounts.accountsData = accounts.accountsData);
-        });
-        // setState(() {
-        _logs.add(LogItem(
-          type: LogItemType.receive,
-          platformName: info.platformName,
-          platformKey: info.platformKey,
-          phone: info.phoneNumber,
-          time: DateTime.now(),
-          content: 'test',
-        ));
-        _logs.add(LogItem(
-          type: LogItemType.send,
-          platformName: info.platformName,
-          platformKey: info.platformKey,
-          phone: info.phoneNumber,
-          time: DateTime.now(),
-          content: 'test1',
-        ));
-        if (_logs.length > Config.logCountMax) {
-          _logs.remove(_logs.first);
-        }
-        // });
+        }, addLog);
       }
       // logger.i('update');
     });
@@ -87,10 +66,16 @@ class _HomePageState extends State<HomePage> {
     logger.i('dispose');
   }
 
-  void newAccount({String? phoneNumber = '', String? pin = ''}) async {
+  void newAccount(
+      {String? phoneNumber = '',
+      String? pin = '',
+      String? token,
+      String? remark}) async {
     final result = await Navigator.of(context).pushNamed("/auth", arguments: {
       'phoneNumber': phoneNumber ?? '',
       'pin': pin ?? '',
+      'token': token ?? '',
+      'remark': remark ?? '',
       'platforms': widget.platforms,
     });
     if (result == null) {
@@ -102,6 +87,29 @@ class _HomePageState extends State<HomePage> {
       setState(() {
         accounts.add(result, true);
       });
+      addLog(
+        LogItem(
+          type: LogItemType.newAccount,
+          platformName: result.platformName,
+          platformKey: result.platformKey,
+          phone: result.phoneNumber,
+          time: DateTime.now(),
+          content: 'add account.',
+        ),
+      );
+    }
+  }
+
+  void addLog(LogItem item) {
+    if (_logs.length > Config.logCountMax) {
+      _logs.remove(_logs.first);
+    }
+    if (DataManager().autoRefreshLog) {
+      setState(() {
+        _logs.add(item);
+      });
+    } else {
+      _logs.add(item);
     }
   }
 
@@ -121,23 +129,36 @@ class _HomePageState extends State<HomePage> {
           alignment: Alignment.bottomCenter,
           children: <Widget>[
             PageView(
+              physics: const NeverScrollableScrollPhysics(),
               controller: _pageViewController,
               onPageChanged: (index) => setState(() => _navIndex = index),
               children: <Widget>[
                 AccountsPage(
                   accountsData: accounts.accountsData,
                   platforms: widget.platforms,
-                  onRemoved: () => setState(() => accounts.update()),
-                  onReLogin: ({String? phoneNumber, String? pin}) =>
-                      newAccount(phoneNumber: phoneNumber, pin: pin),
-                  // onLog: (item) {
-                  //   setState(() {
-                  //     _logs.add(item);
-                  //     if (_logs.length > Config.logCountMax) {
-                  //       _logs.remove(_logs.first);
-                  //     }
-                  //   });
-                  // },
+                  onRemoved: (account) {
+                    setState(() => accounts.update());
+                    addLog(
+                      LogItem(
+                        type: LogItemType.deleteAccount,
+                        platformName: account.platformName,
+                        platformKey: account.platformKey,
+                        phone: account.phoneNumber,
+                        time: DateTime.now(),
+                        content: 'delete account.',
+                      ),
+                    );
+                  },
+                  onReLogin: (
+                          {String? phoneNumber,
+                          String? pin,
+                          String? token,
+                          String? remark}) =>
+                      newAccount(
+                          phoneNumber: phoneNumber,
+                          pin: pin,
+                          token: token,
+                          remark: remark),
                 ),
                 LogsPage(
                   logs: _logs,

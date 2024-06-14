@@ -4,13 +4,14 @@ import 'package:auto_report/data/proto/response/get_platforms_response.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-typedef ReLoginCallback = void Function({String phoneNumber, String pin});
+typedef ReLoginCallback = void Function(
+    {String phoneNumber, String pin, String token, String remark});
 
 class AccountsPage extends StatefulWidget {
   final List<AccountData> accountsData;
   final List<GetPlatformsResponseData?>? platforms;
 
-  final VoidCallback onRemoved;
+  final ValueChanged<AccountData> onRemoved;
   final ReLoginCallback onReLogin;
 
   const AccountsPage({
@@ -171,7 +172,10 @@ class _AccountsPageState extends State<AccountsPage> {
           child: OutlinedButton(
             onPressed: data.isUpdatingOrders || invalid
                 ? null
-                : () => data.updateOrder(() => setState(() => data = data)),
+                : () =>
+                    data.updateOrder(() => setState(() => data = data), (log) {
+                      // todo.
+                    }),
             child: Text(
                 data.isUpdatingOrders ? 'Updating orders' : 'Update orders'),
           ),
@@ -182,6 +186,8 @@ class _AccountsPageState extends State<AccountsPage> {
             onPressed: () => widget.onReLogin(
               phoneNumber: data.phoneNumber,
               pin: data.pin,
+              token: data.token,
+              remark: data.remark,
             ),
             child: const Text('ReLogin'),
           ),
@@ -203,7 +209,7 @@ class _AccountsPageState extends State<AccountsPage> {
                           TextButton(
                             onPressed: () {
                               setState(() => data.needRemove = true);
-                              widget.onRemoved();
+                              widget.onRemoved(data);
                               Navigator.of(context).pop();
                             },
                             child: const Text('OK'),

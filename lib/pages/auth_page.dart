@@ -18,9 +18,16 @@ class AuthPage extends StatefulWidget {
   final List<GetPlatformsResponseData?>? platforms;
   final String? phoneNumber;
   final String? pin;
+  final String? token;
+  final String? remark;
 
   const AuthPage(
-      {super.key, required this.platforms, this.phoneNumber, this.pin});
+      {super.key,
+      required this.platforms,
+      this.phoneNumber,
+      this.pin,
+      this.token,
+      this.remark});
 
   @override
   State<AuthPage> createState() => _AuthPageState();
@@ -29,7 +36,7 @@ class AuthPage extends StatefulWidget {
 class _AuthPageState extends State<AuthPage> {
   String? _phoneNumber;
   String? _pin;
-  String? _authCode;
+  String? _otpCode;
   String? _token;
   String? _remark;
 
@@ -53,6 +60,9 @@ class _AuthPageState extends State<AuthPage> {
 
     _phoneNumber = widget.phoneNumber ?? '';
     _pin = widget.pin ?? '';
+
+    _token = widget.token ?? '';
+    _remark = widget.remark ?? '';
 
     // generate device id
     var deviceId = '';
@@ -179,12 +189,12 @@ class _AuthPageState extends State<AuthPage> {
       });
     final formData = [
       '${Uri.encodeQueryComponent('msisdn')}=${Uri.encodeQueryComponent(_phoneNumber ?? '')}',
-      '${Uri.encodeQueryComponent('otp')}=${Uri.encodeQueryComponent(_authCode ?? '')}',
+      '${Uri.encodeQueryComponent('otp')}=${Uri.encodeQueryComponent(_otpCode ?? '')}',
     ].join('&');
 
     logger.i('confim auth code start');
     logger.i('Phone number: $_phoneNumber');
-    logger.i('auth code: $_authCode');
+    logger.i('auth code: $_otpCode');
     logger.i('form data: $formData');
     final response = await Future.any([
       http.post(url, headers: headers, body: formData),
@@ -214,7 +224,7 @@ class _AuthPageState extends State<AuthPage> {
     return true;
   }
 
-  bool _checkInput() {
+  bool _checkInput({bool checkOtp = true}) {
     if (_phoneNumber?.isEmpty ?? true) {
       EasyLoading.showToast('phone number is empty.');
       return false;
@@ -227,7 +237,7 @@ class _AuthPageState extends State<AuthPage> {
       EasyLoading.showToast('password is empty.');
       return false;
     }
-    if (_authCode?.isEmpty ?? true) {
+    if (checkOtp && (_otpCode?.isEmpty ?? true)) {
       EasyLoading.showToast('auth code is empty.');
       return false;
     }
@@ -341,7 +351,7 @@ class _AuthPageState extends State<AuthPage> {
   }
 
   void _auth() async {
-    if (!_checkInput()) return;
+    if (!_checkInput(checkOtp: false)) return;
 
     try {
       EasyLoading.show(status: 'loading...');
@@ -486,8 +496,8 @@ class _AuthPageState extends State<AuthPage> {
             Padding(
               padding: const EdgeInsets.fromLTRB(15, 15, 15, 0),
               child: TextFormField(
-                controller: TextEditingController()..text = _authCode ?? "",
-                onChanged: (value) => _authCode = value,
+                controller: TextEditingController()..text = _otpCode ?? "",
+                onChanged: (value) => _otpCode = value,
                 // validator: _validator,
                 keyboardType: TextInputType.number,
                 decoration: _buildInputDecoration("otp code", Icons.security),
@@ -574,7 +584,7 @@ class _AuthPageState extends State<AuthPage> {
                           platformMark: _platformsResponseData!.mark!,
                           phoneNumber: _phoneNumber!,
                           pin: _pin!,
-                          authCode: _authCode!,
+                          authCode: _otpCode!,
                           wmtMfs: _wmtMfs!,
                           isWmtMfsInvalid: false,
                           deviceId: _deviceId,

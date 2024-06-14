@@ -14,6 +14,7 @@ class DataManager {
   bool devMode = false;
   bool isDark = false;
   String? appVersion;
+  bool autoRefreshLog = false;
 
   factory DataManager() {
     return _singleton;

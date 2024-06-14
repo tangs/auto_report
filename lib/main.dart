@@ -34,6 +34,8 @@ class MyApp extends StatelessWidget {
             platforms: data['platforms'],
             phoneNumber: data['phoneNumber'],
             pin: data['pin'],
+            token: data['token'],
+            remark: data['remark'],
           );
         },
         '/home': (context) {
