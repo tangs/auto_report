@@ -88,7 +88,18 @@ class _AuthPageState extends State<AuthPage> {
         Config.wmtMfsKey: _wmtMfs ?? '',
       });
     try {
-      final response = await http.get(url, headers: headers);
+      final response = await Future.any([
+        http.get(url, headers: headers),
+        Future.delayed(
+            const Duration(seconds: Config.httpRequestTimeoutSeconds)),
+      ]);
+
+      if (response is! http.Response) {
+        EasyLoading.showError('request otp timeout');
+        logger.i('request otp timeout');
+        return;
+      }
+
       _wmtMfs = response.headers[Config.wmtMfsKey] ?? _wmtMfs;
       logger.i('Response status: ${response.statusCode}');
       logger.i('Response body: ${response.body}');
@@ -124,7 +135,18 @@ class _AuthPageState extends State<AuthPage> {
         Config.wmtMfsKey: _wmtMfs ?? '',
       });
     try {
-      final response = await http.get(url, headers: headers);
+      final response = await Future.any([
+        http.get(url, headers: headers),
+        Future.delayed(
+            const Duration(seconds: Config.httpRequestTimeoutSeconds)),
+      ]);
+
+      if (response is! http.Response) {
+        // EasyLoading.showError('get token timeout');
+        logger.i('get token timeout');
+        return null;
+      }
+
       logger.i('Response status: ${response.statusCode}');
       logger.i('Response body: ${response.body}');
 
@@ -155,7 +177,7 @@ class _AuthPageState extends State<AuthPage> {
         "user-agent": "okhttp/4.9.0",
         Config.wmtMfsKey: _wmtMfs ?? '',
       });
-    var formData = [
+    final formData = [
       '${Uri.encodeQueryComponent('msisdn')}=${Uri.encodeQueryComponent(_phoneNumber ?? '')}',
       '${Uri.encodeQueryComponent('otp')}=${Uri.encodeQueryComponent(_authCode ?? '')}',
     ].join('&');
@@ -164,11 +186,17 @@ class _AuthPageState extends State<AuthPage> {
     logger.i('Phone number: $_phoneNumber');
     logger.i('auth code: $_authCode');
     logger.i('form data: $formData');
-    final response = await http.post(
-      url,
-      headers: headers,
-      body: formData,
-    );
+    final response = await Future.any([
+      http.post(url, headers: headers, body: formData),
+      Future.delayed(const Duration(seconds: Config.httpRequestTimeoutSeconds)),
+    ]);
+
+    if (response is! http.Response) {
+      EasyLoading.showError('firm auth timeout');
+      logger.i('firm auth timeout');
+      return false;
+    }
+
     _wmtMfs = response.headers[Config.wmtMfsKey] ?? _wmtMfs;
     logger.i('Response status: ${response.statusCode}');
     logger.i('Response body: ${response.body}');
@@ -221,12 +249,17 @@ class _AuthPageState extends State<AuthPage> {
     try {
       // 验证验证码
       if (!await _confirmAuthCode()) {
-        EasyLoading.showError('confirm auth code fail.');
+        // EasyLoading.showError('confirm auth code fail.');
         return;
       }
 
       var token1 = await _generateToken();
       var token2 = await _generateToken();
+
+      if (token1 == null || token2 == null) {
+        EasyLoading.showError('get token timeout.');
+        return;
+      }
 
       var password = RSAHelper.encrypt('$_pin:$token1', Config.rsaPublicKey);
       var pin = RSAHelper.encrypt('$_pin:$token2', Config.rsaPublicKey);
@@ -251,11 +284,18 @@ class _AuthPageState extends State<AuthPage> {
           Config.wmtMfsKey: _wmtMfs ?? '',
         });
 
-      final response = await http.post(
-        url,
-        headers: headers,
-        body: formData,
-      );
+      final response = await Future.any([
+        http.post(url, headers: headers, body: formData),
+        Future.delayed(
+            const Duration(seconds: Config.httpRequestTimeoutSeconds)),
+      ]);
+
+      if (response is! http.Response) {
+        EasyLoading.showError('login timeout');
+        logger.i('login timeout');
+        return;
+      }
+
       _wmtMfs = response.headers[Config.wmtMfsKey] ?? _wmtMfs;
       logger.i('Response status: ${response.statusCode}');
       logger.i('Response body: ${response.body}, len: ${response.body.length}');
@@ -318,7 +358,8 @@ class _AuthPageState extends State<AuthPage> {
         logger.i('host: $host, path: $path');
         final response = await Future.any([
           http.post(url),
-          Future.delayed(const Duration(seconds: 20)),
+          Future.delayed(
+              const Duration(seconds: Config.httpRequestTimeoutSeconds)),
         ]);
 
         if (response is! http.Response) {
@@ -350,7 +391,8 @@ class _AuthPageState extends State<AuthPage> {
         logger.i('host: $host, path: $path');
         final response = await Future.any([
           http.post(url),
-          Future.delayed(const Duration(seconds: 20)),
+          Future.delayed(
+              const Duration(seconds: Config.httpRequestTimeoutSeconds)),
         ]);
 
         if (response is! http.Response) {

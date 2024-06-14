@@ -137,20 +137,28 @@ class AccountData {
           Config.wmtMfsKey: wmtMfs,
         });
 
-      final response = await http.get(
-        url,
-        headers: headers,
-      );
+      final response = await Future.any([
+        http.get(url, headers: headers),
+        Future.delayed(
+            const Duration(seconds: Config.httpRequestTimeoutSeconds)),
+      ]);
+
+      if (response is! http.Response) {
+        EasyLoading.showError('get order timeout');
+        logger.i('get order timeout');
+        return false;
+      }
+
       wmtMfs = response.headers[Config.wmtMfsKey] ?? wmtMfs;
       logger.i('Response status: ${response.statusCode}');
       logger.i('Response body: ${response.body}, len: ${response.body.length}');
       logger.i('$Config.wmtMfsKey: ${response.headers[Config.wmtMfsKey]}');
 
       if (response.statusCode != 200) {
-        logger.e('login err: ${response.statusCode}',
+        logger.e('get order err: ${response.statusCode}',
             stackTrace: StackTrace.current);
         isWmtMfsInvalid = true;
-        EasyLoading.showToast('login err: ${response.statusCode}');
+        EasyLoading.showToast('get order err: ${response.statusCode}');
         return false;
       }
       final lastTime = _lasttransDate ?? DateTime.fromMicrosecondsSinceEpoch(0);
@@ -278,7 +286,8 @@ class AccountData {
           'pay_money': '${data.amount}',
           'bank_time': data.transDate,
         }),
-        Future.delayed(const Duration(seconds: 20)),
+        Future.delayed(
+            const Duration(seconds: Config.httpRequestTimeoutSeconds)),
       ]);
 
       if (response is! http.Response) {
@@ -356,19 +365,27 @@ class AccountData {
           Config.wmtMfsKey: wmtMfs,
         });
 
-      final response = await http.get(
-        url,
-        headers: headers,
-      );
+      final response = await Future.any([
+        http.get(url, headers: headers),
+        Future.delayed(
+            const Duration(seconds: Config.httpRequestTimeoutSeconds)),
+      ]);
+
+      if (response is! http.Response) {
+        EasyLoading.showError('get wallet balance timeout');
+        logger.i('get wallet balance timeout');
+        return;
+      }
+
       wmtMfs = response.headers[Config.wmtMfsKey] ?? wmtMfs;
       logger.i('Response status: ${response.statusCode}');
       logger.i('Response body: ${response.body}, len: ${response.body.length}');
       logger.i('$Config.wmtMfsKey: ${response.headers[Config.wmtMfsKey]}');
 
       if (response.statusCode != 200) {
-        logger.e('login err: ${response.statusCode}',
+        logger.e('get wallet balance err: ${response.statusCode}',
             stackTrace: StackTrace.current);
-        EasyLoading.showToast('login err: ${response.statusCode}');
+        EasyLoading.showToast('get wallet balance err: ${response.statusCode}');
         isWmtMfsInvalid = true;
         return;
       }

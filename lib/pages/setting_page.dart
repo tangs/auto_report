@@ -102,7 +102,6 @@ class _SettingsPageState extends State<SettingsPage> {
                     ],
                   ),
                 ),
-
                 // const Divider(),
                 // const _SingleSection(
                 //   children: [
