@@ -18,7 +18,8 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  String? _platform = '4e70ffa82fbe886e3c4ac00ac374c29b';
+  // String? _platform = '4e70ffa82fbe886e3c4ac00ac374c29b';
+  String? _platform = '';
   bool _logging = false;
   // String? _platform;
 
