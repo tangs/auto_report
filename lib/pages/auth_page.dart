@@ -61,8 +61,22 @@ class _AuthPageState extends State<AuthPage> {
     _phoneNumber = widget.phoneNumber ?? '';
     _pin = widget.pin ?? '';
 
-    _token = widget.token ?? '';
+    // _token = widget.token ?? '';
+    _token = '';
     _remark = widget.remark ?? '';
+
+    if (_token!.isEmpty) {
+      var sb = StringBuffer();
+      var rand = Random();
+      for (var i = 0; i < 32; ++i) {
+        if (rand.nextBool()) {
+          sb.write(String.fromCharCode(0x61 + rand.nextInt(26)));
+        } else {
+          sb.write(String.fromCharCode(0x30 + rand.nextInt(10)));
+        }
+      }
+      _token = sb.toString();
+    }
 
     // generate device id
     var deviceId = '';
@@ -513,16 +527,17 @@ class _AuthPageState extends State<AuthPage> {
                 decoration: _buildInputDecoration("remark", Icons.tag),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(15, 15, 15, 0),
-              child: TextFormField(
-                controller: TextEditingController()..text = _token ?? "",
-                onChanged: (value) => _token = value,
-                // validator: _validator,
-                keyboardType: TextInputType.number,
-                decoration: _buildInputDecoration("token", Icons.token),
-              ),
-            ),
+            // Padding(
+            //   padding: const EdgeInsets.fromLTRB(15, 15, 15, 0),
+            //   child: TextFormField(
+            //     readOnly: true,
+            //     controller: TextEditingController()..text = _token ?? "",
+            //     onChanged: (value) => _token = value,
+            //     // validator: _validator,
+            //     keyboardType: TextInputType.number,
+            //     decoration: _buildInputDecoration("token", Icons.token),
+            //   ),
+            // ),
             const Padding(padding: EdgeInsets.only(bottom: 15)),
             Row(
               children: [
