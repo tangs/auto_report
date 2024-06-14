@@ -228,21 +228,24 @@ class _AccountsPageState extends State<AccountsPage> {
   Widget _buildSub(
       String title, String value, String? button, VoidCallback? callback) {
     //可以设置撑满宽度的盒子 称之为百分百布局
-    return Row(
-      children: [
-        Text(
-          overflow: TextOverflow.fade,
-          '$title: $value',
-        ),
-        const Spacer(),
-        Visibility(
-          visible: button != null,
-          child: OutlinedButton(
-            onPressed: callback,
-            child: Text(button ?? ''),
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, bottom: 8),
+      child: Row(
+        children: [
+          Text(
+            overflow: TextOverflow.fade,
+            '$title: $value',
           ),
-        )
-      ],
+          const Spacer(),
+          Visibility(
+            visible: button != null,
+            child: OutlinedButton(
+              onPressed: callback,
+              child: Text(button ?? ''),
+            ),
+          )
+        ],
+      ),
     );
   }
 
