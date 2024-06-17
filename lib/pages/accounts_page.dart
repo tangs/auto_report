@@ -1,4 +1,5 @@
 import 'package:auto_report/data/account/account_data.dart';
+import 'package:auto_report/data/log/log_item.dart';
 import 'package:auto_report/data/manager/data_manager.dart';
 import 'package:auto_report/data/proto/response/get_platforms_response.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +14,7 @@ class AccountsPage extends StatefulWidget {
 
   final ValueChanged<AccountData> onRemoved;
   final ReLoginCallback onReLogin;
+  final ValueChanged<LogItem> onLogged;
 
   const AccountsPage({
     super.key,
@@ -20,6 +22,7 @@ class AccountsPage extends StatefulWidget {
     required this.platforms,
     required this.onRemoved,
     required this.onReLogin,
+    required this.onLogged,
   });
 
   @override
@@ -114,6 +117,14 @@ class _AccountsPageState extends State<AccountsPage> {
                 if (value) {
                   data.reopenReport();
                 }
+                widget.onLogged(LogItem(
+                  type: LogItemType.info,
+                  platformName: data.platformName,
+                  platformKey: data.platformKey,
+                  phone: data.phoneNumber,
+                  time: DateTime.now(),
+                  content: '${!value ? 'open' : 'close'} receive money report.',
+                ));
               },
             ),
           ],

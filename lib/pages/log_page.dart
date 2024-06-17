@@ -148,7 +148,39 @@ class _LogsPageState extends State<LogsPage> {
         title: const Text('Logs'),
         actions: [
           Row(children: [
-            const Icon(Icons.refresh),
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: () => setState(() {}),
+            ),
+            IconButton(
+              onPressed: () async {
+                showDialog(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return AlertDialog(
+                      title: const Icon(Icons.delete_forever),
+                      content: const Text('delete all logs?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () {
+                            setState(() => widget.logs.clear());
+                            Navigator.of(context).pop();
+                          },
+                          child: const Text('OK'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: const Text('Cancel'),
+                        ),
+                      ],
+                    );
+                  },
+                );
+              },
+              icon: const Icon(Icons.delete_forever),
+            ),
+            // const Icon(Icons.refresh),
+            const Text('auto refresh'),
             Switch(
               value: _autoRefresh,
               onChanged: (value) {

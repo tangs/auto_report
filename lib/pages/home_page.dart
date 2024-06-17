@@ -101,13 +101,13 @@ class _HomePageState extends State<HomePage> {
   }
 
   void addLog(LogItem item) {
+    if (!mounted) return;
+
     if (_logs.length > Config.logCountMax) {
       _logs.remove(_logs.first);
     }
     if (DataManager().autoRefreshLog) {
-      setState(() {
-        _logs.add(item);
-      });
+      setState(() => _logs.add(item));
     } else {
       _logs.add(item);
     }
@@ -159,6 +159,7 @@ class _HomePageState extends State<HomePage> {
                           pin: pin,
                           token: token,
                           remark: remark),
+                  onLogged: addLog,
                 ),
                 LogsPage(
                   logs: _logs,

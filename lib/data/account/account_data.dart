@@ -229,23 +229,34 @@ class AccountData {
     while (!isWmtMfsInvalid && await getOrders(offset)) {
       offset += 10;
     }
-    final ids = <String>{};
+    _waitReportList.sort((a, b) => a?.compareTo(b) ?? 0);
     final isFirst = _lasttransDate == null;
     if (isFirst) {
       if (_waitReportList.isEmpty) {
         _lasttransDate = DateTime.fromMicrosecondsSinceEpoch(0);
         _lastTransId = '-1';
       } else {
-        final cell = _waitReportList.first;
+        final cell = _waitReportList.last;
         _lastTransId = cell!.transId;
         _lasttransDate = cell.toDateTime();
       }
       logger.i('report: init last date time: $_lasttransDate, $_lastTransId');
+      onLogged(LogItem(
+        type: LogItemType.info,
+        platformName: platformName,
+        platformKey: platformKey,
+        phone: phoneNumber,
+        time: DateTime.now(),
+        content:
+            'get last order info. time : $_lasttransDate, id: $_lastTransId',
+      ));
     } else {
+      final ids = <String>{};
       var needReportList = _waitReportList.where((cell) {
-        if (cell?.transId == null) return false;
-        if (ids.contains(cell?.transId ?? true)) return false;
-        ids.add(cell!.transId!);
+        if (cell == null) return false;
+        if (cell.transId == null) return false;
+        if (ids.contains(cell.transId)) return false;
+        ids.add(cell.transId!);
         return true;
       }).map((cell) {
         logger.i(

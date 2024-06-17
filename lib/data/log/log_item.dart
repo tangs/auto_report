@@ -1,6 +1,6 @@
 import 'dart:collection';
 
-enum LogItemType { receive, send, err, newAccount, deleteAccount }
+enum LogItemType { receive, send, err, newAccount, deleteAccount, info }
 
 final class LogItem extends LinkedListEntry<LogItem> {
   final LogItemType type;
@@ -36,6 +36,8 @@ final class LogItem extends LinkedListEntry<LogItem> {
         return 'new account';
       case LogItemType.deleteAccount:
         return 'delete account';
+      case LogItemType.info:
+        return 'info';
     }
   }
 }
