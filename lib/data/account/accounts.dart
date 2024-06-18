@@ -42,7 +42,8 @@ class Accounts {
     if (str == _lastRestoreStr) return;
     if (accountsData.isNotEmpty && str.isEmpty) return;
 
-    logger.i('restore: $str');
+    logger.i('restore accounts data.');
+    // logger.i('restore: $str');
     localStorage.setItem('accounts', str);
     _lastRestoreStr = str;
   }
@@ -54,8 +55,8 @@ class Accounts {
     try {
       var data = jsonDecode(str) as List<dynamic>;
       accountsData = data.map((acc) => AccountData.fromJson(acc)).toList();
-    } catch (e) {
-      logger.e('e: $e', stackTrace: StackTrace.current);
+    } catch (e, stackTrace) {
+      logger.e('e: $e', stackTrace: stackTrace);
     }
   }
 }

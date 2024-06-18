@@ -4,6 +4,7 @@ import 'package:auto_report/config/config.dart';
 import 'package:auto_report/data/proto/response/get_platforms_response.dart';
 import 'package:auto_report/main.dart';
 import 'package:auto_report/rsa/rsa_helper.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:http/http.dart' as http;
@@ -22,6 +23,14 @@ class _LoginPageState extends State<LoginPage> {
   String? _platform = '';
   bool _logging = false;
   // String? _platform;
+
+  @override
+  void initState() {
+    super.initState();
+    if (kDebugMode) {
+      setState(() => _platform = '4e70ffa82fbe886e3c4ac00ac374c29b');
+    }
+  }
 
   void login() async {
     if (_platform?.isEmpty ?? true) {
@@ -74,8 +83,8 @@ class _LoginPageState extends State<LoginPage> {
         "/home",
         arguments: resData.data,
       );
-    } catch (e) {
-      logger.e('e: $e', stackTrace: StackTrace.current);
+    } catch (e, stackTrace) {
+      logger.e('e: $e', stackTrace: stackTrace);
     } finally {
       setState(() => _logging = false);
     }

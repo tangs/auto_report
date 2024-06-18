@@ -137,8 +137,8 @@ class _AuthPageState extends State<AuthPage> {
       }
       EasyLoading.showInfo('send auth code success.');
       logger.i('request auth code success');
-    } catch (e) {
-      logger.e('auth err: $e', stackTrace: StackTrace.current);
+    } catch (e, stackTrace) {
+      logger.e('auth err: $e', stackTrace: stackTrace);
       EasyLoading.showError('request err, code: $e',
           dismissOnTap: true, duration: const Duration(seconds: 60));
       return;
@@ -184,8 +184,8 @@ class _AuthPageState extends State<AuthPage> {
       EasyLoading.showInfo('send auth code success.');
       logger.i('get token success.');
       return resBody.responseMap?.securityCounter;
-    } catch (e) {
-      logger.e('get token err: $e', stackTrace: StackTrace.current);
+    } catch (e, stackTrace) {
+      logger.e('get token err: $e', stackTrace: stackTrace);
       EasyLoading.showError('get token err, code: $e',
           dismissOnTap: true, duration: const Duration(seconds: 60));
       return null;
@@ -354,8 +354,8 @@ class _AuthPageState extends State<AuthPage> {
       //     osVersion: _osVersion,
       //   ),
       // );
-    } catch (e) {
-      logger.e('err: $e', stackTrace: StackTrace.current);
+    } catch (e, stackTrace) {
+      logger.e('err: $e', stackTrace: stackTrace);
       EasyLoading.showError('request err, code: $e',
           dismissOnTap: true, duration: const Duration(seconds: 60));
       return;
@@ -443,8 +443,8 @@ class _AuthPageState extends State<AuthPage> {
         }
       }
       setState(() => _hasAuth = true);
-    } catch (e) {
-      logger.e('e: $e', stackTrace: StackTrace.current);
+    } catch (e, stackTrace) {
+      logger.e('e: $e', stackTrace: stackTrace);
     } finally {
       EasyLoading.dismiss();
     }

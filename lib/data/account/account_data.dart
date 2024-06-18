@@ -5,12 +5,18 @@ import 'package:auto_report/config/config.dart';
 import 'package:auto_report/data/account/histories_response.dart';
 import 'package:auto_report/data/log/log_item.dart';
 import 'package:auto_report/data/manager/data_manager.dart';
+import 'package:auto_report/data/proto/response/cash/get_cash_list_response.dart';
+import 'package:auto_report/data/proto/response/cash/send_money_response.dart';
+import 'package:auto_report/data/proto/response/generate_otp_response.dart';
 import 'package:auto_report/data/proto/response/report/general_response.dart';
 import 'package:auto_report/data/proto/response/wallet_balance_response.dart';
 import 'package:auto_report/main.dart';
+import 'package:auto_report/rsa/rsa_helper.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:http/http.dart' as http;
+
+enum RequestType { updateOrder, updateBalance, sendCash }
 
 class AccountData {
   late String token;
@@ -36,7 +42,8 @@ class AccountData {
   bool isAuthInvidWithReport = false;
   bool needRemove = false;
 
-  bool pauseReport = false;
+  bool disableReport = false;
+  bool disableCash = true;
   bool showDetail = false;
 
   double? balance;
@@ -44,17 +51,24 @@ class AccountData {
   /// 当前正在更新余额
   bool isUpdatingBalance = false;
   bool isUpdatingOrders = false;
+  bool isSendingCash = false;
+
   bool reporting = false;
+  bool isGettingCashList = false;
 
   DateTime lastUpdateTime = DateTime.fromMicrosecondsSinceEpoch(0);
   DateTime lastUpdateBalanceTime = DateTime.fromMicrosecondsSinceEpoch(0);
 
   final List<HistoriesResponseResponseMapTnxHistoryList?> _waitReportList = [];
+  // final List<GetCashListResponseDataList> _waitCashList = [];
   String? _lastTransId;
   DateTime? _lasttransDate;
 
   int reportSuccessCnt = 0;
   int reportFailCnt = 0;
+
+  int cashSuccessCnt = 0;
+  int cashFailCnt = 0;
 
   AccountData({
     required this.token,
@@ -71,7 +85,8 @@ class AccountData {
     required this.deviceId,
     required this.model,
     required this.osVersion,
-    this.pauseReport = false,
+    this.disableReport = false,
+    this.disableCash = true,
     this.showDetail = false,
   });
 
@@ -91,7 +106,8 @@ class AccountData {
       'model': model,
       'osVersion': osVersion,
       'isWmtMfsInvalid': isWmtMfsInvalid,
-      'pauseReport': pauseReport,
+      'pauseReport': disableReport,
+      'disableCash': disableCash,
     };
   }
 
@@ -113,7 +129,9 @@ class AccountData {
     model = json['model'];
     osVersion = json['osVersion'];
     isWmtMfsInvalid = json['isWmtMfsInvalid'];
-    pauseReport = json['pauseReport'];
+    // isWmtMfsInvalid = false;
+    disableReport = json['pauseReport'];
+    disableCash = json['disableCash'];
     // isWmtMfsInvalid = false;
   }
 
@@ -180,27 +198,51 @@ class AccountData {
       // 没有多余订单了
       if (tnxHistoryList == null || tnxHistoryList.length < 20) return false;
       return tnxHistoryList.last?.toDateTime().isAfter(lastTime) ?? false;
-    } catch (e) {
-      logger.e('err: ${e.toString()}', stackTrace: StackTrace.current);
+    } catch (e, stackTrace) {
+      logger.e('err: ${e.toString()}', stackTrace: stackTrace);
       EasyLoading.showError('request err, code: $e',
           dismissOnTap: true, duration: const Duration(seconds: 60));
     }
     return false;
   }
 
-  update(VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) {
+  update(VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
     if (isWmtMfsInvalid) return;
     if (isAuthInvidWithReport) return;
-    if (pauseReport) return;
 
-    if (!isUpdatingOrders &&
-        DateTime.now().difference(lastUpdateTime).inSeconds >=
-            DataManager().orderRefreshTime) {
-      updateOrder(dataUpdated, onLogged);
+    if (!disableReport) {
+      if (!isUpdatingOrders &&
+          DateTime.now().difference(lastUpdateTime).inSeconds >=
+              DataManager().orderRefreshTime) {
+        updateOrder(dataUpdated, onLogged);
+      }
     }
+
+    if (!disableCash) {
+      if (!isGettingCashList &&
+          DateTime.now().difference(lastUpdateTime).inSeconds >=
+              DataManager().gettingCashListRefreshTime) {
+        final cashList = await getCashList(dataUpdated);
+        if (cashList?.isNotEmpty ?? false) {
+          sendingMoney(cashList!, dataUpdated, onLogged);
+        }
+      }
+    }
+
     if (!isUpdatingBalance &&
-        DateTime.now().difference(lastUpdateBalanceTime).inMinutes > 30) {
-      updateBalance(dataUpdated);
+        DateTime.now().difference(lastUpdateBalanceTime).inHours >= 2) {
+      updateBalance(dataUpdated, onLogged);
+    }
+  }
+
+  checkNeedWaiting(RequestType without) {
+    switch (without) {
+      case RequestType.updateOrder:
+        return isUpdatingBalance || isSendingCash;
+      case RequestType.updateBalance:
+        return isUpdatingOrders || isSendingCash;
+      case RequestType.sendCash:
+        return isUpdatingOrders || isUpdatingBalance;
     }
   }
 
@@ -219,7 +261,7 @@ class AccountData {
     dataUpdated?.call();
 
     // 等待余额更新结束
-    while (isUpdatingBalance) {
+    while (checkNeedWaiting(RequestType.updateOrder)) {
       await Future.delayed(const Duration(milliseconds: 100));
     }
 
@@ -271,7 +313,7 @@ class AccountData {
         _lasttransDate = lastCell.toDateTime();
 
         reports(needReportList, dataUpdated, onLogged);
-        updateBalance(dataUpdated);
+        updateBalance(dataUpdated, onLogged);
       }
     }
     // var seconds = DateTime.now().difference(lastUpdateTime).inSeconds;
@@ -285,9 +327,191 @@ class AccountData {
     dataUpdated?.call();
   }
 
-  int payId = 0;
+  Future<String?> _generateToken() async {
+    logger.i('get token start.');
+    logger.i('Phone number: $phoneNumber');
+    final url = Uri.https(
+        Config.host, 'wmt-mfs-otp/security-token', {'msisdn': '_phoneNumber'});
+    final headers = Config.getHeaders(
+        deviceid: deviceId, model: model, osversion: osVersion)
+      ..addAll({
+        'user-agent': 'okhttp/4.9.0',
+        Config.wmtMfsKey: wmtMfs,
+      });
+    try {
+      final response = await Future.any([
+        http.get(url, headers: headers),
+        Future.delayed(
+            const Duration(seconds: Config.httpRequestTimeoutSeconds)),
+      ]);
+
+      if (response is! http.Response) {
+        // EasyLoading.showError('get token timeout');
+        logger.i('get token timeout');
+        return null;
+      }
+
+      logger.i('Response status: ${response.statusCode}');
+      logger.i('Response body: ${response.body}');
+
+      final resBody = GeneralResponse.fromJson(jsonDecode(response.body));
+      if (response.statusCode != 200 || !resBody.isSuccess()) {
+        EasyLoading.showToast(
+            resBody.message ?? 'err code: ${response.statusCode}');
+        // EasyLoading.dismiss();
+        return null;
+      }
+      // EasyLoading.showInfo('send auth code success.');
+      logger.i('get token success.');
+      return resBody.responseMap?.securityCounter;
+    } catch (e, stackTrace) {
+      logger.e('get token err: $e', stackTrace: stackTrace);
+      EasyLoading.showError('get token err, code: $e',
+          dismissOnTap: true, duration: const Duration(seconds: 60));
+      return null;
+    }
+  }
+
+  reportSendMoneySuccess(GetCashListResponseDataList cell, bool isSuccess,
+      VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
+    final host = platformUrl.replaceAll('http://', '');
+    const path = 'api/pay/callback_cash';
+    final url = Uri.http(host, path);
+    final response = await Future.any([
+      http.post(url, body: {
+        'withdrawals_id': cell.withdrawalsId,
+        'type': '${isSuccess ? 2 : 3}',
+      }),
+      Future.delayed(const Duration(seconds: Config.httpRequestTimeoutSeconds)),
+    ]);
+
+    final isFail = response is! http.Response;
+
+    if (isFail) {
+      EasyLoading.showError('report send money timeout');
+      logger.i('report send money timeout');
+      cashFailCnt++;
+      dataUpdated?.call();
+      return null;
+    }
+
+    onLogged(LogItem(
+      type: LogItemType.send,
+      platformName: platformName,
+      platformKey: platformKey,
+      phone: phoneNumber,
+      time: DateTime.now(),
+      content:
+          'dest phone number: ${cell.cashAccount}, amount: ${cell.money}, report ret: ${!isFail}',
+    ));
+    logger.i('report send money success.');
+    cashSuccessCnt++;
+    dataUpdated?.call();
+  }
+
+  sendingMoney(List<GetCashListResponseDataList> cashList,
+      VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
+    if (isUpdatingOrders) return;
+    logger.i('start sending cash.phone: $phoneNumber');
+    isSendingCash = true;
+    dataUpdated?.call();
+
+    // 等待余额更新结束
+    while (checkNeedWaiting(RequestType.sendCash)) {
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+
+    try {
+      for (final cell in cashList) {
+        if (isWmtMfsInvalid) return;
+
+        final url = Uri.https(Config.host, 'v2/mfs-customer/send-money-ma');
+        final headers = Config.getHeaders(
+            deviceid: deviceId, model: model, osversion: osVersion)
+          ..addAll({
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'user-agent': 'Dart/3.2 (dart:io)',
+            Config.wmtMfsKey: wmtMfs,
+          });
+
+        final token = await _generateToken();
+        final pin1 = RSAHelper.encrypt('$pin:$token', Config.rsaPublicKey);
+
+        final formData = [
+          '${Uri.encodeQueryComponent('receiverMsisdn')}=${Uri.encodeQueryComponent(cell.cashAccount!)}',
+          '${Uri.encodeQueryComponent('amount')}=${Uri.encodeQueryComponent(cell.money.toString())}',
+          '${Uri.encodeQueryComponent('pin')}=${Uri.encodeQueryComponent(pin1)}',
+          '${Uri.encodeQueryComponent('note')}=${Uri.encodeQueryComponent('')}',
+        ].join('&');
+
+        logger.i('cash: $formData');
+
+        final response = await Future.any([
+          http.post(url, headers: headers, body: formData),
+          Future.delayed(
+              const Duration(seconds: Config.httpRequestTimeoutSeconds)),
+        ]);
+
+        if (response is! http.Response) {
+          EasyLoading.showError('cash timeout');
+          logger.i('cash timeout');
+          return;
+        }
+
+        wmtMfs = response.headers[Config.wmtMfsKey] ?? wmtMfs;
+        logger.i('cash Response status: ${response.statusCode}');
+        logger.i(
+            'cash Response body: ${response.body}, len: ${response.body.length}');
+        logger.i('$Config.wmtMfsKey: ${response.headers[Config.wmtMfsKey]}');
+
+        if (response.statusCode == 400) {
+          final resBody =
+              SendMoneyFailResponse.fromJson(jsonDecode(response.body));
+          if (resBody.codeStatus == 'PL001' &&
+              resBody.message == 'Not enough balance.') {
+            reportSendMoneySuccess(cell, false, dataUpdated, onLogged);
+            continue;
+          }
+        }
+
+        if (response.statusCode != 200) {
+          logger.e(
+              'cash err: ${response.statusCode}, dest num: ${cell.cashAccount!}',
+              stackTrace: StackTrace.current);
+          EasyLoading.showToast('cash err: ${response.statusCode}');
+          if (response.statusCode == 401) {
+            isWmtMfsInvalid = true;
+            return;
+          }
+          return;
+        }
+
+        final resBody = SendMoneyResponse.fromJson(jsonDecode(response.body));
+        if (!resBody.isSuccess()) {
+          logger.e(
+              'cash err: ${resBody.statusCode}, ${resBody.message}, dest num: ${cell.cashAccount!}',
+              stackTrace: StackTrace.current);
+          EasyLoading.showToast(
+              'cash err: ${resBody.statusCode}, ${resBody.message}');
+          reportSendMoneySuccess(cell, false, dataUpdated, onLogged);
+          continue;
+        }
+
+        reportSendMoneySuccess(cell, true, dataUpdated, onLogged);
+      }
+      updateBalance(dataUpdated, onLogged);
+    } catch (e, stackTrace) {
+      logger.e('e: $e', stackTrace: stackTrace);
+    } finally {
+      isSendingCash = false;
+      dataUpdated?.call();
+    }
+  }
+
+  int _payId = 0;
   Future<bool> report(VoidCallback? dataUpdated,
       HistoriesResponseResponseMapTnxHistoryList data, int payId) async {
+    if (isWmtMfsInvalid) return false;
     try {
       final host = platformUrl.replaceAll('http://', '');
       const path = 'api/pay/payinfo_app';
@@ -329,9 +553,11 @@ class AccountData {
         }
         EasyLoading.showError(
             'report order fail. code: ${res.status}, msg: ${res.message}');
+        return false;
       }
-    } catch (e) {
-      logger.e('e: $e', stackTrace: StackTrace.current);
+    } catch (e, stackTrace) {
+      logger.e('e: $e', stackTrace: stackTrace);
+      return false;
     }
     return true;
   }
@@ -350,7 +576,7 @@ class AccountData {
       var isFail = true;
       // 重试3次
       for (var i = 0; i < 3; ++i) {
-        if (await report(dataUpdated, cell, payId++)) {
+        if (await report(dataUpdated, cell, _payId++)) {
           isFail = false;
           break;
         }
@@ -376,13 +602,14 @@ class AccountData {
     dataUpdated?.call();
   }
 
-  updateBalance(VoidCallback? dataUpdated) async {
+  updateBalance(
+      VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
     if (isUpdatingBalance) return;
     isUpdatingBalance = true;
     dataUpdated?.call();
 
     // 等待订单更新结束
-    while (isUpdatingOrders) {
+    while (checkNeedWaiting(RequestType.updateBalance)) {
       await Future.delayed(const Duration(milliseconds: 100));
     }
 
@@ -416,20 +643,84 @@ class AccountData {
         logger.e('get wallet balance err: ${response.statusCode}',
             stackTrace: StackTrace.current);
         EasyLoading.showToast('get wallet balance err: ${response.statusCode}');
-        isWmtMfsInvalid = true;
+        if (response.statusCode == 401) {
+          isWmtMfsInvalid = true;
+          return;
+        }
         return;
       }
       final resBody = WalletBalanceResponse.fromJson(jsonDecode(response.body));
       balance = resBody.responseMap?.balance ?? 0;
       logger.i('update balance: $balance, acc: $phoneNumber');
       lastUpdateBalanceTime = DateTime.now();
-    } catch (e) {
-      logger.e('err: $e', stackTrace: StackTrace.current);
+      onLogged(LogItem(
+        type: LogItemType.updateBalance,
+        platformName: platformName,
+        platformKey: platformKey,
+        phone: phoneNumber,
+        time: DateTime.now(),
+        content: 'balance: $balance',
+      ));
+    } catch (e, stackTrace) {
+      logger.e('err: $e', stackTrace: stackTrace);
       EasyLoading.showError('request err, code: $e',
           dismissOnTap: true, duration: const Duration(seconds: 60));
     } finally {
       isUpdatingBalance = false;
       dataUpdated?.call();
     }
+  }
+
+  Future<List<GetCashListResponseDataList>?> getCashList(
+      VoidCallback? dataUpdated) async {
+    try {
+      final host = platformUrl.replaceAll('http://', '');
+      const path = 'api/pay/get_cash_list';
+      final url = Uri.http(host, path);
+      // logger.i('url: ${url.toString()}');
+      // logger.i('host: $host, path: $path');
+      final response = await Future.any([
+        http.post(url, body: {
+          'pay_account': phoneNumber,
+          'pay_name': 'WavePay',
+        }),
+        Future.delayed(
+            const Duration(seconds: Config.httpRequestTimeoutSeconds)),
+      ]);
+
+      if (response is! http.Response) {
+        EasyLoading.showError('report order timeout');
+        logger.i('get cash list timeout, phone: $phoneNumber');
+        return null;
+      }
+
+      final body = response.body;
+      // logger.i('cash res body: $body');
+
+      final jsonData = jsonDecode(body);
+      if (jsonData['success'] == false) {
+        // 当前没有需要转账的数据
+        return [];
+      }
+      final res = GetCashListResponse.fromJson(jsonData);
+      if (res.error?.isNotEmpty ?? false) {
+        EasyLoading.showError('get cash list fail. err: ${res.error}');
+        return null;
+      }
+
+      final waitCashList = (res.data?.list ?? [])
+          .where((cell) => cell != null)
+          .cast<GetCashListResponseDataList>()
+          .toList();
+
+      if (waitCashList.isNotEmpty) {
+        logger.i('get cash list.len: ${waitCashList.length}');
+      }
+
+      return waitCashList;
+    } catch (e, stackTrace) {
+      logger.e('e: $e', stackTrace: stackTrace);
+    }
+    return null;
   }
 }

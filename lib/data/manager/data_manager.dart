@@ -11,6 +11,8 @@ class DataManager {
   static const orderRefreshTimeRange = RangeValues(20, 100);
 
   double orderRefreshTime = 20;
+  double gettingCashListRefreshTime = 3;
+
   bool devMode = false;
   bool isDark = false;
   String? appVersion;
@@ -33,6 +35,8 @@ class DataManager {
 
   void save() {
     localStorage.setItem('orderRefreshTime', orderRefreshTime.toString());
+    localStorage.setItem(
+        'gettingCashListRefreshTime', gettingCashListRefreshTime.toString());
     localStorage.setItem('isDark', isDark.toString());
   }
 
@@ -40,12 +44,14 @@ class DataManager {
     try {
       orderRefreshTime =
           double.parse(localStorage.getItem('orderRefreshTime') ?? '20');
+      gettingCashListRefreshTime = double.parse(
+          localStorage.getItem('gettingCashListRefreshTime') ?? '3');
       orderRefreshTime = min(orderRefreshTimeRange.end,
           max(orderRefreshTimeRange.start, orderRefreshTime));
 
       isDark = bool.parse(localStorage.getItem('isDark') ?? 'false');
-    } catch (e) {
-      logger.e(e);
+    } catch (e, stackTrace) {
+      logger.e(e, stackTrace: stackTrace);
     }
   }
 }

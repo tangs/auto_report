@@ -78,7 +78,8 @@ class _AccountsPageState extends State<AccountsPage> {
             OutlinedButton(
               onPressed: (isUpdatingBalance || invalid)
                   ? null
-                  : () => data.updateBalance(() => setState(() => data = data)),
+                  : () => data.updateBalance(
+                      () => setState(() => data = data), widget.onLogged),
               child: Text(isUpdatingBalance ? 'updating' : 'update'),
             )
           ],
@@ -110,10 +111,10 @@ class _AccountsPageState extends State<AccountsPage> {
             const Spacer(),
             const Text('Disable Report:'),
             Switch(
-              value: data.pauseReport,
+              value: data.disableReport,
               activeColor: Colors.red,
               onChanged: (bool value) {
-                setState(() => data.pauseReport = value);
+                setState(() => data.disableReport = value);
                 if (value) {
                   data.reopenReport();
                 }
@@ -124,6 +125,49 @@ class _AccountsPageState extends State<AccountsPage> {
                   phone: data.phoneNumber,
                   time: DateTime.now(),
                   content: '${!value ? 'open' : 'close'} receive money report.',
+                ));
+              },
+            ),
+          ],
+        ),
+        Row(
+          children: [
+            RichText(
+              text: TextSpan(
+                text: 'Cash',
+                style: DefaultTextStyle.of(context).style,
+                children: [
+                  TextSpan(
+                    text: '    succ: ${data.cashSuccessCnt}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue,
+                    ),
+                  ),
+                  TextSpan(
+                    text: '    fail: ${data.cashFailCnt}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Spacer(),
+            const Text('Disable Cash:'),
+            Switch(
+              value: data.disableCash,
+              activeColor: Colors.red,
+              onChanged: (bool value) {
+                setState(() => data.disableCash = value);
+                widget.onLogged(LogItem(
+                  type: LogItemType.info,
+                  platformName: data.platformName,
+                  platformKey: data.platformKey,
+                  phone: data.phoneNumber,
+                  time: DateTime.now(),
+                  content: '${!value ? 'open' : 'close'} cash.',
                 ));
               },
             ),
