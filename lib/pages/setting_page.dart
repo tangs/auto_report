@@ -10,6 +10,7 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   double _orderRefreshTime = DataManager().orderRefreshTime;
+  double _sendMoneyRefreshTime = DataManager().gettingCashListRefreshTime;
   bool _devMode = DataManager().devMode;
   bool _devModeSwich = DataManager().devMode;
   bool _isDark = DataManager().isDark;
@@ -46,7 +47,7 @@ class _SettingsPageState extends State<SettingsPage> {
                               });
                             })),
                     _CustomListTile(
-                      title: "Order refresh seconds",
+                      title: "Receive money refresh seconds",
                       icon: Icons.refresh,
                       trailing: Text(
                         '${_orderRefreshTime.toInt()}',
@@ -65,6 +66,29 @@ class _SettingsPageState extends State<SettingsPage> {
                         });
                         final dm = DataManager();
                         dm.orderRefreshTime = value;
+                        dm.save();
+                      },
+                    ),
+                    _CustomListTile(
+                      title: "Send money refresh seconds",
+                      icon: Icons.refresh,
+                      trailing: Text(
+                        '${_sendMoneyRefreshTime.toInt()}',
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ),
+                    Slider(
+                      value: _sendMoneyRefreshTime,
+                      min: 1,
+                      max: 20,
+                      divisions: 19,
+                      label: '${_sendMoneyRefreshTime.toInt()}',
+                      onChanged: (double value) {
+                        setState(() {
+                          _sendMoneyRefreshTime = value;
+                        });
+                        final dm = DataManager();
+                        dm.gettingCashListRefreshTime = value;
                         dm.save();
                       },
                     ),

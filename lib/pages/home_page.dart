@@ -44,7 +44,7 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     _pageViewController = PageController();
     logger.i('initState');
-    Timer.periodic(const Duration(seconds: 5), (timer) {
+    Timer.periodic(const Duration(milliseconds: 500), (timer) {
       if (!mounted) {
         timer.cancel();
         return;
