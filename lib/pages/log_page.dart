@@ -26,6 +26,7 @@ class LogsPage extends StatefulWidget {
 class _LogsPageState extends State<LogsPage> {
   final _platformsCheckboxResults = <String, bool>{};
   final _accountsCheckboxResults = <String, bool>{};
+  final _typeFilterResults = <LogItemType, bool>{};
 
   bool _autoRefresh = DataManager().autoRefreshLog;
 
@@ -45,6 +46,14 @@ class _LogsPageState extends State<LogsPage> {
   bool _isAllAccountsSelected() {
     return !widget.accountsData
         .any((account) => !isAccountSelected(account.phoneNumber));
+  }
+
+  bool isTypeSelected(LogItemType type) {
+    return _typeFilterResults[type] ?? true;
+  }
+
+  bool _isAllTypesSelected() {
+    return !LogItemType.values.any((type) => !isTypeSelected(type));
   }
 
   Widget _buildCheckbox(
@@ -80,6 +89,16 @@ class _LogsPageState extends State<LogsPage> {
       key,
       value,
       (value) => setState(() => _accountsCheckboxResults[key] = value!),
+    );
+  }
+
+  Widget _buildTypeCheckbox(LogItemType type) {
+    final key = type;
+    final value = isTypeSelected(key);
+    return _buildCheckbox(
+      key.toString().replaceFirst('LogItemType.', ''),
+      value,
+      (value) => setState(() => _typeFilterResults[key] = value!),
     );
   }
 
@@ -130,6 +149,27 @@ class _LogsPageState extends State<LogsPage> {
         (value) => setState(() {
           for (var account in widget.accountsData) {
             _accountsCheckboxResults[account.phoneNumber] = value!;
+          }
+        }),
+      ),
+    );
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(children: widgets),
+    );
+  }
+
+  Widget _buildTypesFilter() {
+    final widgets =
+        LogItemType.values.map((type) => _buildTypeCheckbox(type)).toList();
+    widgets.insert(
+      0,
+      _buildAllCheckbox(
+        _isAllTypesSelected(),
+        (value) => setState(() {
+          for (var type in LogItemType.values) {
+            _typeFilterResults[type] = value!;
           }
         }),
       ),
@@ -196,6 +236,7 @@ class _LogsPageState extends State<LogsPage> {
         children: [
           SizedBox(child: _buildPlatformFilter()),
           SizedBox(child: _buildAccountsFilter()),
+          SizedBox(child: _buildTypesFilter()),
           Flexible(
             child: ListView(
               children: ListTile.divideTiles(
@@ -203,7 +244,8 @@ class _LogsPageState extends State<LogsPage> {
                 tiles: widget.logs
                     .where((log) =>
                         isPlatformSelected(log.platformKey) &&
-                        isAccountSelected(log.phone))
+                        isAccountSelected(log.phone) &&
+                        isTypeSelected(log.type))
                     .map((log) => _LogCell(log: log))
                     .toList()
                     .reversed,

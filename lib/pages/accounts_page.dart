@@ -109,13 +109,13 @@ class _AccountsPageState extends State<AccountsPage> {
               ),
             ),
             const Spacer(),
-            const Text('Disable Report:'),
+            const Text('Receive money:'),
             Switch(
-              value: data.disableReport,
+              value: !data.disableReport,
               activeColor: Colors.red,
               onChanged: (bool value) {
-                setState(() => data.disableReport = value);
-                if (value) {
+                setState(() => data.disableReport = !value);
+                if (!value) {
                   data.reopenReport();
                 }
                 widget.onLogged(LogItem(
@@ -124,7 +124,7 @@ class _AccountsPageState extends State<AccountsPage> {
                   platformKey: data.platformKey,
                   phone: data.phoneNumber,
                   time: DateTime.now(),
-                  content: '${!value ? 'open' : 'close'} receive money report.',
+                  content: '${value ? 'open' : 'close'} receive money.',
                 ));
               },
             ),
@@ -155,19 +155,19 @@ class _AccountsPageState extends State<AccountsPage> {
               ),
             ),
             const Spacer(),
-            const Text('Disable Cash:'),
+            const Text('Send money:'),
             Switch(
-              value: data.disableCash,
+              value: !data.disableCash,
               activeColor: Colors.red,
               onChanged: (bool value) {
-                setState(() => data.disableCash = value);
+                setState(() => data.disableCash = !value);
                 widget.onLogged(LogItem(
                   type: LogItemType.info,
                   platformName: data.platformName,
                   platformKey: data.platformKey,
                   phone: data.phoneNumber,
                   time: DateTime.now(),
-                  content: '${!value ? 'open' : 'close'} cash.',
+                  content: '${value ? 'open' : 'close'} send money.',
                 ));
               },
             ),
@@ -226,18 +226,24 @@ class _AccountsPageState extends State<AccountsPage> {
             ],
           ),
         ),
-        Visibility(
-          visible: !invalid,
-          child: OutlinedButton(
-            onPressed: data.isUpdatingOrders || invalid
-                ? null
-                : () =>
-                    data.updateOrder(() => setState(() => data = data), (log) {
-                      // todo.
-                    }),
-            child: Text(
-                data.isUpdatingOrders ? 'Updating orders' : 'Update orders'),
-          ),
+        // Visibility(
+        //   visible: !invalid,
+        //   child: OutlinedButton(
+        //     onPressed: data.isUpdatingOrders || invalid
+        //         ? null
+        //         : () =>
+        //             data.updateOrder(() => setState(() => data = data), (log) {
+        //               // todo.
+        //             }),
+        //     child: Text(
+        //         data.isUpdatingOrders ? 'Updating orders' : 'Update orders'),
+        //   ),
+        // ),
+        Row(
+          children: [
+            Text(
+                'state: ${data.isUpdatingOrders ? 'Update recieve orders' : data.isSendingCash ? 'update send orders' : 'Waiting'}')
+          ],
         ),
         Visibility(
           visible: invalid,
