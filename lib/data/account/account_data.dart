@@ -689,7 +689,7 @@ class AccountData {
       ]);
 
       if (response is! http.Response) {
-        EasyLoading.showError('report order timeout');
+        // EasyLoading.showError('et cash list timeout');
         logger.i('get cash list timeout, phone: $phoneNumber');
         return null;
       }

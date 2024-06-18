@@ -11,7 +11,7 @@ class DataManager {
   static const orderRefreshTimeRange = RangeValues(20, 100);
 
   double orderRefreshTime = 20;
-  double gettingCashListRefreshTime = 2;
+  double gettingCashListRefreshTime = 5;
 
   bool devMode = false;
   bool isDark = false;
@@ -45,7 +45,7 @@ class DataManager {
       orderRefreshTime =
           double.parse(localStorage.getItem('orderRefreshTime') ?? '20');
       gettingCashListRefreshTime = double.parse(
-          localStorage.getItem('gettingCashListRefreshTime') ?? '2');
+          localStorage.getItem('gettingCashListRefreshTime') ?? '5');
       orderRefreshTime = min(orderRefreshTimeRange.end,
           max(orderRefreshTimeRange.start, orderRefreshTime));
 
