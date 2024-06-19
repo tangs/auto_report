@@ -3,6 +3,7 @@
 version=`cat pubspec.yaml | grep 'version:' | awk '{print $2}' | sed 's/+/_/'`
 echo $version
 
+flutter clean
 flutter build windows --release
 
 rm -rf "//192.168.1.248/tangsong/auto_report/windows/auto_report_v$version.exe"
