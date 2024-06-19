@@ -39,6 +39,21 @@ class _AccountsPageState extends State<AccountsPage> {
         .toList();
   }
 
+  List<Widget> _buildDetails(AccountData data) {
+    return [
+      _buildSub('auth code', data.authCode, null, null),
+      _buildSub('pin', data.pin, null, null),
+      _buildSub('wmt mfs', data.wmtMfs, null, null),
+      _buildSub('deviceId', data.deviceId, null, null),
+      _buildSub('model', data.model, null, null),
+      _buildSub('os version', data.osVersion, null, null),
+      _buildSub('platform name', data.platformName, null, null),
+      _buildSub('platform url', data.platformUrl, null, null),
+      _buildSub('platform key', data.platformKey, null, null),
+      _buildSub('platform mark', data.platformMark, null, null),
+    ];
+  }
+
   Widget _item1(AccountData data) {
     final dateFormat = DateFormat('yyyy-MM-dd HH:mm:ss');
     final isUpdatingBalance = data.isUpdatingBalance;
@@ -212,18 +227,7 @@ class _AccountsPageState extends State<AccountsPage> {
         Visibility(
           visible: showDetail,
           child: Column(
-            children: [
-              _buildSub('auth code', data.authCode, null, null),
-              _buildSub('pin', data.pin, null, null),
-              _buildSub('wmt mfs', data.wmtMfs, null, null),
-              _buildSub('deviceId', data.deviceId, null, null),
-              _buildSub('model', data.model, null, null),
-              _buildSub('os version', data.osVersion, null, null),
-              _buildSub('platform name', data.platformName, null, null),
-              _buildSub('platform url', data.platformUrl, null, null),
-              _buildSub('platform key', data.platformKey, null, null),
-              _buildSub('platform mark', data.platformMark, null, null),
-            ],
+            children: _buildDetails(data),
           ),
         ),
         // Visibility(
@@ -303,10 +307,7 @@ class _AccountsPageState extends State<AccountsPage> {
       padding: const EdgeInsets.only(top: 8, bottom: 8),
       child: Row(
         children: [
-          Text(
-            overflow: TextOverflow.fade,
-            '$title: $value',
-          ),
+          Text(overflow: TextOverflow.fade, '$title: $value'),
           const Spacer(),
           Visibility(
             visible: button != null,
@@ -314,7 +315,7 @@ class _AccountsPageState extends State<AccountsPage> {
               onPressed: callback,
               child: Text(button ?? ''),
             ),
-          )
+          ),
         ],
       ),
     );
@@ -329,9 +330,11 @@ class _AccountsPageState extends State<AccountsPage> {
         children: [
           Text(data.name!),
           Checkbox(
-              value: value,
-              onChanged: (value) =>
-                  setState(() => _platformsCheckboxResults[key] = value!)),
+            value: value,
+            onChanged: (value) => setState(() {
+              _platformsCheckboxResults[key] = value!;
+            }),
+          ),
         ],
       ),
     );
@@ -366,15 +369,12 @@ class _AccountsPageState extends State<AccountsPage> {
         ));
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      child: Row(
-        children: widgets,
-      ),
+      child: Row(children: widgets),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    // return ListView(children: _buildList());
     return Column(
       children: [
         _buildFilter(),
