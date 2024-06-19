@@ -21,13 +21,14 @@ class AuthPage extends StatefulWidget {
   final String? token;
   final String? remark;
 
-  const AuthPage(
-      {super.key,
-      required this.platforms,
-      this.phoneNumber,
-      this.pin,
-      this.token,
-      this.remark});
+  const AuthPage({
+    super.key,
+    required this.platforms,
+    this.phoneNumber,
+    this.pin,
+    this.token,
+    this.remark,
+  });
 
   @override
   State<AuthPage> createState() => _AuthPageState();
@@ -66,8 +67,8 @@ class _AuthPageState extends State<AuthPage> {
     _remark = widget.remark ?? '';
 
     if (_token!.isEmpty) {
-      var sb = StringBuffer();
-      var rand = Random();
+      final sb = StringBuffer();
+      final rand = Random();
       for (var i = 0; i < 32; ++i) {
         if (rand.nextBool()) {
           sb.write(String.fromCharCode(0x61 + rand.nextInt(26)));
@@ -80,9 +81,9 @@ class _AuthPageState extends State<AuthPage> {
 
     // generate device id
     var deviceId = '';
-    var ran = Random.secure();
+    final ran = Random.secure();
     for (var i = 0; i < 40; ++i) {
-      var num = ran.nextInt(16);
+      final num = ran.nextInt(16);
       deviceId += num.toRadixString(16);
     }
 
@@ -277,16 +278,16 @@ class _AuthPageState extends State<AuthPage> {
         return;
       }
 
-      var token1 = await _generateToken();
-      var token2 = await _generateToken();
+      final token1 = await _generateToken();
+      final token2 = await _generateToken();
 
       if (token1 == null || token2 == null) {
         EasyLoading.showError('get token timeout.');
         return;
       }
 
-      var password = RSAHelper.encrypt('$_pin:$token1', Config.rsaPublicKey);
-      var pin = RSAHelper.encrypt('$_pin:$token2', Config.rsaPublicKey);
+      final password = RSAHelper.encrypt('$_pin:$token1', Config.rsaPublicKey);
+      final pin = RSAHelper.encrypt('$_pin:$token2', Config.rsaPublicKey);
 
       var formData = [
         '${Uri.encodeQueryComponent('msisdn')}=${Uri.encodeQueryComponent(_phoneNumber!)}',
@@ -334,26 +335,6 @@ class _AuthPageState extends State<AuthPage> {
 
       logger.i('login wave success');
       setState(() => _hasLogin = true);
-      // if (!context.mounted) return;
-      // Navigator.pop(
-      //   context,
-      //   AccountData(
-      //     token: _token!,
-      //     remark: _remark!,
-      //     platformName: _platformsResponseData!.name!,
-      //     platformUrl: _platformsResponseData!.url!,
-      //     platformKey: _platformsResponseData!.key!,
-      //     platformMark: _platformsResponseData!.mark!,
-      //     phoneNumber: _phoneNumber!,
-      //     pin: _pin!,
-      //     authCode: _authCode!,
-      //     wmtMfs: _wmtMfs!,
-      //     isWmtMfsInvalid: false,
-      //     deviceId: _deviceId,
-      //     model: _model,
-      //     osVersion: _osVersion,
-      //   ),
-      // );
     } catch (e, stackTrace) {
       logger.e('err: $e', stackTrace: stackTrace);
       EasyLoading.showError('request err, code: $e',
@@ -453,16 +434,9 @@ class _AuthPageState extends State<AuthPage> {
   InputDecoration _buildInputDecoration(String hit, IconData icon) {
     return InputDecoration(
       border: const OutlineInputBorder(),
-      prefixIcon: Icon(
-        icon,
-        color: Colors.blue,
-      ),
+      prefixIcon: Icon(icon, color: Colors.blue),
       labelText: hit,
       hintText: "Input $hit",
-      // suffix: Text(
-      //   unit,
-      //   style: TextStyle(color: Colors.grey.shade200),
-      // ),
     );
   }
 
@@ -527,17 +501,6 @@ class _AuthPageState extends State<AuthPage> {
                 decoration: _buildInputDecoration("remark", Icons.tag),
               ),
             ),
-            // Padding(
-            //   padding: const EdgeInsets.fromLTRB(15, 15, 15, 0),
-            //   child: TextFormField(
-            //     readOnly: true,
-            //     controller: TextEditingController()..text = _token ?? "",
-            //     onChanged: (value) => _token = value,
-            //     // validator: _validator,
-            //     keyboardType: TextInputType.number,
-            //     decoration: _buildInputDecoration("token", Icons.token),
-            //   ),
-            // ),
             const Padding(padding: EdgeInsets.only(bottom: 15)),
             Row(
               children: [
@@ -555,33 +518,6 @@ class _AuthPageState extends State<AuthPage> {
               ],
             ),
             const Padding(padding: EdgeInsets.fromLTRB(0, 15, 0, 0)),
-            // OutlinedButton(
-            //   onPressed: () async {
-            //     if (!context.mounted) return;
-            //     if (!_checkInput()) return;
-            //     Navigator.pop(
-            //       context,
-            //       AccountData(
-            //         phoneNumber: _phoneNumber!,
-            //         pin: _pin!,
-            //         token: _token!,
-            //         remark: _remark!,
-            //         platformName: _platformsResponseData!.name!,
-            //         platformUrl: _platformsResponseData!.url!,
-            //         platformKey: _platformsResponseData!.key!,
-            //         platformMark: _platformsResponseData!.mark!,
-            //         authCode: _authCode ?? '2222',
-            //         wmtMfs: 'abcdefghijk',
-            //         isWmtMfsInvalid: false,
-            //         deviceId: 'fd701ebde3dcc9342ab647f5b5800f76ba3a7b5d',
-            //         model: 'Pixel 5',
-            //         osVersion: '13',
-            //         pauseReport: true,
-            //       ),
-            //     );
-            //   },
-            //   child: const Text('test'),
-            // ),
             OutlinedButton(
               onPressed: (!_hasAuth || !_hasLogin)
                   ? null
