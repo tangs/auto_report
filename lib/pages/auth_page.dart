@@ -198,14 +198,19 @@ class _AuthPageState extends State<AuthPage> {
     final headers = Config.getHeaders(
         deviceid: _deviceId, model: _model, osversion: _osVersion)
       ..addAll({
-        'Content-Type': 'application/x-www-form-urlencoded',
+        // 'Content-Type': 'application/x-www-form-urlencoded',
         "user-agent": "okhttp/4.9.0",
         Config.wmtMfsKey: _wmtMfs ?? '',
       });
-    final formData = [
-      '${Uri.encodeQueryComponent('msisdn')}=${Uri.encodeQueryComponent(_phoneNumber ?? '')}',
-      '${Uri.encodeQueryComponent('otp')}=${Uri.encodeQueryComponent(_otpCode ?? '')}',
-    ].join('&');
+    // final formData = [
+    //   '${Uri.encodeQueryComponent('msisdn')}=${Uri.encodeQueryComponent(_phoneNumber ?? '')}',
+    //   '${Uri.encodeQueryComponent('otp')}=${Uri.encodeQueryComponent(_otpCode ?? '')}',
+    // ].join('&');
+
+    final formData = {
+      'msisdn': _phoneNumber!,
+      'otp': _otpCode!,
+    };
 
     logger.i('confim auth code start');
     logger.i('Phone number: $_phoneNumber');
@@ -289,11 +294,16 @@ class _AuthPageState extends State<AuthPage> {
       final password = RSAHelper.encrypt('$_pin:$token1', Config.rsaPublicKey);
       final pin = RSAHelper.encrypt('$_pin:$token2', Config.rsaPublicKey);
 
-      var formData = [
-        '${Uri.encodeQueryComponent('msisdn')}=${Uri.encodeQueryComponent(_phoneNumber!)}',
-        '${Uri.encodeQueryComponent('password')}=${Uri.encodeQueryComponent(password)}',
-        '${Uri.encodeQueryComponent('pin')}=${Uri.encodeQueryComponent(pin)}',
-      ].join('&');
+      // var formData = [
+      //   '${Uri.encodeQueryComponent('msisdn')}=${Uri.encodeQueryComponent(_phoneNumber!)}',
+      //   '${Uri.encodeQueryComponent('password')}=${Uri.encodeQueryComponent(password)}',
+      //   '${Uri.encodeQueryComponent('pin')}=${Uri.encodeQueryComponent(pin)}',
+      // ].join('&');
+      final formData = {
+        'msisdn': _phoneNumber!,
+        'password': password,
+        'pin': pin,
+      };
 
       logger.i('token1: $token1, token2: $token2');
       logger.i('Phone number: $_phoneNumber');
@@ -304,7 +314,7 @@ class _AuthPageState extends State<AuthPage> {
       final headers = Config.getHeaders(
           deviceid: _deviceId, model: _model, osversion: _osVersion)
         ..addAll({
-          'Content-Type': 'application/x-www-form-urlencoded',
+          // 'Content-Type': 'application/x-www-form-urlencoded',
           'user-agent': 'okhttp/4.9.0',
           Config.wmtMfsKey: _wmtMfs ?? '',
         });

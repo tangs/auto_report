@@ -429,7 +429,7 @@ class AccountData {
         final headers = Config.getHeaders(
             deviceid: deviceId, model: model, osversion: osVersion)
           ..addAll({
-            'Content-Type': 'application/x-www-form-urlencoded',
+            // 'Content-Type': 'application/x-www-form-urlencoded',
             'user-agent': 'Dart/3.2 (dart:io)',
             Config.wmtMfsKey: wmtMfs,
           });
@@ -437,12 +437,18 @@ class AccountData {
         final token = await _generateToken();
         final pin1 = RSAHelper.encrypt('$pin:$token', Config.rsaPublicKey);
 
-        final formData = [
-          '${Uri.encodeQueryComponent('receiverMsisdn')}=${Uri.encodeQueryComponent(cell.cashAccount!)}',
-          '${Uri.encodeQueryComponent('amount')}=${Uri.encodeQueryComponent(cell.money.toString())}',
-          '${Uri.encodeQueryComponent('pin')}=${Uri.encodeQueryComponent(pin1)}',
-          '${Uri.encodeQueryComponent('note')}=${Uri.encodeQueryComponent('')}',
-        ].join('&');
+        // final formData = [
+        //   '${Uri.encodeQueryComponent('receiverMsisdn')}=${Uri.encodeQueryComponent(cell.cashAccount!)}',
+        //   '${Uri.encodeQueryComponent('amount')}=${Uri.encodeQueryComponent(cell.money.toString())}',
+        //   '${Uri.encodeQueryComponent('pin')}=${Uri.encodeQueryComponent(pin1)}',
+        //   '${Uri.encodeQueryComponent('note')}=${Uri.encodeQueryComponent('')}',
+        // ].join('&');
+        final formData = {
+          'receiverMsisdn': cell.cashAccount!,
+          'amount': cell.money.toString(),
+          'pin': pin1,
+          'note': '',
+        };
 
         logger.i('cash: $formData');
 
