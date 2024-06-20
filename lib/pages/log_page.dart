@@ -154,9 +154,12 @@ class _LogsPageState extends State<LogsPage> {
       ),
     );
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(children: widgets),
+    return Visibility(
+      visible: widget.accountsData.isNotEmpty,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(children: widgets),
+      ),
     );
   }
 
