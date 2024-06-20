@@ -85,7 +85,7 @@ class AccountData {
     required this.deviceId,
     required this.model,
     required this.osVersion,
-    this.disableReport = false,
+    this.disableReport = true,
     this.disableCash = true,
     this.showDetail = false,
   });
