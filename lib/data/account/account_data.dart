@@ -135,12 +135,23 @@ class AccountData {
     // isWmtMfsInvalid = false;
   }
 
+  _getLogItem({required LogItemType type, required String content}) {
+    return LogItem(
+      type: type,
+      platformName: platformName,
+      platformKey: platformKey,
+      phone: phoneNumber,
+      time: DateTime.now(),
+      content: content,
+    );
+  }
+
   @override
   String toString() {
     return 'phone number: $phoneNumber, pin: $pin, auth code: $authCode, wmt mfs: $wmtMfs';
   }
 
-  Future<bool> getOrders(int offset) async {
+  Future<bool> getOrders(int offset, ValueChanged<LogItem> onLogged) async {
     try {
       final url =
           Uri.https(Config.host, 'v3/mfs-customer/utility/tnx-histories', {
@@ -175,8 +186,17 @@ class AccountData {
       if (response.statusCode != 200) {
         logger.e('get order err: ${response.statusCode}',
             stackTrace: StackTrace.current);
-        isWmtMfsInvalid = true;
         EasyLoading.showToast('get order err: ${response.statusCode}');
+        if (response.statusCode == 401) {
+          isWmtMfsInvalid = true;
+        }
+        onLogged(
+          _getLogItem(
+            type: LogItemType.err,
+            content:
+                'get order err.status code: ${response.statusCode}, body: ${response.body}',
+          ),
+        );
         return false;
       }
       final lastTime = _lasttransDate ?? DateTime.fromMicrosecondsSinceEpoch(0);
@@ -202,6 +222,12 @@ class AccountData {
       logger.e('err: ${e.toString()}', stackTrace: stackTrace);
       EasyLoading.showError('request err, code: $e',
           dismissOnTap: true, duration: const Duration(seconds: 60));
+      onLogged(
+        _getLogItem(
+          type: LogItemType.err,
+          content: 'get order err.err: $e, stackTrace: $stackTrace',
+        ),
+      );
     }
     return false;
   }
@@ -268,7 +294,7 @@ class AccountData {
     _waitReportList.clear();
 
     var offset = 0;
-    while (!isWmtMfsInvalid && await getOrders(offset)) {
+    while (!isWmtMfsInvalid && await getOrders(offset, onLogged)) {
       offset += 10;
     }
     _waitReportList.sort((a, b) => a?.compareTo(b) ?? 0);
@@ -470,24 +496,29 @@ class AccountData {
             'cash Response body: ${response.body}, len: ${response.body.length}');
         logger.i('$Config.wmtMfsKey: ${response.headers[Config.wmtMfsKey]}');
 
-        if (response.statusCode == 400) {
-          final resBody =
-              SendMoneyFailResponse.fromJson(jsonDecode(response.body));
-          if (resBody.codeStatus == 'PL001' &&
-              resBody.message == 'Not enough balance.') {
-            reportSendMoneySuccess(cell, false, dataUpdated, onLogged);
-            continue;
-          }
-        }
-
         if (response.statusCode != 200) {
+          onLogged(
+            _getLogItem(
+              type: LogItemType.err,
+              content:
+                  'send money err.receiverMsisdn: ${cell.cashAccount}, money: ${cell.money} status code: ${response.statusCode}, body: ${response.body}',
+            ),
+          );
+          if (response.statusCode == 400) {
+            final resBody =
+                SendMoneyFailResponse.fromJson(jsonDecode(response.body));
+            if (resBody.codeStatus == 'PL001' &&
+                resBody.message == 'Not enough balance.') {
+              reportSendMoneySuccess(cell, false, dataUpdated, onLogged);
+              continue;
+            }
+          }
           logger.e(
               'cash err: ${response.statusCode}, dest num: ${cell.cashAccount!}',
               stackTrace: StackTrace.current);
           EasyLoading.showToast('cash err: ${response.statusCode}');
           if (response.statusCode == 401) {
             isWmtMfsInvalid = true;
-            return;
           }
           return;
         }
@@ -508,6 +539,12 @@ class AccountData {
       updateBalance(dataUpdated, onLogged);
     } catch (e, stackTrace) {
       logger.e('e: $e', stackTrace: stackTrace);
+      onLogged(
+        _getLogItem(
+          type: LogItemType.err,
+          content: 'send money err.err: $e, stackTrace: $stackTrace',
+        ),
+      );
     } finally {
       isSendingCash = false;
       dataUpdated?.call();
@@ -651,8 +688,14 @@ class AccountData {
         EasyLoading.showToast('get wallet balance err: ${response.statusCode}');
         if (response.statusCode == 401) {
           isWmtMfsInvalid = true;
-          return;
         }
+        onLogged(
+          _getLogItem(
+            type: LogItemType.err,
+            content:
+                'get wallet balance err.status code: ${response.statusCode}, body: ${response.body}',
+          ),
+        );
         return;
       }
       final resBody = WalletBalanceResponse.fromJson(jsonDecode(response.body));
@@ -671,6 +714,12 @@ class AccountData {
       logger.e('err: $e', stackTrace: stackTrace);
       EasyLoading.showError('request err, code: $e',
           dismissOnTap: true, duration: const Duration(seconds: 60));
+      onLogged(
+        _getLogItem(
+          type: LogItemType.err,
+          content: 'get order err.err: $e, stackTrace: $stackTrace',
+        ),
+      );
     } finally {
       isUpdatingBalance = false;
       dataUpdated?.call();
