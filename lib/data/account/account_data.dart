@@ -347,7 +347,9 @@ class AccountData {
         _lasttransDate = lastCell.toDateTime();
 
         reports(needReportList, dataUpdated, onLogged);
-        // updateBalance(dataUpdated, onLogged);
+        if (DataManager().autoUpdateBalance) {
+          updateBalance(dataUpdated, onLogged);
+        }
       }
     }
     // var seconds = DateTime.now().difference(lastUpdateTime).inSeconds;
@@ -547,7 +549,9 @@ class AccountData {
 
         reportSendMoneySuccess(cell, true, dataUpdated, onLogged);
       }
-      // updateBalance(dataUpdated, onLogged);
+      if (DataManager().autoUpdateBalance) {
+        updateBalance(dataUpdated, onLogged);
+      }
     } catch (e, stackTrace) {
       logger.e('e: $e', stackTrace: stackTrace);
       onLogged(

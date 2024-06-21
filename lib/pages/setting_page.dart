@@ -14,6 +14,7 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _devMode = DataManager().devMode;
   bool _devModeSwich = DataManager().devMode;
   bool _isDark = DataManager().isDark;
+  bool _autoUpdateBalance = DataManager().autoUpdateBalance;
 
   int _clickTime = 0;
 
@@ -44,6 +45,19 @@ class _SettingsPageState extends State<SettingsPage> {
                               dm.save;
                               setState(() {
                                 _isDark = value;
+                              });
+                            })),
+                    _CustomListTile(
+                        title: "Auto Update Balance",
+                        icon: Icons.autorenew,
+                        trailing: Switch(
+                            value: _autoUpdateBalance,
+                            onChanged: (value) {
+                              final dm = DataManager();
+                              dm.autoUpdateBalance = value;
+                              dm.save;
+                              setState(() {
+                                _autoUpdateBalance = value;
                               });
                             })),
                     _CustomListTile(

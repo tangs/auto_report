@@ -15,6 +15,8 @@ class DataManager {
 
   bool devMode = false;
   bool isDark = false;
+  bool autoUpdateBalance = false;
+
   String? appVersion;
   bool autoRefreshLog = false;
 
@@ -38,18 +40,21 @@ class DataManager {
     localStorage.setItem(
         'gettingCashListRefreshTime', gettingCashListRefreshTime.toString());
     localStorage.setItem('isDark', isDark.toString());
+    localStorage.setItem('autoUpdateBalance', autoUpdateBalance.toString());
   }
 
   void restore() {
     try {
       orderRefreshTime =
-          double.parse(localStorage.getItem('orderRefreshTime') ?? '20');
+          double.parse(localStorage.getItem('orderRefreshTime') ?? '60');
       gettingCashListRefreshTime = double.parse(
           localStorage.getItem('gettingCashListRefreshTime') ?? '5');
       orderRefreshTime = min(orderRefreshTimeRange.end,
           max(orderRefreshTimeRange.start, orderRefreshTime));
 
       isDark = bool.parse(localStorage.getItem('isDark') ?? 'false');
+      autoUpdateBalance =
+          bool.parse(localStorage.getItem('autoUpdateBalance') ?? 'false');
     } catch (e, stackTrace) {
       logger.e(e, stackTrace: stackTrace);
     }
