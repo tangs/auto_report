@@ -61,9 +61,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       divisions: 6,
                       label: '${_orderRefreshTime.toInt()}',
                       onChanged: (double value) {
-                        setState(() {
-                          _orderRefreshTime = value;
-                        });
+                        setState(() => _orderRefreshTime = value);
                         final dm = DataManager();
                         dm.orderRefreshTime = value;
                         dm.save();
