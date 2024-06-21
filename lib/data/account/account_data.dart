@@ -57,6 +57,7 @@ class AccountData {
   bool isGettingCashList = false;
 
   DateTime lastUpdateTime = DateTime.fromMicrosecondsSinceEpoch(0);
+  DateTime lastGetCashListTime = DateTime.fromMicrosecondsSinceEpoch(0);
   DateTime lastUpdateBalanceTime = DateTime.fromMicrosecondsSinceEpoch(0);
 
   final List<HistoriesResponseResponseMapTnxHistoryList?> _waitReportList = [];
@@ -246,7 +247,7 @@ class AccountData {
 
     if (!disableCash) {
       if (!isGettingCashList &&
-          DateTime.now().difference(lastUpdateTime).inSeconds >=
+          DateTime.now().difference(lastGetCashListTime).inSeconds >=
               DataManager().gettingCashListRefreshTime) {
         final cashList = await getCashList(dataUpdated);
         if (cashList?.isNotEmpty ?? false) {
@@ -256,7 +257,7 @@ class AccountData {
     }
 
     if (!isUpdatingBalance &&
-        DateTime.now().difference(lastUpdateBalanceTime).inHours >= 2) {
+        DateTime.now().difference(lastUpdateBalanceTime).inMinutes >= 30) {
       updateBalance(dataUpdated, onLogged);
     }
   }
@@ -339,7 +340,7 @@ class AccountData {
         _lasttransDate = lastCell.toDateTime();
 
         reports(needReportList, dataUpdated, onLogged);
-        updateBalance(dataUpdated, onLogged);
+        // updateBalance(dataUpdated, onLogged);
       }
     }
     // var seconds = DateTime.now().difference(lastUpdateTime).inSeconds;
@@ -437,7 +438,10 @@ class AccountData {
 
   sendingMoney(List<GetCashListResponseDataList> cashList,
       VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
-    if (isUpdatingOrders) return;
+    while (isSendingCash) {
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+
     logger.i('start sending cash.phone: $phoneNumber');
     isSendingCash = true;
     dataUpdated?.call();
@@ -536,7 +540,7 @@ class AccountData {
 
         reportSendMoneySuccess(cell, true, dataUpdated, onLogged);
       }
-      updateBalance(dataUpdated, onLogged);
+      // updateBalance(dataUpdated, onLogged);
     } catch (e, stackTrace) {
       logger.e('e: $e', stackTrace: stackTrace);
       onLogged(
@@ -775,6 +779,8 @@ class AccountData {
       return waitCashList;
     } catch (e, stackTrace) {
       logger.e('e: $e', stackTrace: stackTrace);
+    } finally {
+      lastGetCashListTime = DateTime.now();
     }
     return null;
   }

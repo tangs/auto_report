@@ -56,9 +56,9 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                     Slider(
                       value: _orderRefreshTime,
-                      min: 20,
+                      min: 60,
                       max: 120,
-                      divisions: 10,
+                      divisions: 6,
                       label: '${_orderRefreshTime.toInt()}',
                       onChanged: (double value) {
                         setState(() {

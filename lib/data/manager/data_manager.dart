@@ -8,9 +8,9 @@ import 'package:package_info_plus/package_info_plus.dart';
 class DataManager {
   static final DataManager _singleton = DataManager._internal();
 
-  static const orderRefreshTimeRange = RangeValues(20, 100);
+  static const orderRefreshTimeRange = RangeValues(60, 120);
 
-  double orderRefreshTime = 20;
+  double orderRefreshTime = 60;
   double gettingCashListRefreshTime = 5;
 
   bool devMode = false;
