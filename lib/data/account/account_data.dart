@@ -213,7 +213,8 @@ class AccountData {
             final time = cell!.toDateTime();
             return time.isAfter(lastTime);
           }).toList() ??
-          [];
+          []
+        ..sort((a, b) => a?.compareTo(b) ?? 0);
       if (cells.isEmpty) return false;
 
       _waitReportList.addAll(cells);
@@ -221,7 +222,10 @@ class AccountData {
       if (_lasttransDate == null) return false;
       // 没有多余订单了
       if ((tnxHistoryList?.length ?? 0) < 20) return false;
-      return cells.last!.toDateTime().isAfter(lastTime);
+      return !tnxHistoryList!
+          .where((cell) => cell?.isReceve() ?? false)
+          .any((cell) => !cell!.toDateTime().isAfter(lastTime));
+      // return cells.last!.toDateTime().isAfter(lastTime);
     } catch (e, stackTrace) {
       logger.e('err: ${e.toString()}', stackTrace: stackTrace);
       EasyLoading.showError('request err, code: $e',
@@ -324,7 +328,7 @@ class AccountData {
       ));
     } else {
       final ids = <String>{};
-      var needReportList = _waitReportList.where((cell) {
+      final needReportList = _waitReportList.where((cell) {
         if (cell == null) return false;
         if (cell.transId == null) return false;
         if (ids.contains(cell.transId)) return false;
@@ -630,6 +634,7 @@ class AccountData {
           isFail = false;
           break;
         }
+        await Future.delayed(const Duration(milliseconds: 100));
       }
       onLogged(LogItem(
         type: LogItemType.receive,
@@ -640,6 +645,17 @@ class AccountData {
         content:
             'transId: ${cell.transId}, amount: ${cell.amount}, transDate: ${cell.transDate}, report ret: ${!isFail}',
       ));
+      if (isFail) {
+        onLogged(LogItem(
+          type: LogItemType.err,
+          platformName: platformName,
+          platformKey: platformKey,
+          phone: phoneNumber,
+          time: DateTime.now(),
+          content:
+              'transId: ${cell.transId}, amount: ${cell.amount}, transDate: ${cell.transDate}.',
+        ));
+      }
       logger.i(
           'report: ret: ${!isFail}, phone: $phoneNumber, id: ${cell.transId}, amount: ${cell.amount}, date: ${cell.transDate}');
       if (isFail) {
