@@ -110,4 +110,4 @@ icons_launcher:
     macos:
       enable: true
     windows:
-      envale: true
+      enable: true
