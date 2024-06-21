@@ -160,13 +160,16 @@ class AccountData {
         'offset': '$offset',
       });
       final headers = Config.getHeaders(
-          deviceid: deviceId, model: model, osversion: osVersion)
-        ..addAll({
+        deviceid: deviceId,
+        model: model,
+        osversion: osVersion,
+      )..addAll({
           'user-agent':
               'Mozilla/5.0 (Linux; Android 11; Pixel 5 Build/RD1A.200810.022.A4; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/124.0.6367.123 Mobile Safari/537.36',
           Config.wmtMfsKey: wmtMfs,
         });
 
+      logger.i('get order list: offset: $offset.');
       final response = await Future.any([
         http.get(url, headers: headers),
         Future.delayed(
@@ -202,23 +205,23 @@ class AccountData {
       }
       final lastTime = _lasttransDate ?? DateTime.fromMicrosecondsSinceEpoch(0);
       final histories = HistoriesResponse.fromJson(jsonDecode(response.body));
-      final tnxHistoryList = histories.responseMap?.tnxHistoryList;
+      final tnxHistoryList = histories.responseMap?.tnxHistoryList
+        ?..sort((a, b) => a?.compareTo(b) ?? 0);
       final cells = tnxHistoryList
-          ?.where((cell) => cell?.isReceve() ?? false)
-          .where((cell) {
-        final time = cell!.toDateTime();
-        return time.isAfter(lastTime);
-        // return time.isAfter(lastTime) ||
-        //     (time == lastTime && cell.transId != _lastTransId);
-      }).toList();
-      if (cells != null) {
-        _waitReportList.addAll(cells);
-      }
+              ?.where((cell) => cell?.isReceve() ?? false)
+              .where((cell) {
+            final time = cell!.toDateTime();
+            return time.isAfter(lastTime);
+          }).toList() ??
+          [];
+      if (cells.isEmpty) return false;
+
+      _waitReportList.addAll(cells);
       // 第一次只需要获取最新的订单
       if (_lasttransDate == null) return false;
       // 没有多余订单了
-      if (tnxHistoryList == null || tnxHistoryList.length < 20) return false;
-      return tnxHistoryList.last?.toDateTime().isAfter(lastTime) ?? false;
+      if ((tnxHistoryList?.length ?? 0) < 20) return false;
+      return cells.last!.toDateTime().isAfter(lastTime);
     } catch (e, stackTrace) {
       logger.e('err: ${e.toString()}', stackTrace: stackTrace);
       EasyLoading.showError('request err, code: $e',
