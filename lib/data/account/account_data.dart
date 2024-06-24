@@ -303,7 +303,8 @@ class AccountData {
 
     var offset = 0;
     while (!isWmtMfsInvalid && await getOrders(offset, onLogged)) {
-      offset += 10;
+      offset += 15;
+      await Future.delayed(const Duration(milliseconds: 300));
     }
     _waitReportList.sort((a, b) => a?.compareTo(b) ?? 0);
     final isFirst = _lasttransDate == null;

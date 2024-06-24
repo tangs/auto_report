@@ -66,11 +66,12 @@ class _HomePageState extends State<HomePage> {
     logger.i('dispose');
   }
 
-  void newAccount(
-      {String? phoneNumber = '',
-      String? pin = '',
-      String? token,
-      String? remark}) async {
+  void newAccount({
+    String? phoneNumber = '',
+    String? pin = '',
+    String? token,
+    String? remark,
+  }) async {
     final result = await Navigator.of(context).pushNamed("/auth", arguments: {
       'phoneNumber': phoneNumber ?? '',
       'pin': pin ?? '',
@@ -84,9 +85,7 @@ class _HomePageState extends State<HomePage> {
     }
     if (result is AccountData) {
       logger.i('add accout $result');
-      setState(() {
-        accounts.add(result, true);
-      });
+      setState(() => accounts.add(result, true));
       addLog(
         LogItem(
           type: LogItemType.newAccount,
@@ -149,16 +148,18 @@ class _HomePageState extends State<HomePage> {
                       ),
                     );
                   },
-                  onReLogin: (
-                          {String? phoneNumber,
-                          String? pin,
-                          String? token,
-                          String? remark}) =>
+                  onReLogin: ({
+                    String? phoneNumber,
+                    String? pin,
+                    String? token,
+                    String? remark,
+                  }) =>
                       newAccount(
-                          phoneNumber: phoneNumber,
-                          pin: pin,
-                          token: token,
-                          remark: remark),
+                    phoneNumber: phoneNumber,
+                    pin: pin,
+                    token: token,
+                    remark: remark,
+                  ),
                   onLogged: addLog,
                 ),
                 LogsPage(
