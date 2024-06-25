@@ -39,6 +39,8 @@ class _HomePageState extends State<HomePage> {
 
   late PageController _pageViewController;
 
+  bool _isDark = DataManager().isDark;
+
   @override
   void initState() {
     super.initState();
@@ -117,7 +119,7 @@ class _HomePageState extends State<HomePage> {
     accounts.save();
     // final TextTheme textTheme = Theme.of(context).textTheme;
     return Theme(
-      data: DataManager().isDark ? ThemeData.dark() : ThemeData.light(),
+      data: _isDark ? ThemeData.dark() : ThemeData.light(),
       child: Scaffold(
         appBar: AppBar(
           backgroundColor: Theme.of(context).colorScheme.inversePrimary,
@@ -167,7 +169,10 @@ class _HomePageState extends State<HomePage> {
                   platforms: widget.platforms,
                   accountsData: accounts.accountsData,
                 ),
-                const SettingsPage(),
+                SettingsPage(
+                    onThemeInvalid: () => setState(
+                          () => _isDark = DataManager().isDark,
+                        )),
               ],
             ),
           ],

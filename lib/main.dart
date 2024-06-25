@@ -8,9 +8,11 @@ import 'package:localstorage/localstorage.dart';
 import 'package:logger/logger.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
-var logger = Logger(
+final logger = Logger(
   printer: PrettyPrinter(),
 );
+
+const _title = 'Auto report';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,7 +27,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Wave auto report',
+      title: _title,
       routes: {
         '/auth': (context) {
           final data = ModalRoute.of(context)?.settings.arguments
@@ -42,17 +44,13 @@ class MyApp extends StatelessWidget {
           final data = ModalRoute.of(context)?.settings.arguments
               as List<GetPlatformsResponseData?>?;
           return HomePage(
-            title: 'Wave auto report',
+            title: _title,
             platforms: data,
           );
         },
       },
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
-      // home: const HomePage(title: 'Wave auto reporter'),
-      home: const LoginPage(title: 'Wave auto reporter'),
+      // theme: ThemeData.light(),
+      home: const LoginPage(title: _title),
       builder: EasyLoading.init(),
     );
   }
