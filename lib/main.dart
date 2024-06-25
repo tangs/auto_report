@@ -43,10 +43,7 @@ class MyApp extends StatelessWidget {
         '/home': (context) {
           final data = ModalRoute.of(context)?.settings.arguments
               as List<GetPlatformsResponseData?>?;
-          return HomePage(
-            title: _title,
-            platforms: data,
-          );
+          return HomePage(title: _title, platforms: data);
         },
       },
       // theme: ThemeData.light(),
