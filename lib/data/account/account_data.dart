@@ -60,7 +60,7 @@ class AccountData {
   DateTime lastGetCashListTime = DateTime.fromMicrosecondsSinceEpoch(0);
   DateTime lastUpdateBalanceTime = DateTime.fromMicrosecondsSinceEpoch(0);
 
-  final List<HistoriesResponseResponseMapTnxHistoryList?> _waitReportList = [];
+  // final List<HistoriesResponseResponseMapTnxHistoryList?> _waitReportList = [];
   // final List<GetCashListResponseDataList> _waitCashList = [];
   String? _lastTransId;
   DateTime? _lasttransDate;
@@ -152,7 +152,10 @@ class AccountData {
     return 'phone number: $phoneNumber, pin: $pin, auth code: $authCode, wmt mfs: $wmtMfs';
   }
 
-  Future<bool> getOrders(int offset, ValueChanged<LogItem> onLogged) async {
+  Future<bool> getOrders(
+      List<HistoriesResponseResponseMapTnxHistoryList> waitReportList,
+      int offset,
+      ValueChanged<LogItem> onLogged) async {
     try {
       final url =
           Uri.https(Config.host, 'v3/mfs-customer/utility/tnx-histories', {
@@ -209,15 +212,16 @@ class AccountData {
         ?..sort((a, b) => a?.compareTo(b) ?? 0);
       final cells = tnxHistoryList
               ?.where((cell) => cell?.isReceve() ?? false)
+              .cast<HistoriesResponseResponseMapTnxHistoryList>()
               .where((cell) {
-            final time = cell!.toDateTime();
+            final time = cell.toDateTime();
             return time.isAfter(lastTime);
           }).toList() ??
           []
-        ..sort((a, b) => a?.compareTo(b) ?? 0);
+        ..sort((a, b) => a.compareTo(b));
       if (cells.isEmpty) return false;
 
-      _waitReportList.addAll(cells);
+      waitReportList.addAll(cells);
       // 第一次只需要获取最新的订单
       if (_lasttransDate == null) return false;
       // 没有多余订单了
@@ -299,22 +303,24 @@ class AccountData {
       await Future.delayed(const Duration(milliseconds: 100));
     }
 
-    _waitReportList.clear();
+    final waitReportList = <HistoriesResponseResponseMapTnxHistoryList>[];
+    // _waitReportList.clear();
 
     var offset = 0;
-    while (!isWmtMfsInvalid && await getOrders(offset, onLogged)) {
+    while (
+        !isWmtMfsInvalid && await getOrders(waitReportList, offset, onLogged)) {
       offset += 15;
       await Future.delayed(const Duration(milliseconds: 300));
     }
-    _waitReportList.sort((a, b) => a?.compareTo(b) ?? 0);
+    waitReportList.sort((a, b) => a.compareTo(b));
     final isFirst = _lasttransDate == null;
     if (isFirst) {
-      if (_waitReportList.isEmpty) {
+      if (waitReportList.isEmpty) {
         _lasttransDate = DateTime.fromMicrosecondsSinceEpoch(0);
         _lastTransId = '-1';
       } else {
-        final cell = _waitReportList.last;
-        _lastTransId = cell!.transId;
+        final cell = waitReportList.last;
+        _lastTransId = cell.transId;
         _lasttransDate = cell.toDateTime();
       }
       logger.i('report: init last date time: $_lasttransDate, $_lastTransId');
@@ -329,15 +335,14 @@ class AccountData {
       ));
     } else {
       final ids = <String>{};
-      final needReportList = _waitReportList.where((cell) {
-        if (cell == null) return false;
+      final needReportList = waitReportList.where((cell) {
         if (cell.transId == null) return false;
         if (ids.contains(cell.transId)) return false;
         ids.add(cell.transId!);
         return true;
       }).map((cell) {
         logger.i(
-            'report: phone: $phoneNumber id: ${cell!.transId}, amount: ${cell.amount}, time: ${cell.transDate}');
+            'report: phone: $phoneNumber id: ${cell.transId}, amount: ${cell.amount}, time: ${cell.transDate}');
         return cell;
       }).toList();
       logger.i('report: cnt: ${needReportList.length}, phone: $phoneNumber');
@@ -356,7 +361,7 @@ class AccountData {
     // var seconds = DateTime.now().difference(lastUpdateTime).inSeconds;
     // logger.i('seconds: $seconds');
 
-    _waitReportList.clear();
+    waitReportList.clear();
 
     logger.i('end update order.phone: $phoneNumber');
     lastUpdateTime = DateTime.now();
