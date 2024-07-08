@@ -1,16 +1,16 @@
 import 'dart:async';
 import 'dart:collection';
 
-import 'package:auto_report/config/config.dart';
-import 'package:auto_report/data/account/account_data.dart';
-import 'package:auto_report/data/account/accounts.dart';
-import 'package:auto_report/data/log/log_item.dart';
-import 'package:auto_report/data/manager/data_manager.dart';
-import 'package:auto_report/data/proto/response/get_platforms_response.dart';
+import 'package:auto_report/wave/config/config.dart';
+import 'package:auto_report/wave/data/account/account_data.dart';
+import 'package:auto_report/wave/data/account/accounts.dart';
+import 'package:auto_report/wave/data/log/log_item.dart';
+import 'package:auto_report/wave/data/manager/data_manager.dart';
+import 'package:auto_report/wave/data/proto/response/get_platforms_response.dart';
 import 'package:auto_report/main.dart';
-import 'package:auto_report/pages/accounts_page.dart';
-import 'package:auto_report/pages/log_page.dart';
-import 'package:auto_report/pages/setting_page.dart';
+import 'package:auto_report/wave/pages/accounts_page.dart';
+import 'package:auto_report/wave/pages/log_page.dart';
+import 'package:auto_report/wave/pages/setting_page.dart';
 import 'package:flutter/material.dart';
 
 typedef OnLogCallback = void Function(LogItem item);

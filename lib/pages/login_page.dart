@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import 'package:auto_report/config/config.dart';
-import 'package:auto_report/data/proto/response/get_platforms_response.dart';
+import 'package:auto_report/wave/config/config.dart';
+import 'package:auto_report/wave/data/proto/response/get_platforms_response.dart';
 import 'package:auto_report/main.dart';
 import 'package:auto_report/rsa/rsa_helper.dart';
 import 'package:flutter/foundation.dart';

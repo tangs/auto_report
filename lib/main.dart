@@ -1,6 +1,6 @@
-import 'package:auto_report/data/proto/response/get_platforms_response.dart';
-import 'package:auto_report/pages/auth_page.dart';
-import 'package:auto_report/pages/home_page.dart';
+import 'package:auto_report/wave/data/proto/response/get_platforms_response.dart';
+import 'package:auto_report/wave/pages/auth_page.dart';
+import 'package:auto_report/wave/pages/home_page.dart';
 import 'package:auto_report/pages/login_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';

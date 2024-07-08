@@ -1,4 +1,4 @@
-import 'package:auto_report/data/manager/data_manager.dart';
+import 'package:auto_report/wave/data/manager/data_manager.dart';
 import 'package:flutter/material.dart';
 
 class SettingsPage extends StatefulWidget {
