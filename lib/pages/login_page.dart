@@ -1,9 +1,11 @@
 import 'dart:convert';
 
+import 'package:auto_report/config/global_config.dart';
 import 'package:auto_report/wave/config/config.dart';
 import 'package:auto_report/wave/data/proto/response/get_platforms_response.dart';
 import 'package:auto_report/main.dart';
 import 'package:auto_report/rsa/rsa_helper.dart';
+import 'package:auto_report/widges/bank_selector.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -79,8 +81,18 @@ class _LoginPageState extends State<LoginPage> {
       }
 
       if (!mounted) return;
+
+      var path = '/wave/home';
+      switch (GlobalConfig.bankType) {
+        case BankType.wave:
+          path = '/wave/home';
+          break;
+        case BankType.kbz:
+          path = '/kbz/home';
+          break;
+      }
       Navigator.of(context).pushReplacementNamed(
-        "/home",
+        path,
         arguments: resData.data,
       );
     } catch (e, stackTrace) {
@@ -121,6 +133,15 @@ class _LoginPageState extends State<LoginPage> {
               // validator: _validator,
               keyboardType: TextInputType.text,
               decoration: _buildInputDecoration("platform", Icons.login_sharp),
+            ),
+          ),
+          Visibility(
+            visible: kDebugMode,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 0, 20),
+              child: BankSelector(
+                onValueChangedCallback: (bank) => GlobalConfig.bankType = bank,
+              ),
             ),
           ),
           Center(

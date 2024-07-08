@@ -1,6 +1,7 @@
 import 'package:auto_report/wave/data/proto/response/get_platforms_response.dart';
-import 'package:auto_report/wave/pages/auth_page.dart';
-import 'package:auto_report/wave/pages/home_page.dart';
+import 'package:auto_report/wave/pages/auth_page.dart' as wave_auth;
+import 'package:auto_report/wave/pages/home_page.dart' as wave_home;
+import 'package:auto_report/kbz/pages/home_page.dart' as kbz_home;
 import 'package:auto_report/pages/login_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -29,10 +30,10 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: _title,
       routes: {
-        '/auth': (context) {
+        '/wave/auth': (context) {
           final data = ModalRoute.of(context)?.settings.arguments
               as Map<String, dynamic>;
-          return AuthPage(
+          return wave_auth.AuthPage(
             platforms: data['platforms'],
             phoneNumber: data['phoneNumber'],
             pin: data['pin'],
@@ -40,10 +41,15 @@ class MyApp extends StatelessWidget {
             remark: data['remark'],
           );
         },
-        '/home': (context) {
+        '/wave/home': (context) {
           final data = ModalRoute.of(context)?.settings.arguments
               as List<GetPlatformsResponseData?>?;
-          return HomePage(title: _title, platforms: data);
+          return wave_home.HomePage(title: _title, platforms: data);
+        },
+        '/kbz/home': (context) {
+          final data = ModalRoute.of(context)?.settings.arguments
+              as List<GetPlatformsResponseData?>?;
+          return kbz_home.HomePage(title: _title, platforms: data);
         },
       },
       // theme: ThemeData.light(),

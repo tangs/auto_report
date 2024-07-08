@@ -8,9 +8,9 @@ import 'package:auto_report/wave/data/log/log_item.dart';
 import 'package:auto_report/wave/data/manager/data_manager.dart';
 import 'package:auto_report/wave/data/proto/response/get_platforms_response.dart';
 import 'package:auto_report/main.dart';
-import 'package:auto_report/wave/pages/accounts_page.dart';
-import 'package:auto_report/wave/pages/log_page.dart';
-import 'package:auto_report/wave/pages/setting_page.dart';
+// import 'package:auto_report/kbz/pages/accounts_page.dart';
+// import 'package:auto_report/kbz/pages/log_page.dart';
+// import 'package:auto_report/kbz/pages/setting_page.dart';
 import 'package:flutter/material.dart';
 
 typedef OnLogCallback = void Function(LogItem item);
@@ -39,7 +39,7 @@ class _HomePageState extends State<HomePage> {
 
   late PageController _pageViewController;
 
-  bool _isDark = DataManager().isDark;
+  final _isDark = DataManager().isDark;
 
   @override
   void initState() {
@@ -134,46 +134,46 @@ class _HomePageState extends State<HomePage> {
               physics: const NeverScrollableScrollPhysics(),
               controller: _pageViewController,
               onPageChanged: (index) => setState(() => _navIndex = index),
-              children: <Widget>[
-                AccountsPage(
-                  accountsData: accounts.accountsData,
-                  platforms: widget.platforms,
-                  onRemoved: (account) {
-                    setState(() => accounts.update());
-                    addLog(
-                      LogItem(
-                        type: LogItemType.deleteAccount,
-                        platformName: account.platformName,
-                        platformKey: account.platformKey,
-                        phone: account.phoneNumber,
-                        time: DateTime.now(),
-                        content: 'delete account.',
-                      ),
-                    );
-                  },
-                  onReLogin: ({
-                    String? phoneNumber,
-                    String? pin,
-                    String? token,
-                    String? remark,
-                  }) =>
-                      newAccount(
-                    phoneNumber: phoneNumber,
-                    pin: pin,
-                    token: token,
-                    remark: remark,
-                  ),
-                  onLogged: addLog,
-                ),
-                LogsPage(
-                  logs: _logs,
-                  platforms: widget.platforms,
-                  accountsData: accounts.accountsData,
-                ),
-                SettingsPage(
-                    onThemeInvalid: () => setState(
-                          () => _isDark = DataManager().isDark,
-                        )),
+              children: const <Widget>[
+                // AccountsPage(
+                //   accountsData: accounts.accountsData,
+                //   platforms: widget.platforms,
+                //   onRemoved: (account) {
+                //     setState(() => accounts.update());
+                //     addLog(
+                //       LogItem(
+                //         type: LogItemType.deleteAccount,
+                //         platformName: account.platformName,
+                //         platformKey: account.platformKey,
+                //         phone: account.phoneNumber,
+                //         time: DateTime.now(),
+                //         content: 'delete account.',
+                //       ),
+                //     );
+                //   },
+                //   onReLogin: ({
+                //     String? phoneNumber,
+                //     String? pin,
+                //     String? token,
+                //     String? remark,
+                //   }) =>
+                //       newAccount(
+                //     phoneNumber: phoneNumber,
+                //     pin: pin,
+                //     token: token,
+                //     remark: remark,
+                //   ),
+                //   onLogged: addLog,
+                // ),
+                // LogsPage(
+                //   logs: _logs,
+                //   platforms: widget.platforms,
+                //   accountsData: accounts.accountsData,
+                // ),
+                // SettingsPage(
+                //     onThemeInvalid: () => setState(
+                //           () => _isDark = DataManager().isDark,
+                //         )),
               ],
             ),
           ],
