@@ -12,6 +12,12 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
+      
+    - name: Set up Java
+      uses: actions/setup-java@v2
+      with:
+        distribution: 'temurin'
+        java-version: '17'  # 确保使用正确的 Java 版本
 
     - name: Set up Flutter
       uses: subosito/flutter-action@v2
@@ -24,7 +30,7 @@ jobs:
 
     - name: Setup bank type
       run: sed -i "s/static BankType bankType = BankType.*;/static BankType bankType = BankType.wave;/g" lib/config/global_config.dart
-      
+
     - name: Run tests
       run: flutter test
 
