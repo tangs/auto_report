@@ -75,7 +75,7 @@ jobs:
         tag_name: ${{ github.ref }}
         release_name: Release ${{ github.ref }}
         body: |
-          Flutter应用程序的新版本发布了！
+          auto report新版本发布了！
         draft: false
         prerelease: false
 
