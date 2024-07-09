@@ -84,7 +84,7 @@ jobs:
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: build/app/outputs/flutter-apk/kbz_reporter.apk
-        asset_name: kbz_reporter_${{ github.ref }}.apk
+        asset_name: kbz_reporter_${{ steps.extract_version.outputs.version }}.apk
         asset_content_type: application/vnd.android.package-archive
       env:
         GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
@@ -94,7 +94,7 @@ jobs:
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: build/app/outputs/flutter-apk/wave_reporter.apk
-        asset_name: wave_reporter_${{ github.ref }}.apk
+        asset_name: wave_reporter_${{ steps.extract_version.outputs.version }}.apk
         asset_content_type: application/vnd.android.package-archive
       env:
         GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
