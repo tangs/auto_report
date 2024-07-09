@@ -28,6 +28,13 @@ jobs:
     - name: Install dependencies
       run: flutter pub get
 
+    - name: Create key.properties
+      run: |
+        echo "storePassword=${{ secrets.STOREPASSWORD }}" >> android/key.properties
+        echo "keyPassword=${{ secrets.KEYPASSWORD }}" >> android/key.properties
+        echo "keyAlias=${{ secrets.KEYALIAS }}" >> android/key.properties
+        echo "storeFile=${{ secrets.STOREFILE }}" >> android/key.properties
+        
     - name: Setup bank type kbz
       run: |
         sed -i "" "s/static BankType bankType = BankType.*;/static BankType bankType = BankType.kbz;/g" lib/config/global_config.dart
