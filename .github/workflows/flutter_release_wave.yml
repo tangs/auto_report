@@ -46,6 +46,9 @@ jobs:
         name: apk
         path: build/app/outputs/flutter-apk/wave_reporter.apk
 
+    - name: Echo token
+      run: ehco ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+
     - name: Create GitHub Release
       id: create_release
       uses: actions/create-release@v1
