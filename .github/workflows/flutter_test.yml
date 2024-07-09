@@ -35,7 +35,7 @@ jobs:
       run: flutter test
 
     - name: Build APK kbz
-      run: flutter build apk --release
+      run: flutter build apk
 
     - name: Rename APK kbz
       run: mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/kbz_reporter.apk
@@ -54,7 +54,7 @@ jobs:
       run: flutter test
 
     - name: Build APK wave
-      run: flutter build apk --release
+      run: flutter build apk
 
     - name: Rename APK wave
       run: mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/wave_reporter.apk
