@@ -29,7 +29,12 @@ jobs:
       run: flutter pub get
 
     - name: Setup bank type kbz
-      run: sed -i "" "s/static BankType bankType = BankType.*;/static BankType bankType = BankType.kbz;/g" lib/config/global_config.dart
+      run: 
+        sed -i "" "s/static BankType bankType = BankType.*;/static BankType bankType = BankType.kbz;/g" lib/config/global_config.dart
+        sed -i '' 's|assets/ic_logo.png|assets/ic_kbz_logo.png|g' pubspec.yaml
+        sed -i '' 's|applicationId = "com.example.auto_report"|applicationId = "com.example.auto_report.kbz"|g' pubspec.yaml
+        sed -i '' 's|applicationId = "com.example.auto_report"|applicationId = "com.example.auto_report.kbz"|g' android/app/build.gradle
+        sed -i '' 's|android:label="auto_report"|android:label="kbz report"|g' android/app/src/main/AndroidManifest.xml
 
     - name: Run tests kbz
       run: flutter test
@@ -48,7 +53,12 @@ jobs:
 
 
     - name: Setup bank type wave
-      run: sed -i "" "s/static BankType bankType = BankType.*;/static BankType bankType = BankType.wave;/g" lib/config/global_config.dart
+      run: 
+        sed -i "" "s/static BankType bankType = BankType.*;/static BankType bankType = BankType.wave;/g" lib/config/global_config.dart
+        sed -i '' 's|assets/ic_logo.png|assets/ic_wave_logo.png|g' pubspec.yaml
+        sed -i '' 's|applicationId = "com.example.auto_report"|applicationId = "com.example.auto_report.wave"|g' pubspec.yaml
+        sed -i '' 's|applicationId = "com.example.auto_report"|applicationId = "com.example.auto_report.wave"|g' android/app/build.gradle
+        sed -i '' 's|android:label="auto_report"|android:label="wave report"|g' android/app/src/main/AndroidManifest.xml
 
     - name: Run tests wave
       run: flutter test
@@ -79,7 +89,7 @@ jobs:
         tag_name: ${{ github.ref }}
         release_name: Release ${{ github.ref }}
         body: |
-          auto report新版本发布了！
+          auto report新版本发布了!
         draft: false
         prerelease: false
 
