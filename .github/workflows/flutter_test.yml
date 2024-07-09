@@ -1,0 +1,61 @@
+name: auto report Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-publish:
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Java
+      uses: actions/setup-java@v2
+      with:
+        distribution: 'temurin'
+        java-version: '17'  # 确保使用正确的 Java 版本
+
+    - name: Set up Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        # flutter-version: 'stable'  # 或者你需要的具体版本
+        channel: master
+
+    - name: Install dependencies
+      run: flutter pub get
+
+    - name: Setup bank type kbz
+      run: sed -i "" "s/static BankType bankType = BankType.*;/static BankType bankType = BankType.kbz;/g" lib/config/global_config.dart
+
+    - name: Run tests kbz
+      run: flutter test
+
+    - name: Build APK kbz
+      run: flutter build apk --release
+
+    - name: Rename APK kbz
+      run: mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/kbz_reporter.apk
+
+    - name: Upload APK kbz
+      uses: actions/upload-artifact@v3
+      with:
+        name: apk
+        path: build/app/outputs/flutter-apk/kbz_reporter.apk
+
+
+    - name: Setup bank type wave
+      run: sed -i "" "s/static BankType bankType = BankType.*;/static BankType bankType = BankType.wave;/g" lib/config/global_config.dart
+
+    - name: Run tests wave
+      run: flutter test
+
+    - name: Build APK wave
+      run: flutter build apk --release
+
+    - name: Rename APK wave
+      run: mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/wave_reporter.apk
+      
