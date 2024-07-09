@@ -47,7 +47,7 @@ jobs:
         path: build/app/outputs/flutter-apk/kbz_reporter.apk
 
     - name: Echo token
-      run: ehco ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+      run: echo ${{ secrets.PERSONAL_ACCESS_TOKEN }}
 
     - name: Create GitHub Release
       id: create_release
