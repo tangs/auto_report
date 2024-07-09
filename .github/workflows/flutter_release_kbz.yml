@@ -69,3 +69,5 @@ jobs:
         asset_path: build/app/outputs/flutter-apk/kbz_reporter.apk
         asset_name: kbz_reporter.apk
         asset_content_type: application/vnd.android.package-archive
+      env:
+        GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
