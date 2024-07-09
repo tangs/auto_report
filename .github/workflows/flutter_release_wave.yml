@@ -29,7 +29,7 @@ jobs:
       run: flutter pub get
 
     - name: Setup bank type
-      run: sed -i "s/static BankType bankType = BankType.*;/static BankType bankType = BankType.wave;/g" lib/config/global_config.dart
+      run: sed -i "" "s/static BankType bankType = BankType.*;/static BankType bankType = BankType.wave;/g" lib/config/global_config.dart
 
     - name: Run tests
       run: flutter test
