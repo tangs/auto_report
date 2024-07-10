@@ -10,7 +10,7 @@ import 'package:auto_report/wave/data/proto/response/get_platforms_response.dart
 import 'package:auto_report/main.dart';
 import 'package:auto_report/wave/pages/accounts_page.dart';
 import 'package:auto_report/wave/pages/log_page.dart';
-import 'package:auto_report/wave/pages/setting_page.dart';
+import 'package:auto_report/pages/setting_page.dart';
 import 'package:flutter/material.dart';
 
 typedef OnLogCallback = void Function(LogItem item);
