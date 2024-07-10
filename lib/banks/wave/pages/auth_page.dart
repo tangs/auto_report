@@ -2,11 +2,11 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
-import 'package:auto_report/wave/config/config.dart';
-import 'package:auto_report/wave/data/account/account_data.dart';
-import 'package:auto_report/wave/data/proto/response/generate_otp_response.dart';
-import 'package:auto_report/wave/data/proto/response/get_platforms_response.dart';
-import 'package:auto_report/wave/data/proto/response/report/general_response.dart';
+import 'package:auto_report/banks/wave/config/config.dart';
+import 'package:auto_report/banks/wave/data/account/account_data.dart';
+import 'package:auto_report/banks/wave/data/proto/response/generate_otp_response.dart';
+import 'package:auto_report/banks/wave/data/proto/response/get_platforms_response.dart';
+import 'package:auto_report/banks/wave/data/proto/response/report/general_response.dart';
 import 'package:auto_report/main.dart';
 import 'package:auto_report/rsa/rsa_helper.dart';
 import 'package:auto_report/widges/platform_selector.dart';

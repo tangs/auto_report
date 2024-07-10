@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'dart:collection';
 
-import 'package:auto_report/wave/config/config.dart';
-import 'package:auto_report/wave/data/account/account_data.dart';
-import 'package:auto_report/wave/data/account/accounts.dart';
-import 'package:auto_report/wave/data/log/log_item.dart';
-import 'package:auto_report/wave/data/manager/data_manager.dart';
-import 'package:auto_report/wave/data/proto/response/get_platforms_response.dart';
+import 'package:auto_report/banks/wave/config/config.dart';
+import 'package:auto_report/banks/wave/data/account/account_data.dart';
+import 'package:auto_report/banks/wave/data/account/accounts.dart';
+import 'package:auto_report/banks/wave/data/log/log_item.dart';
+import 'package:auto_report/banks/wave/data/manager/data_manager.dart';
+import 'package:auto_report/banks/wave/data/proto/response/get_platforms_response.dart';
 import 'package:auto_report/main.dart';
 // import 'package:auto_report/kbz/pages/accounts_page.dart';
 // import 'package:auto_report/kbz/pages/log_page.dart';
