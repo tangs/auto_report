@@ -49,29 +49,16 @@ jobs:
       run: flutter test
 
     - name: Build APK kbz
-      run: |
-        flutter build apk --release
-        flutter build macos --release
+      run: flutter build apk --release
 
-    - name: Rename kbz Release
-      run: |
-        mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/kbz_reporter.apk
-        mv build/macos/Build/Products/Release/auto_report.app build/macos/Build/Products/Release/kbz_reporter.app
-        cd build/macos/Build/Products/Release
-        tar -czvf kbz_reporter.app.tar.gz kbz_reporter.app
-        cd -
+    - name: Rename APK kbz
+      run: mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/kbz_reporter.apk
 
     - name: Upload APK kbz
       uses: actions/upload-artifact@v3
       with:
         name: apk
         path: build/app/outputs/flutter-apk/kbz_reporter.apk
-
-    - name: Upload APP kbz
-      uses: actions/upload-artifact@v3
-      with:
-        name: tar.gz
-        path: build/macos/Build/Products/Release/kbz_reporter.app.tar.gz
 
 
     - name: Setup bank type wave
@@ -117,7 +104,7 @@ jobs:
         draft: false
         prerelease: false
 
-    - name: Upload kbz apk
+    - name: Upload kbz Asset
       uses: actions/upload-release-asset@v1
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
@@ -127,17 +114,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
 
-    - name: Upload kbz app
-      uses: actions/upload-release-asset@v1
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: build/macos/Build/Products/Release/kbz_reporter.app.tar.gz
-        asset_name: kbz_reporter_${{ env.version }}.app.tar.gz
-        asset_content_type: application/gzip
-      env:
-        GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-
-    - name: Upload wave apk
+    - name: Upload wave Asset
       uses: actions/upload-release-asset@v1
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
