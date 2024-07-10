@@ -1,6 +1,7 @@
 import 'package:auto_report/proto/report/response/get_platforms_response.dart';
 import 'package:auto_report/banks/wave/pages/auth_page.dart' as wave_auth;
 import 'package:auto_report/banks/wave/pages/home_page.dart' as wave_home;
+import 'package:auto_report/banks/kbz/pages/auth_page.dart' as kbz_auth;
 import 'package:auto_report/banks/kbz/pages/home_page.dart' as kbz_home;
 import 'package:auto_report/pages/login_page.dart';
 import 'package:flutter/material.dart';
@@ -45,6 +46,17 @@ class MyApp extends StatelessWidget {
           final data = ModalRoute.of(context)?.settings.arguments
               as List<GetPlatformsResponseData?>?;
           return wave_home.HomePage(title: _title, platforms: data);
+        },
+        '/kbz/auth': (context) {
+          final data = ModalRoute.of(context)?.settings.arguments
+              as Map<String, dynamic>;
+          return kbz_auth.AuthPage(
+            platforms: data['platforms'],
+            phoneNumber: data['phoneNumber'],
+            pin: data['pin'],
+            token: data['token'],
+            remark: data['remark'],
+          );
         },
         '/kbz/home': (context) {
           final data = ModalRoute.of(context)?.settings.arguments

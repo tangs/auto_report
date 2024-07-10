@@ -47,6 +47,8 @@ dependencies:
   wakelock_plus: ^1.2.5
   package_info_plus: ^8.0.0
   icons_launcher: ^2.1.7
+  uuid: ^4.4.1
+  crypto: ^3.0.3
 
 dev_dependencies:
   flutter_test:

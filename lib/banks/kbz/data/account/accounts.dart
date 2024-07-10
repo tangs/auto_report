@@ -44,12 +44,12 @@ class Accounts {
 
     logger.i('restore accounts data.');
     // logger.i('restore: $str');
-    localStorage.setItem('accounts', str);
+    localStorage.setItem('kbz_accounts', str);
     _lastRestoreStr = str;
   }
 
   void restore() {
-    var str = localStorage.getItem('accounts');
+    var str = localStorage.getItem('kbz_accounts');
     if (str == null) return;
 
     try {

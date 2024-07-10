@@ -75,7 +75,7 @@ class _HomePageState extends State<HomePage> {
     String? remark,
   }) async {
     final result =
-        await Navigator.of(context).pushNamed("/wave/auth", arguments: {
+        await Navigator.of(context).pushNamed("/kbz/auth", arguments: {
       'phoneNumber': phoneNumber ?? '',
       'pin': pin ?? '',
       'token': token ?? '',

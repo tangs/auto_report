@@ -2,9 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
-import 'package:auto_report/banks/wave/config/config.dart';
-import 'package:auto_report/banks/wave/data/account/account_data.dart';
-import 'package:auto_report/banks/wave/data/proto/response/generate_otp_response.dart';
+import 'package:auto_report/banks/kbz/config/config.dart';
+import 'package:auto_report/banks/kbz/data/account/account_data.dart';
+import 'package:auto_report/banks/kbz/data/proto/response/generate_otp_response.dart';
+import 'package:auto_report/banks/kbz/utils/aes_helper.dart';
+import 'package:auto_report/banks/kbz/utils/aes_key_generator.dart';
+import 'package:auto_report/banks/kbz/utils/sha_helper.dart';
 import 'package:auto_report/proto/report/response/get_platforms_response.dart';
 import 'package:auto_report/proto/report/response/general_response.dart';
 import 'package:auto_report/main.dart';
@@ -13,6 +16,7 @@ import 'package:auto_report/widges/platform_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:http/http.dart' as http;
+import 'package:uuid/uuid.dart';
 
 class AuthPage extends StatefulWidget {
   final List<GetPlatformsResponseData?>? platforms;
@@ -48,6 +52,9 @@ class _AuthPageState extends State<AuthPage> {
   late String _deviceId;
   late String _model;
   late String _osVersion;
+  late String _uuid;
+  late String _aesKey;
+  late String _ivKey;
 
   final _modes = ['Pixel 5', 'Pixel 6', 'Pixel 5 pro'];
   final _osVersions = ['12', '13', '14'];
@@ -82,7 +89,7 @@ class _AuthPageState extends State<AuthPage> {
     // generate device id
     var deviceId = '';
     final ran = Random.secure();
-    for (var i = 0; i < 40; ++i) {
+    for (var i = 0; i < 16; ++i) {
       final num = ran.nextInt(16);
       deviceId += num.toRadixString(16);
     }
@@ -90,31 +97,63 @@ class _AuthPageState extends State<AuthPage> {
     _model = _modes[ran.nextInt(_modes.length)];
     _osVersion = _osVersions[ran.nextInt(_osVersions.length)];
     _deviceId = deviceId;
+    _uuid = const Uuid().v4();
 
-    logger.i('device id: $_deviceId, model: $_model, os version: $_osVersion');
+    logger.i(
+        'device id: $_deviceId, model: $_model, os version: $_osVersion, uuid: $_uuid');
+    logger.i('time: ${DateTime.now().toUtc().millisecondsSinceEpoch}');
+
+    _aesKey = AesKeyGenerator.generateRandomKey();
+    _ivKey = AesKeyGenerator.getRandom(16);
+
+    logger.i('aes key: $_aesKey, iv: $_ivKey');
   }
 
   void _requestOtp() async {
-    if (_phoneNumber?.isEmpty ?? true) {
-      EasyLoading.showToast('phone number is empty.');
-      return;
-    }
+    // if (_phoneNumber?.isEmpty ?? true) {
+    //   EasyLoading.showToast('phone number is empty.');
+    //   return;
+    // }
 
     EasyLoading.show(status: 'loading...');
     logger.i('request auth code start');
     logger.i('Phone number: $_phoneNumber');
 
-    final url = Uri.https(
-        Config.host, 'wmt-mfs-otp/generate-otp', {'msisdn': '$_phoneNumber'});
-    final headers = Config.getHeaders(
-        deviceid: _deviceId, model: _model, osversion: _osVersion)
-      ..addAll({
-        "user-agent": "okhttp/4.9.0",
-        Config.wmtMfsKey: _wmtMfs ?? '',
-      });
+    final url = Uri.https(Config.host, 'api/interface/version1.1/customer');
     try {
+      final encryptKey = RSAHelper.encrypt(_aesKey, Config.rsaPublicKey);
+      final encryptIV = RSAHelper.encrypt(_ivKey, Config.rsaPublicKey);
+      final timestamp = '${DateTime.now().toUtc().millisecondsSinceEpoch}';
+
+      final body = jsonEncode({
+        'commandId': 'GuestLogin',
+        'deviceID': _deviceId,
+        'encoding': 'unicode',
+        'initiatorMSISDN': 'Guest_$_deviceId',
+        'language': 'zh',
+        'originatorConversationID': _uuid,
+        'platform': 'Android',
+        'timestamp': timestamp,
+        'token': '',
+        'version': Config.appversion,
+      });
+
+      final sign = ShaHelper.hashMacSha256(timestamp + _ivKey + body, _aesKey);
+      final encryptBody = AesHelper.encrypt(body, _aesKey, _ivKey);
+
+      final headers = Config.getHeaders()
+        ..addAll({
+          "user-agent": "okhttp-okgo/jeasonlzy",
+          "Messagetype": "NEW",
+          'Authorization': encryptKey,
+          'IvKey': encryptIV,
+          'Sign': sign,
+          'Timestamp': timestamp,
+          // Config.wmtMfsKey: _wmtMfs ?? '',
+        });
+
       final response = await Future.any([
-        http.get(url, headers: headers),
+        http.post(url, headers: headers, body: encryptBody),
         Future.delayed(
             const Duration(seconds: Config.httpRequestTimeoutSeconds)),
       ]);
@@ -127,15 +166,22 @@ class _AuthPageState extends State<AuthPage> {
 
       _wmtMfs = response.headers[Config.wmtMfsKey] ?? _wmtMfs;
       logger.i('Response status: ${response.statusCode}');
+      logger.i('Response headers: ${response.headers}');
       logger.i('Response body: ${response.body}');
-      logger.i('$Config.wmtMfsKey: ${response.headers[Config.wmtMfsKey]}');
 
-      final resBody = GeneralResponse.fromJson(jsonDecode(response.body));
-      if (response.statusCode != 200 || !resBody.isSuccess()) {
-        EasyLoading.showToast(
-            resBody.message ?? 'err code: ${response.statusCode}');
-        return;
+      if (response.headers['isencrypt'] == 'true') {
+        final decryptBody = AesHelper.decrypt(response.body, _aesKey, _ivKey);
+
+        logger.i('decrypt body: $decryptBody');
       }
+      // logger.i('$Config.wmtMfsKey: ${response.headers[Config.wmtMfsKey]}');
+
+      // final resBody = GeneralResponse.fromJson(jsonDecode(response.body));
+      // if (response.statusCode != 200 || !resBody.isSuccess()) {
+      //   EasyLoading.showToast(
+      //       resBody.message ?? 'err code: ${response.statusCode}');
+      //   return;
+      // }
       EasyLoading.showInfo('send auth code success.');
       logger.i('request auth code success');
     } catch (e, stackTrace) {
@@ -307,7 +353,7 @@ class _AuthPageState extends State<AuthPage> {
 
       logger.i('token1: $token1, token2: $token2');
       logger.i('Phone number: $_phoneNumber');
-      logger.i('login wave start');
+      logger.i('login kbz start');
       logger.i('form data: $formData');
 
       final url = Uri.https(Config.host, 'v2/mfs-customer/login');
@@ -337,13 +383,13 @@ class _AuthPageState extends State<AuthPage> {
       logger.i('$Config.wmtMfsKey: ${response.headers[Config.wmtMfsKey]}');
 
       if (response.statusCode != 200) {
-        logger.e('login wave err: ${response.statusCode}',
+        logger.e('login kbz err: ${response.statusCode}',
             stackTrace: StackTrace.current);
         EasyLoading.showToast('login err: ${response.statusCode}');
         return;
       }
 
-      logger.i('login wave success');
+      logger.i('login kbz success');
       setState(() => _hasLogin = true);
     } catch (e, stackTrace) {
       logger.e('err: $e', stackTrace: stackTrace);
@@ -366,7 +412,7 @@ class _AuthPageState extends State<AuthPage> {
         final url = Uri.http(host, path, {
           'token': _token,
           'phone': _phoneNumber,
-          'platform': 'WavePay',
+          'platform': 'kbzPay',
           'remark': _remark,
         });
         logger.i('url: ${url.toString()}');
@@ -400,7 +446,7 @@ class _AuthPageState extends State<AuthPage> {
         final url = Uri.http(host, path, {
           'token': _token,
           'phone': _phoneNumber,
-          'platform': 'WavePay',
+          'platform': 'kbzPay',
         });
         logger.i('url: ${url.toString()}');
         logger.i('host: $host, path: $path');
@@ -517,7 +563,7 @@ class _AuthPageState extends State<AuthPage> {
                 const Spacer(),
                 OutlinedButton(
                   onPressed: _hasLogin ? null : _login,
-                  child: Text(_hasLogin ? 'logined wave' : 'login wave'),
+                  child: Text(_hasLogin ? 'logined kbz' : 'login kbz'),
                 ),
                 const Padding(padding: EdgeInsets.only(left: 15, right: 15)),
                 OutlinedButton(
