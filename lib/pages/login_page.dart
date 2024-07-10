@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:auto_report/config/global_config.dart';
 import 'package:auto_report/banks/wave/config/config.dart';
-import 'package:auto_report/banks/wave/data/proto/response/get_platforms_response.dart';
+import 'package:auto_report/proto/report/response/get_platforms_response.dart';
 import 'package:auto_report/main.dart';
 import 'package:auto_report/rsa/rsa_helper.dart';
 import 'package:auto_report/widges/bank_selector.dart';

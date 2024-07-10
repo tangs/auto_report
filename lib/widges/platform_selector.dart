@@ -1,4 +1,4 @@
-import 'package:auto_report/banks/wave/data/proto/response/get_platforms_response.dart';
+import 'package:auto_report/proto/report/response/get_platforms_response.dart';
 import 'package:flutter/material.dart';
 
 typedef OnPlatformSelectorValueChangedCallback = void Function(

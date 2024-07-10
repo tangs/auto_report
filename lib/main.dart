@@ -1,4 +1,4 @@
-import 'package:auto_report/banks/wave/data/proto/response/get_platforms_response.dart';
+import 'package:auto_report/proto/report/response/get_platforms_response.dart';
 import 'package:auto_report/banks/wave/pages/auth_page.dart' as wave_auth;
 import 'package:auto_report/banks/wave/pages/home_page.dart' as wave_home;
 import 'package:auto_report/banks/kbz/pages/home_page.dart' as kbz_home;

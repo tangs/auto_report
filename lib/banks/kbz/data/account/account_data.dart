@@ -1,16 +1,16 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:auto_report/banks/wave/config/config.dart';
-import 'package:auto_report/banks/wave/data/account/histories_response.dart';
-import 'package:auto_report/banks/wave/data/log/log_item.dart';
-import 'package:auto_report/banks/wave/data/manager/data_manager.dart';
-import 'package:auto_report/banks/wave/data/proto/response/cash/get_cash_list_response.dart';
-import 'package:auto_report/banks/wave/data/proto/response/cash/send_money_response.dart';
-import 'package:auto_report/banks/wave/data/proto/response/generate_otp_response.dart';
-import 'package:auto_report/proto/report/response/general_response.dart';
-import 'package:auto_report/banks/wave/data/proto/response/wallet_balance_response.dart';
+import 'package:auto_report/banks/kbz/config/config.dart';
+import 'package:auto_report/banks/kbz/data/account/histories_response.dart';
+import 'package:auto_report/banks/kbz/data/log/log_item.dart';
+import 'package:auto_report/banks/kbz/data/manager/data_manager.dart';
+import 'package:auto_report/banks/kbz/data/proto/response/cash/get_cash_list_response.dart';
+import 'package:auto_report/banks/kbz/data/proto/response/cash/send_money_response.dart';
+import 'package:auto_report/banks/kbz/data/proto/response/generate_otp_response.dart';
+import 'package:auto_report/banks/kbz/data/proto/response/wallet_balance_response.dart';
 import 'package:auto_report/main.dart';
+import 'package:auto_report/proto/report/response/general_response.dart';
 import 'package:auto_report/rsa/rsa_helper.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
