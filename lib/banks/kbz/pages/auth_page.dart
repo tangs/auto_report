@@ -5,9 +5,10 @@ import 'dart:math';
 import 'package:auto_report/banks/kbz/config/config.dart';
 import 'package:auto_report/banks/kbz/data/account/account_data.dart';
 import 'package:auto_report/banks/kbz/data/proto/response/generate_otp_response.dart';
+import 'package:auto_report/banks/kbz/data/proto/response/guest_login_resqonse.dart';
+import 'package:auto_report/banks/kbz/network/sender.dart';
 import 'package:auto_report/banks/kbz/utils/aes_helper.dart';
 import 'package:auto_report/banks/kbz/utils/aes_key_generator.dart';
-import 'package:auto_report/banks/kbz/utils/sha_helper.dart';
 import 'package:auto_report/proto/report/response/get_platforms_response.dart';
 import 'package:auto_report/proto/report/response/general_response.dart';
 import 'package:auto_report/main.dart';
@@ -53,8 +54,11 @@ class _AuthPageState extends State<AuthPage> {
   late String _model;
   late String _osVersion;
   late String _uuid;
-  late String _aesKey;
-  late String _ivKey;
+  // late String _aesKey;
+  // late String _ivKey;
+  late String _geustToken = '';
+
+  late Sender _sender;
 
   final _modes = ['Pixel 5', 'Pixel 6', 'Pixel 5 pro'];
   final _osVersions = ['12', '13', '14'];
@@ -103,77 +107,165 @@ class _AuthPageState extends State<AuthPage> {
         'device id: $_deviceId, model: $_model, os version: $_osVersion, uuid: $_uuid');
     logger.i('time: ${DateTime.now().toUtc().millisecondsSinceEpoch}');
 
-    _aesKey = AesKeyGenerator.generateRandomKey();
-    _ivKey = AesKeyGenerator.getRandom(16);
+    final aesKey = AesKeyGenerator.generateRandomKey();
+    final ivKey = AesKeyGenerator.getRandom(16);
 
-    logger.i('aes key: $_aesKey, iv: $_ivKey');
+    _sender = Sender(aesKey: aesKey, ivKey: ivKey);
+
+    logger.i('aes key: $aesKey, iv: $ivKey');
   }
 
-  void _requestOtp() async {
-    // if (_phoneNumber?.isEmpty ?? true) {
-    //   EasyLoading.showToast('phone number is empty.');
-    //   return;
-    // }
-
-    EasyLoading.show(status: 'loading...');
-    logger.i('request auth code start');
-    logger.i('Phone number: $_phoneNumber');
-
-    final url = Uri.https(Config.host, 'api/interface/version1.1/customer');
+  Future<bool> _geustLogin() async {
     try {
-      final encryptKey = RSAHelper.encrypt(_aesKey, Config.rsaPublicKey);
-      final encryptIV = RSAHelper.encrypt(_ivKey, Config.rsaPublicKey);
+      logger.i('start geust login');
+
       final timestamp = '${DateTime.now().toUtc().millisecondsSinceEpoch}';
-
-      final body = jsonEncode({
-        'commandId': 'GuestLogin',
-        'deviceID': _deviceId,
-        'encoding': 'unicode',
-        'initiatorMSISDN': 'Guest_$_deviceId',
-        'language': 'zh',
-        'originatorConversationID': _uuid,
-        'platform': 'Android',
-        'timestamp': timestamp,
-        'token': '',
-        'version': Config.appversion,
-      });
-
-      final sign = ShaHelper.hashMacSha256(timestamp + _ivKey + body, _aesKey);
-      final encryptBody = AesHelper.encrypt(body, _aesKey, _ivKey);
-
-      final headers = Config.getHeaders()
-        ..addAll({
-          "user-agent": "okhttp-okgo/jeasonlzy",
-          "Messagetype": "NEW",
-          'Authorization': encryptKey,
-          'IvKey': encryptIV,
-          'Sign': sign,
-          'Timestamp': timestamp,
-          // Config.wmtMfsKey: _wmtMfs ?? '',
-        });
-
-      final response = await Future.any([
-        http.post(url, headers: headers, body: encryptBody),
-        Future.delayed(
-            const Duration(seconds: Config.httpRequestTimeoutSeconds)),
-      ]);
+      final response = await _sender.post(
+        body: {
+          'commandId': 'GuestLogin',
+          'deviceID': _deviceId,
+          'encoding': 'unicode',
+          'initiatorMSISDN': 'Guest_$_deviceId',
+          'language': Config.language,
+          'originatorConversationID': _uuid,
+          'platform': Config.osType,
+          'timestamp': timestamp,
+          'token': '',
+          'version': Config.appversion,
+        },
+        header: {
+          'user-agent': 'okhttp-okgo/jeasonlzy',
+          'Messagetype': 'NEW',
+        },
+      );
 
       if (response is! http.Response) {
-        EasyLoading.showError('request otp timeout');
-        logger.i('request otp timeout');
-        return;
+        EasyLoading.showError('geust login timeout');
+        logger.i('geust login timeout');
+        return false;
       }
 
-      _wmtMfs = response.headers[Config.wmtMfsKey] ?? _wmtMfs;
       logger.i('Response status: ${response.statusCode}');
       logger.i('Response headers: ${response.headers}');
       logger.i('Response body: ${response.body}');
 
       if (response.headers['isencrypt'] == 'true') {
-        final decryptBody = AesHelper.decrypt(response.body, _aesKey, _ivKey);
+        final decryptBody =
+            AesHelper.decrypt(response.body, _sender.aesKey, _sender.ivKey);
+        final responce = GuestLoginResqonse.fromJson(jsonDecode(decryptBody));
 
-        logger.i('decrypt body: $decryptBody');
+        logger.i('guest token: ${responce.guestToken}');
+        logger.i('server timestamp: ${responce.serverTimestamp}');
+        _geustToken = responce.guestToken!;
+        return responce.responseCode == '0';
       }
+
+      EasyLoading.showInfo('geust login success.');
+      logger.i('geust login success');
+    } catch (e, stackTrace) {
+      logger.e('auth err: $e', stackTrace: stackTrace);
+      EasyLoading.showError('request err, code: $e',
+          dismissOnTap: true, duration: const Duration(seconds: 60));
+    }
+    return false;
+  }
+
+  Future<bool> _requestOtp(String phoneNumber) async {
+    try {
+      logger.i('start request otp: $phoneNumber');
+
+      final timestamp = '${DateTime.now().toUtc().millisecondsSinceEpoch}';
+      final response = await _sender.post(
+        body: {
+          'Request': {
+            'Header': {
+              "CommandID": "SMSVerificationCode",
+              "ClientType": Config.osType,
+              "Language": Config.language,
+              "Version": Config.versioncode,
+              "OriginatorConversationID": const Uuid().v4(),
+              "DeviceID": _deviceId,
+              "Token": _geustToken,
+              "DeviceVersion": Config.deviceVersion,
+              "KeyOwner": "",
+              "Timestamp": timestamp,
+              "Caller": {
+                'CallerType': '2',
+                'Password': '',
+                'ThirdPartyID': '1',
+              },
+            },
+            'Body': {
+              'Identity': {
+                'Initiator': {
+                  'Identifier': phoneNumber,
+                  'IdentifierType': '1',
+                },
+                'ReceiverParty': {
+                  'Identifier': phoneNumber,
+                  'IdentifierType': '1',
+                }
+              }
+            }
+          }
+        },
+        header: {
+          'user-agent': 'okhttp/4.10.0',
+        },
+      );
+
+      if (response is! http.Response) {
+        EasyLoading.showError('request otp timeout');
+        logger.i('request otp timeout');
+        return false;
+      }
+
+      logger.i('Response status: ${response.statusCode}');
+      logger.i('Response headers: ${response.headers}');
+      logger.i('Response body: ${response.body}');
+
+      if (response.headers['isencrypt'] == 'true') {
+        final decryptBody =
+            AesHelper.decrypt(response.body, _sender.aesKey, _sender.ivKey);
+        logger.i('decrypt body: $decryptBody');
+        // final responce = GuestLoginResqonse.fromJson(jsonDecode(decryptBody));
+
+        // logger.i('guest token: ${responce.guestToken}');
+        // logger.i('server timestamp: ${responce.serverTimestamp}');
+        // return responce.responseCode == '0';
+        return true;
+      }
+
+      EasyLoading.showInfo('request otp success.');
+      logger.i('request otp success');
+    } catch (e, stackTrace) {
+      logger.e('auth err: $e', stackTrace: stackTrace);
+      EasyLoading.showError('request err, code: $e',
+          dismissOnTap: true, duration: const Duration(seconds: 60));
+    }
+    return false;
+  }
+
+  void _accountLogin() async {
+    if (_phoneNumber?.isEmpty ?? true) {
+      EasyLoading.showToast('phone number is empty.');
+      return;
+    }
+
+    final phoneNumber = _phoneNumber!;
+
+    EasyLoading.show(status: 'loading...');
+    logger.i('request auth code start');
+    logger.i('Phone number: $_phoneNumber');
+
+    try {
+      final ret = await _geustLogin();
+      logger.i('guest login ret: $ret');
+
+      if (!ret) return;
+
+      await _requestOtp(phoneNumber);
+
       // logger.i('$Config.wmtMfsKey: ${response.headers[Config.wmtMfsKey]}');
 
       // final resBody = GeneralResponse.fromJson(jsonDecode(response.body));
@@ -536,7 +628,8 @@ class _AuthPageState extends State<AuthPage> {
               ),
             ),
             OutlinedButton(
-                onPressed: _requestOtp, child: const Text('request otp code.')),
+                onPressed: _accountLogin,
+                child: const Text('request otp code.')),
             Padding(
               padding: const EdgeInsets.fromLTRB(15, 15, 15, 0),
               child: TextFormField(

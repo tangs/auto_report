@@ -85,7 +85,11 @@ w8UsJovG2xCw3FHr3Qzl1XRMb19BwYflGgikMbIfAsWhRHC1Gg==''';
   static const userlanguage = 'en';
   static const acceptEncoding = 'gzip, deflate, br';
   static const versioncode = '1460';
-  static const appversion = '2.2.0';
+
+  static const appversion = '5.6.3';
+  static const osType = 'Android';
+  static const language = 'zh';
+  static const deviceVersion = '30';
 
   // static const deviceid = 'fd701ebde3dcc9342ab647f5b5800f76ba3a7b5d';
   static const device = '';
