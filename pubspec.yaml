@@ -49,6 +49,7 @@ dependencies:
   icons_launcher: ^2.1.7
   uuid: ^4.4.1
   crypto: ^3.0.3
+  tuple: ^2.0.2
 
 dev_dependencies:
   flutter_test:
