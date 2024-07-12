@@ -5,6 +5,7 @@ import 'package:auto_report/banks/kbz/config/config.dart';
 import 'package:auto_report/banks/kbz/data/proto/response/general_resqonse.dart';
 import 'package:auto_report/banks/kbz/data/proto/response/guest_login_resqonse.dart';
 import 'package:auto_report/banks/kbz/data/proto/response/login_for_sms_code_resqonse.dart';
+import 'package:auto_report/banks/kbz/data/proto/response/new_trans_record_list_resqonse.dart';
 import 'package:auto_report/banks/kbz/data/proto/response/query_customer_balance_resqonse.dart';
 import 'package:auto_report/banks/kbz/utils/aes_helper.dart';
 import 'package:auto_report/banks/kbz/utils/sha_helper.dart';
@@ -22,8 +23,8 @@ class Sender {
   final String uuid;
   final String model;
 
-  String _token = '';
-  String? _miPush;
+  String? token;
+  String? miPush;
 
   Sender({
     required this.aesKey,
@@ -31,11 +32,14 @@ class Sender {
     required this.deviceId,
     required this.uuid,
     required this.model,
+    this.miPush,
+    this.token,
   }) {
-    _miPush = generateRandomString(64);
+    miPush ??= generateRandomString(64);
+    token ??= '';
   }
 
-  set token(v) => _token = v;
+  // set token(v) => token = v;
 
   String generateRandomString(int length) {
     const charset =
@@ -90,22 +94,28 @@ class Sender {
   }
 
   Map<String, dynamic> getBodyTemplate() {
+    return getBodyTemplate1()
+      ..addAll({
+        'brand': 'google',
+        'deviceModel': model,
+        'deviceToken': '',
+        'miPushRegisterId': miPush,
+        'networkMode': 'wifi',
+        'osVersion': 'Android11',
+        'resolution': '2160x1080',
+        'supportGoogleService': 'false',
+      });
+  }
+
+  Map<String, dynamic> getBodyTemplate1() {
     final timestamp = '${DateTime.now().toUtc().millisecondsSinceEpoch}';
     return {
-      'brand': 'google',
-      'deviceModel': model,
-      'deviceToken': '',
-      'miPushRegisterId': _miPush,
-      'networkMode': 'wifi',
-      'osVersion': 'Android11',
-      'resolution': '2160x1080',
-      'supportGoogleService': 'false',
       'deviceID': deviceId,
       'encoding': 'unicode',
       'language': Config.language,
       'originatorConversationID': const Uuid().v4(),
       'platform': 'Android',
-      'token': _token,
+      'token': token,
       'version': Config.appversion,
       'timestamp': timestamp,
     };
@@ -125,7 +135,7 @@ class Sender {
           "Version": Config.versioncode,
           "OriginatorConversationID": const Uuid().v4(),
           "DeviceID": deviceId,
-          "Token": _token,
+          "Token": token,
           "DeviceVersion": Config.deviceVersion,
           "KeyOwner": "",
           "Timestamp": timestamp,
@@ -181,7 +191,7 @@ class Sender {
 
         logger.i('guest token: ${responseData.guestToken}');
         logger.i('server timestamp: ${responseData.serverTimestamp}');
-        _token = responseData.guestToken!;
+        token = responseData.guestToken!;
         return responseData.responseCode == '0';
       }
 
@@ -332,7 +342,7 @@ class Sender {
             LoginForSmsCodeResqonse.fromJson(jsonDecode(decryptBody));
         final ret = responseData.responseCode == '0';
         if (ret) {
-          _token = responseData.token!;
+          token = responseData.token!;
         }
         return ret;
       }
@@ -464,5 +474,67 @@ class Sender {
           dismissOnTap: true, duration: const Duration(seconds: 60));
     }
     return null;
+  }
+
+  Future<List<NewTransRecordListResqonseTransRecordList>?>
+      newTransRecordListMsg(
+          String phoneNumber, int startNumber, int count) async {
+    try {
+      logger.i(
+          'start new trans record list msg.phone number: $phoneNumber, s: $startNumber, cnt: $count');
+
+      final header = {
+        'User-Agent': 'okhttp-okgo/jeasonlzy',
+        'Messagetype': 'NEW',
+      };
+
+      final response = await post(
+        body: getBodyTemplate1()
+          ..addAll({
+            'startNum': startNumber,
+            'count': count,
+            'needTotalAmount': startNumber != 0,
+            'filterTypes': [],
+            'isHomePage': 'false',
+            'commandId': 'NewTransRecordList',
+            'initiatorMSISDN': phoneNumber,
+          }),
+        header: header,
+      );
+
+      if (response is! http.Response) {
+        EasyLoading.showError('new trans record list msg timeout');
+        logger.i('new trans record list msg timeout');
+        return null;
+      }
+
+      logger.i('Response status: ${response.statusCode}');
+      logger.i('Response headers: ${response.headers}');
+      logger.i('Response body: ${response.body}');
+
+      if (response.headers['isencrypt']?.toLowerCase() == 'true') {
+        final decryptBody = AesHelper.decrypt(response.body, aesKey, ivKey);
+        logger.i('decrypt body: $decryptBody');
+        final responseData =
+            NewTransRecordListResqonse.fromJson(jsonDecode(decryptBody));
+        final ret = responseData.responseCode == '0';
+        if (ret) {
+          final records = responseData.transRecordList!
+              .where((record) => record != null && record.amount! > 0)
+              .cast<NewTransRecordListResqonseTransRecordList>()
+              .toList()
+            ..sort((a, b) => a.compareTo(b));
+          return records;
+        }
+        return null;
+      }
+
+      return null;
+    } catch (e, stackTrace) {
+      logger.e('new trans record list msg err: $e', stackTrace: stackTrace);
+      EasyLoading.showError('new trans record list msg err, code: $e',
+          dismissOnTap: true, duration: const Duration(seconds: 60));
+      return null;
+    }
   }
 }

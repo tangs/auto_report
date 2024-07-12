@@ -6,6 +6,7 @@ import 'package:auto_report/banks/kbz/data/account/histories_response.dart';
 import 'package:auto_report/banks/kbz/data/log/log_item.dart';
 import 'package:auto_report/banks/kbz/data/manager/data_manager.dart';
 import 'package:auto_report/banks/kbz/data/proto/response/cash/get_cash_list_response.dart';
+import 'package:auto_report/banks/kbz/data/proto/response/new_trans_record_list_resqonse.dart';
 import 'package:auto_report/banks/kbz/network/sender.dart';
 import 'package:auto_report/main.dart';
 import 'package:auto_report/proto/report/response/general_response.dart';
@@ -59,8 +60,8 @@ class AccountData {
 
   // final List<HistoriesResponseResponseMapTnxHistoryList?> _waitReportList = [];
   // final List<GetCashListResponseDataList> _waitCashList = [];
-  String? _lastTransId;
-  DateTime? _lasttransDate;
+  // String? _lastTransId;
+  int? _lasttransDate = 0;
 
   int reportSuccessCnt = 0;
   int reportFailCnt = 0;
@@ -129,6 +130,13 @@ class AccountData {
     disableReport = json['pauseReport'];
     disableCash = json['disableCash'];
     // isWmtMfsInvalid = false;
+    // TODO
+    sender = Sender(
+        aesKey: '',
+        ivKey: 'ivKey',
+        deviceId: 'deviceId',
+        uuid: 'uuid',
+        model: 'model');
   }
 
   _getLogItem({required LogItemType type, required String content}) {
@@ -148,12 +156,29 @@ class AccountData {
   }
 
   Future<bool> getOrders(
-      List<HistoriesResponseResponseMapTnxHistoryList> waitReportList,
+      List<NewTransRecordListResqonseTransRecordList> waitReportList,
       int offset,
       ValueChanged<LogItem> onLogged) async {
     try {
-      // TODO
-      return true;
+      final isFirst = _lasttransDate == null;
+      final now = DateTime.fromMicrosecondsSinceEpoch(0).millisecondsSinceEpoch;
+      final lastTime = _lasttransDate ?? now;
+      var records = await sender.newTransRecordListMsg(phoneNumber, 0, 10);
+      if (records != null && records.isNotEmpty) {
+        records =
+            records.where((record) => record.tradeTime! > lastTime).toList();
+      }
+
+      final hasRecords = records != null && records.isNotEmpty;
+      if (isFirst) {
+        // _lasttransDate = hasRecords ? records.last.tradeTime : now;
+        return false;
+      }
+
+      if (hasRecords) {
+        waitReportList.addAll(records);
+        return records.last.tradeTime! > lastTime;
+      }
     } catch (e, stackTrace) {
       logger.e('err: ${e.toString()}', stackTrace: stackTrace);
       EasyLoading.showError('request err, code: $e',
@@ -212,7 +237,7 @@ class AccountData {
     while (isUpdatingOrders) {
       await Future.delayed(const Duration(milliseconds: 100));
     }
-    _lastTransId = null;
+    // _lastTransId = null;
     _lasttransDate = null;
   }
 
@@ -227,65 +252,67 @@ class AccountData {
       await Future.delayed(const Duration(milliseconds: 100));
     }
 
-    final waitReportList = <HistoriesResponseResponseMapTnxHistoryList>[];
-    // _waitReportList.clear();
+    final waitReportList = <NewTransRecordListResqonseTransRecordList>[];
+    // // _waitReportList.clear();
 
     var offset = 0;
     while (
         !isWmtMfsInvalid && await getOrders(waitReportList, offset, onLogged)) {
-      offset += 15;
-      await Future.delayed(const Duration(milliseconds: 300));
+      offset += 6;
+      await Future.delayed(const Duration(milliseconds: 150));
     }
-    waitReportList.sort((a, b) => a.compareTo(b));
-    final isFirst = _lasttransDate == null;
-    if (isFirst) {
-      if (waitReportList.isEmpty) {
-        _lasttransDate = DateTime.fromMicrosecondsSinceEpoch(0);
-        _lastTransId = '-1';
-      } else {
-        final cell = waitReportList.last;
-        _lastTransId = cell.transId;
-        _lasttransDate = cell.toDateTime();
-      }
-      logger.i('report: init last date time: $_lasttransDate, $_lastTransId');
-      onLogged(LogItem(
-        type: LogItemType.info,
-        platformName: platformName,
-        platformKey: platformKey,
-        phone: phoneNumber,
-        time: DateTime.now(),
-        content:
-            'get last order info. time : $_lasttransDate, id: $_lastTransId',
-      ));
-    } else {
-      final ids = <String>{};
-      final needReportList = waitReportList.where((cell) {
-        if (cell.transId == null) return false;
-        if (ids.contains(cell.transId)) return false;
-        ids.add(cell.transId!);
-        return true;
-      }).map((cell) {
-        logger.i(
-            'report: phone: $phoneNumber id: ${cell.transId}, amount: ${cell.amount}, time: ${cell.transDate}');
-        return cell;
-      }).toList();
-      logger.i('report: cnt: ${needReportList.length}, phone: $phoneNumber');
+    // waitReportList.sort((a, b) => a.compareTo(b));
+    // final isFirst = _lasttransDate == null;
+    // if (isFirst) {
+    //   if (waitReportList.isEmpty) {
+    //     _lasttransDate = DateTime.fromMicrosecondsSinceEpoch(0);
+    //     _lastTransId = '-1';
+    //   } else {
+    //     final cell = waitReportList.last;
+    //     _lastTransId = cell.transId;
+    //     _lasttransDate = cell.toDateTime();
+    //   }
+    //   logger.i('report: init last date time: $_lasttransDate, $_lastTransId');
+    //   onLogged(LogItem(
+    //     type: LogItemType.info,
+    //     platformName: platformName,
+    //     platformKey: platformKey,
+    //     phone: phoneNumber,
+    //     time: DateTime.now(),
+    //     content:
+    //         'get last order info. time : $_lasttransDate, id: $_lastTransId',
+    //   ));
+    // } else {
+    //   final ids = <String>{};
+    //   final needReportList = waitReportList.where((cell) {
+    //     if (cell.transId == null) return false;
+    //     if (ids.contains(cell.transId)) return false;
+    //     ids.add(cell.transId!);
+    //     return true;
+    //   }).map((cell) {
+    //     logger.i(
+    //         'report: phone: $phoneNumber id: ${cell.transId}, amount: ${cell.amount}, time: ${cell.transDate}');
+    //     return cell;
+    //   }).toList();
+    //   logger.i('report: cnt: ${needReportList.length}, phone: $phoneNumber');
 
-      if (needReportList.isNotEmpty) {
-        final lastCell = needReportList.last;
-        _lastTransId = lastCell.transId!;
-        _lasttransDate = lastCell.toDateTime();
+    //   if (needReportList.isNotEmpty) {
+    //     final lastCell = needReportList.last;
+    //     _lastTransId = lastCell.transId!;
+    //     _lasttransDate = lastCell.toDateTime();
 
-        reports(needReportList, dataUpdated, onLogged);
-        if (DataManager().autoUpdateBalance) {
-          updateBalance(dataUpdated, onLogged);
-        }
-      }
-    }
-    // var seconds = DateTime.now().difference(lastUpdateTime).inSeconds;
-    // logger.i('seconds: $seconds');
+    //     reports(needReportList, dataUpdated, onLogged);
+    //     if (DataManager().autoUpdateBalance) {
+    //       updateBalance(dataUpdated, onLogged);
+    //     }
+    //   }
+    // }
+    // // var seconds = DateTime.now().difference(lastUpdateTime).inSeconds;
+    // // logger.i('seconds: $seconds');
 
-    waitReportList.clear();
+    // waitReportList.clear();
+
+    // await sender.newTransRecordListMsg(phoneNumber, 0, 10);
 
     logger.i('end update order.phone: $phoneNumber');
     lastUpdateTime = DateTime.now();
