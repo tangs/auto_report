@@ -5,6 +5,7 @@ import 'package:auto_report/banks/kbz/config/config.dart';
 import 'package:auto_report/banks/kbz/data/proto/response/general_resqonse.dart';
 import 'package:auto_report/banks/kbz/data/proto/response/guest_login_resqonse.dart';
 import 'package:auto_report/banks/kbz/data/proto/response/login_for_sms_code_resqonse.dart';
+import 'package:auto_report/banks/kbz/data/proto/response/query_customer_balance_resqonse.dart';
 import 'package:auto_report/banks/kbz/utils/aes_helper.dart';
 import 'package:auto_report/banks/kbz/utils/sha_helper.dart';
 import 'package:auto_report/main.dart';
@@ -393,9 +394,6 @@ class Sender {
         return responseData.Response?.Body?.ResponseCode == '0';
       }
 
-      // TODO
-      // EasyLoading.showInfo('request otp success.');
-      // logger.i('request otp success');
       return true;
     } catch (e, stackTrace) {
       logger.e('identity verification err: $e', stackTrace: stackTrace);
@@ -405,7 +403,7 @@ class Sender {
     return false;
   }
 
-  Future<bool> queryCustomerBalanceMsg(String phoneNumber) async {
+  Future<double?> queryCustomerBalanceMsg(String phoneNumber) async {
     try {
       logger.i('start query customer balance: $phoneNumber');
 
@@ -438,7 +436,7 @@ class Sender {
       if (response is! http.Response) {
         EasyLoading.showError('query customer balance timeout');
         logger.i('query customer balance timeout');
-        return false;
+        return null;
       }
 
       logger.i('Response status: ${response.statusCode}');
@@ -449,10 +447,13 @@ class Sender {
         final decryptBody = AesHelper.decrypt(response.body, aesKey, ivKey);
         logger.i('decrypt body: $decryptBody');
 
-        // TODO
-        // final responseData = GeneralResqonse.fromJson(jsonDecode(decryptBody));
-        // return responseData.Response?.Body?.ResponseCode == '0';
-        return true;
+        final responseData =
+            QueryCustomerBalanceResqonse.fromJson(jsonDecode(decryptBody));
+        if (responseData.Response!.Body!.ResponseCode == '0') {
+          return double.parse(
+              responseData.Response!.Body!.ResponseDetail!.Balance!);
+        }
+        return null;
       }
 
       // EasyLoading.showInfo('request otp success.');
@@ -462,6 +463,6 @@ class Sender {
       EasyLoading.showError('query customer balance err, code: $e',
           dismissOnTap: true, duration: const Duration(seconds: 60));
     }
-    return false;
+    return null;
   }
 }

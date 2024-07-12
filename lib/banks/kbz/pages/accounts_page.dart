@@ -43,10 +43,9 @@ class _AccountsPageState extends State<AccountsPage> {
     return [
       _buildSub('auth code', data.authCode, null, null),
       _buildSub('pin', data.pin, null, null),
-      _buildSub('wmt mfs', data.wmtMfs, null, null),
-      _buildSub('deviceId', data.deviceId, null, null),
-      _buildSub('model', data.model, null, null),
-      _buildSub('os version', data.osVersion, null, null),
+      // _buildSub('deviceId', data.deviceId, null, null),
+      // _buildSub('model', data.model, null, null),
+      // _buildSub('os version', data.osVersion, null, null),
       _buildSub('platform name', data.platformName, null, null),
       _buildSub('platform url', data.platformUrl, null, null),
       _buildSub('platform key', data.platformKey, null, null),

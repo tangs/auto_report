@@ -39,20 +39,11 @@ class _AuthPageState extends State<AuthPage> {
   String? _phoneNumber;
   String? _id;
   String? _otpCode;
+
   String? _token;
   String? _remark;
 
-  String? _wmtMfs;
-
   GetPlatformsResponseData? _platformsResponseData;
-
-  // late String _deviceId;
-  // late String _model;
-  // late String _osVersion;
-  // late String _uuid;
-  // late String _aesKey;
-  // late String _ivKey;
-  // late String _geustToken = '';
 
   late Sender _sender;
 
@@ -443,6 +434,7 @@ class _AuthPageState extends State<AuthPage> {
                       Navigator.pop(
                         context,
                         AccountData(
+                          sender: _sender,
                           token: _token!,
                           remark: _remark!,
                           platformName: _platformsResponseData!.name!,
@@ -452,11 +444,7 @@ class _AuthPageState extends State<AuthPage> {
                           phoneNumber: _phoneNumber!,
                           pin: _id!,
                           authCode: _otpCode!,
-                          wmtMfs: _wmtMfs!,
                           isWmtMfsInvalid: false,
-                          deviceId: _sender.deviceId,
-                          model: _sender.model,
-                          osVersion: '12',
                         ),
                       );
                     },
