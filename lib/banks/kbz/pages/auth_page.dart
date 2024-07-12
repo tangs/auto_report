@@ -174,10 +174,10 @@ class _AuthPageState extends State<AuthPage> {
     //   EasyLoading.showToast('phone number must remove prefix 0.');
     //   return false;
     // }
-    // if (_pin?.isEmpty ?? true) {
-    //   EasyLoading.showToast('password is empty.');
-    //   return false;
-    // }
+    if (_id?.isEmpty ?? true) {
+      EasyLoading.showToast('id is empty.');
+      return false;
+    }
     if (checkOtp && (_otpCode?.isEmpty ?? true)) {
       EasyLoading.showToast('auth code is empty.');
       return false;
@@ -197,6 +197,7 @@ class _AuthPageState extends State<AuthPage> {
     if (!_checkInput()) return;
 
     final phoneNumber = _phoneNumber!;
+    final id = _id!;
     final otpCode = _otpCode!;
 
     EasyLoading.show(status: 'loading...');
@@ -205,6 +206,7 @@ class _AuthPageState extends State<AuthPage> {
         final ret = await _sender.loginMsg(phoneNumber, otpCode);
         if (!ret.item1) {
           EasyLoading.showToast('login fail.msg: ${ret.item2}');
+          logger.i('login fail.msg: ${ret.item2}');
           return;
         }
 
@@ -213,9 +215,39 @@ class _AuthPageState extends State<AuthPage> {
         if (res.nrcVerifyEnable == '1') {
           // 新设备
           _sender.token = res.userInfo!.token;
+
+          // 验证身份证
+          {
+            final ret = await _sender.identityVerificationMsg(phoneNumber, id);
+            if (!ret) {
+              EasyLoading.showToast('identity verification fail.');
+              logger.i('identity verification fail.');
+              return;
+            }
+          }
+
+          // 新设备登录
+          {
+            final ret = await _sender.newAutoLoginMsg(phoneNumber, false);
+            if (!ret) {
+              EasyLoading.showToast('new login fail.');
+              logger.i('new login fail.');
+              return;
+            }
+          }
         } else {
           _sender.token = res.token;
         }
+
+        // // 获取余额
+        // {
+        //   final ret = await _sender.queryCustomerBalanceMsg(phoneNumber);
+        //   if (!ret) {
+        //     EasyLoading.showToast('query customer balance fail.');
+        //     logger.i('query customer balance fail.');
+        //     return;
+        //   }
+        // }
       }
       setState(() => _hasLogin = true);
     } catch (e, stackTrace) {
@@ -239,7 +271,7 @@ class _AuthPageState extends State<AuthPage> {
         final url = Uri.http(host, path, {
           'token': _token,
           'phone': _phoneNumber,
-          'platform': 'kbzPay',
+          'platform': 'KBZ',
           'remark': _remark,
         });
         logger.i('url: ${url.toString()}');
@@ -266,17 +298,18 @@ class _AuthPageState extends State<AuthPage> {
           return;
         }
       }
-      EasyLoading.show(status: 'wati server auth');
+      EasyLoading.show(status: 'wait server auth');
+
+      final host = _platformsResponseData!.url!.replaceAll('http://', '');
+      const path = 'api/pay/payinfo_verify';
+      final url = Uri.http(host, path, {
+        'token': _token,
+        'phone': _phoneNumber,
+        'platform': 'KBZ',
+      });
+      logger.i('url: ${url.toString()}');
+      logger.i('host: $host, path: $path');
       for (var i = 0; i < 100; ++i) {
-        final host = _platformsResponseData!.url!.replaceAll('http://', '');
-        const path = 'api/pay/payinfo_verify';
-        final url = Uri.http(host, path, {
-          'token': _token,
-          'phone': _phoneNumber,
-          'platform': 'kbzPay',
-        });
-        logger.i('url: ${url.toString()}');
-        logger.i('host: $host, path: $path');
         final response = await Future.any([
           http.post(url),
           Future.delayed(

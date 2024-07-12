@@ -21,7 +21,7 @@ class Sender {
   final String uuid;
   final String model;
 
-  String? _token;
+  String _token = '';
   String? _miPush;
 
   Sender({
@@ -46,30 +46,97 @@ class Sender {
     return randomString;
   }
 
-  Future post({required Map body, required Map<String, String> header}) async {
+  Map<String, dynamic> sortKeys(Map<String, dynamic> json) {
+    var sortedKeys = json.keys.toList()..sort();
+    var sortedMap = <String, dynamic>{};
+    for (var key in sortedKeys) {
+      sortedMap[key] = json[key];
+    }
+    return sortedMap;
+  }
+
+  Future post(
+      {required Map<String, dynamic> body,
+      required Map<String, String> header}) async {
     final timestamp = '${DateTime.now().toUtc().millisecondsSinceEpoch}';
     final url = Uri.https(Config.host, 'api/interface/version1.1/customer');
     final encryptKey = RSAHelper.encrypt(aesKey, Config.rsaPublicKey);
     final encryptIV = RSAHelper.encrypt(ivKey, Config.rsaPublicKey);
 
-    final bodyConetnt = jsonEncode(body);
+    final sortedBody = sortKeys(body);
+    final bodyContent = jsonEncode(sortedBody);
     final sign =
-        ShaHelper.hashMacSha256(timestamp + ivKey + bodyConetnt, aesKey);
+        ShaHelper.hashMacSha256(timestamp + ivKey + bodyContent, aesKey);
 
-    final encryptBody = AesHelper.encrypt(bodyConetnt, aesKey, ivKey);
+    final encryptBody = AesHelper.encrypt(bodyContent, aesKey, ivKey);
     final headers = Config.getHeaders()
       ..addAll(header)
       ..addAll({
         'Authorization': encryptKey,
         'IvKey': encryptIV,
         'Sign': sign,
-        "Timestamp": timestamp,
+        'Timestamp': timestamp,
       });
+
+    logger.i('requeet headers: $headers');
+    logger.i('requeet body: $sortedBody');
+    logger.i('requeet body content: $bodyContent');
 
     return await Future.any([
       http.post(url, headers: headers, body: encryptBody),
       Future.delayed(const Duration(seconds: Config.httpRequestTimeoutSeconds)),
     ]);
+  }
+
+  Map<String, dynamic> getBodyTemplate() {
+    final timestamp = '${DateTime.now().toUtc().millisecondsSinceEpoch}';
+    return {
+      'brand': 'google',
+      'deviceModel': model,
+      'deviceToken': '',
+      'miPushRegisterId': _miPush,
+      'networkMode': 'wifi',
+      'osVersion': 'Android11',
+      'resolution': '2160x1080',
+      'supportGoogleService': 'false',
+      'deviceID': deviceId,
+      'encoding': 'unicode',
+      'language': Config.language,
+      'originatorConversationID': const Uuid().v4(),
+      'platform': 'Android',
+      'token': _token,
+      'version': Config.appversion,
+      'timestamp': timestamp,
+    };
+  }
+
+  Map<String, dynamic> getBodyTemplateContainsHeaders({
+    required String commondid,
+    required Map<dynamic, dynamic> body,
+  }) {
+    final timestamp = '${DateTime.now().toUtc().millisecondsSinceEpoch}';
+    return {
+      'Request': {
+        'Header': {
+          "CommandID": commondid,
+          "ClientType": Config.osType,
+          "Language": Config.language,
+          "Version": Config.versioncode,
+          "OriginatorConversationID": const Uuid().v4(),
+          "DeviceID": deviceId,
+          "Token": _token,
+          "DeviceVersion": Config.deviceVersion,
+          "KeyOwner": "",
+          "Timestamp": timestamp,
+          "Caller": {
+            'CallerType': '2',
+            'ThirdPartyID': '1',
+            'Password': '',
+          },
+        },
+        'Body': body,
+      }
+    };
   }
 
   Future<bool> geustLoginMsg() async {
@@ -91,7 +158,7 @@ class Sender {
           'version': Config.appversion,
         },
         header: {
-          'user-agent': 'okhttp-okgo/jeasonlzy',
+          'User-Agent': 'okhttp-okgo/jeasonlzy',
           'Messagetype': 'NEW',
         },
       );
@@ -106,7 +173,7 @@ class Sender {
       logger.i('Response headers: ${response.headers}');
       logger.i('Response body: ${response.body}');
 
-      if (response.headers['isencrypt'] == 'true') {
+      if (response.headers['isencrypt']?.toLowerCase() == 'true') {
         final decryptBody = AesHelper.decrypt(response.body, aesKey, ivKey);
         final responseData =
             GuestLoginResqonse.fromJson(jsonDecode(decryptBody));
@@ -131,43 +198,24 @@ class Sender {
     try {
       logger.i('start request otp: $phoneNumber');
 
-      final timestamp = '${DateTime.now().toUtc().millisecondsSinceEpoch}';
       final response = await post(
-        body: {
-          'Request': {
-            'Header': {
-              "CommandID": "SMSVerificationCode",
-              "ClientType": Config.osType,
-              "Language": Config.language,
-              "Version": Config.versioncode,
-              "OriginatorConversationID": const Uuid().v4(),
-              "DeviceID": deviceId,
-              "Token": _token,
-              "DeviceVersion": Config.deviceVersion,
-              "KeyOwner": "",
-              "Timestamp": timestamp,
-              "Caller": {
-                'CallerType': '2',
-                'Password': '',
-                'ThirdPartyID': '1',
+        body: getBodyTemplateContainsHeaders(
+          commondid: 'SMSVerificationCode',
+          body: {
+            'Identity': {
+              'Initiator': {
+                'Identifier': phoneNumber,
+                'IdentifierType': '1',
               },
-            },
-            'Body': {
-              'Identity': {
-                'Initiator': {
-                  'Identifier': phoneNumber,
-                  'IdentifierType': '1',
-                },
-                'ReceiverParty': {
-                  'Identifier': phoneNumber,
-                  'IdentifierType': '1',
-                }
+              'ReceiverParty': {
+                'Identifier': phoneNumber,
+                'IdentifierType': '1',
               }
             }
-          }
-        },
+          },
+        ),
         header: {
-          'user-agent': 'okhttp/4.10.0',
+          'User-Agent': 'okhttp/4.10.0',
         },
       );
 
@@ -181,7 +229,7 @@ class Sender {
       logger.i('Response headers: ${response.headers}');
       logger.i('Response body: ${response.body}');
 
-      if (response.headers['isencrypt'] == 'true') {
+      if (response.headers['isencrypt']?.toLowerCase() == 'true') {
         final decryptBody = AesHelper.decrypt(response.body, aesKey, ivKey);
         logger.i('decrypt body: $decryptBody');
         final responseData = GeneralResqonse.fromJson(jsonDecode(decryptBody));
@@ -203,33 +251,17 @@ class Sender {
     try {
       logger.i('start login.phone number: $phoneNumber, otp code: $otpCode');
 
-      final timestamp = '${DateTime.now().toUtc().millisecondsSinceEpoch}';
       final response = await post(
-        body: {
-          'commandId': 'LoginForSmsCode',
-          'brand': 'google',
-          'deviceModel': model,
-          'deviceToken': '',
-          'homeConfigVersion': '1.1.984',
-          'miPushRegisterId': _miPush,
-          'myServiceVersion': '1.0.925',
-          'networkMode': 'wifi',
-          'osVersion': 'Android11',
-          'resolution': '2160x1080',
-          'smsCode': otpCode,
-          'supportGoogleService': 'false',
-          'deviceID': deviceId,
-          'encoding': 'unicode',
-          'initiatorMSISDN': phoneNumber,
-          'language': Config.language,
-          'originatorConversationID': const Uuid().v4(),
-          'platform': 'Android',
-          'timestamp': timestamp,
-          'token': '',
-          'version': Config.appversion,
-        },
+        body: getBodyTemplate()
+          ..addAll({
+            'commandId': 'LoginForSmsCode',
+            'homeConfigVersion': '1.1.984',
+            'myServiceVersion': '1.0.925',
+            'smsCode': otpCode,
+            'initiatorMSISDN': phoneNumber,
+          }),
         header: {
-          'user-agent': 'okhttp/4.10.0',
+          'User-Agent': 'okhttp/4.10.0',
           'Messagetype': 'NEW',
         },
       );
@@ -244,7 +276,7 @@ class Sender {
       logger.i('Response headers: ${response.headers}');
       logger.i('Response body: ${response.body}');
 
-      if (response.headers['isencrypt'] == 'true') {
+      if (response.headers['isencrypt']?.toLowerCase() == 'true') {
         final decryptBody = AesHelper.decrypt(response.body, aesKey, ivKey);
         logger.i('decrypt body: $decryptBody');
         final responseData =
@@ -254,8 +286,6 @@ class Sender {
       }
 
       return Tuple3(false, response.body, null);
-      // EasyLoading.showInfo('request otp success.');
-      // logger.i('request otp success');
     } catch (e, stackTrace) {
       logger.e('login err: $e', stackTrace: stackTrace);
       EasyLoading.showError('login err, code: $e',
@@ -264,60 +294,29 @@ class Sender {
     }
   }
 
-  Future<bool> requestIdentityVerificationMsg(
-      String phoneNumber, String id) async {
+  Future<bool> newAutoLoginMsg(String phoneNumber, bool autoLogin) async {
     try {
-      logger.i('start request otp: $phoneNumber, $id');
+      logger.i('start new auto login.phone number: $phoneNumber');
 
-      final timestamp = '${DateTime.now().toUtc().millisecondsSinceEpoch}';
+      final header = {'User-Agent': 'okhttp/4.10.0'};
+      if (autoLogin) {
+        header['Messagetype'] = 'NEW';
+      }
+
       final response = await post(
-        body: {
-          'Request': {
-            'Header': {
-              "CommandID": "IdentityVerification",
-              "ClientType": Config.osType,
-              "Language": Config.language,
-              "Version": Config.versioncode,
-              "OriginatorConversationID": const Uuid().v4(),
-              "DeviceID": deviceId,
-              "Token": _token,
-              "DeviceVersion": Config.deviceVersion,
-              "KeyOwner": "",
-              "Timestamp": timestamp,
-              "Caller": {
-                'CallerType': '2',
-                'ThirdPartyID': '1',
-                'Password': '',
-              },
-            },
-            'Body': {
-              'RequestDetail': {
-                'Encoding': 'unicode',
-                'IDType': '01',
-                'IdNo': id,
-                'isLiveDb': false,
-              },
-              'Identity': {
-                'Initiator': {
-                  'Identifier': phoneNumber,
-                  'IdentifierType': '1',
-                },
-                'ReceiverParty': {
-                  'Identifier': phoneNumber,
-                  'IdentifierType': '1',
-                },
-              }
-            }
-          }
-        },
-        header: {
-          'user-agent': 'okhttp/4.10.0',
-        },
+        body: getBodyTemplate()
+          ..addAll({
+            'commandId': 'NewAutoLogin',
+            'homeConfigVersion': '1.1.985',
+            'myServiceVersion': '1.0.926',
+            'initiatorMSISDN': phoneNumber,
+          }),
+        header: header,
       );
 
       if (response is! http.Response) {
-        EasyLoading.showError('request otp timeout');
-        logger.i('request otp timeout');
+        EasyLoading.showError('new auto login timeout');
+        logger.i('new auto login timeout');
         return false;
       }
 
@@ -325,18 +324,142 @@ class Sender {
       logger.i('Response headers: ${response.headers}');
       logger.i('Response body: ${response.body}');
 
-      if (response.headers['isencrypt'] == 'true') {
+      if (response.headers['isencrypt']?.toLowerCase() == 'true') {
+        final decryptBody = AesHelper.decrypt(response.body, aesKey, ivKey);
+        logger.i('decrypt body: $decryptBody');
+        final responseData =
+            LoginForSmsCodeResqonse.fromJson(jsonDecode(decryptBody));
+        final ret = responseData.responseCode == '0';
+        if (ret) {
+          _token = responseData.token!;
+        }
+        return ret;
+      }
+
+      return false;
+    } catch (e, stackTrace) {
+      logger.e('new auto login err: $e', stackTrace: stackTrace);
+      EasyLoading.showError('new auto login err, code: $e',
+          dismissOnTap: true, duration: const Duration(seconds: 60));
+      return false;
+    }
+  }
+
+  Future<bool> identityVerificationMsg(String phoneNumber, String id) async {
+    try {
+      logger.i('start identity verification: $phoneNumber, $id');
+
+      final response = await post(
+        body: getBodyTemplateContainsHeaders(
+          commondid: 'IdentityVerification',
+          body: {
+            'RequestDetail': {
+              'Encoding': 'unicode',
+              'IDType': '01',
+              'IdNo': id,
+              'isLiveDb': false,
+            },
+            'Identity': {
+              'Initiator': {
+                'Identifier': phoneNumber,
+                'IdentifierType': '1',
+              },
+              'ReceiverParty': {
+                'Identifier': phoneNumber,
+                'IdentifierType': '1',
+              },
+            }
+          },
+        ),
+        header: {
+          'User-Agent': 'okhttp/4.10.0',
+        },
+      );
+
+      if (response is! http.Response) {
+        EasyLoading.showError('identity verification timeout');
+        logger.i('identity verification timeout');
+        return false;
+      }
+
+      logger.i('Response status: ${response.statusCode}');
+      logger.i('Response headers: ${response.headers}');
+      logger.i('Response body: ${response.body}');
+
+      if (response.headers['isencrypt']?.toLowerCase() == 'true') {
         final decryptBody = AesHelper.decrypt(response.body, aesKey, ivKey);
         logger.i('decrypt body: $decryptBody');
         final responseData = GeneralResqonse.fromJson(jsonDecode(decryptBody));
         return responseData.Response?.Body?.ResponseCode == '0';
       }
 
+      // TODO
+      // EasyLoading.showInfo('request otp success.');
+      // logger.i('request otp success');
+      return true;
+    } catch (e, stackTrace) {
+      logger.e('identity verification err: $e', stackTrace: stackTrace);
+      EasyLoading.showError('identity verification err, code: $e',
+          dismissOnTap: true, duration: const Duration(seconds: 60));
+    }
+    return false;
+  }
+
+  Future<bool> queryCustomerBalanceMsg(String phoneNumber) async {
+    try {
+      logger.i('start query customer balance: $phoneNumber');
+
+      final response = await post(
+        body: getBodyTemplateContainsHeaders(
+          commondid: 'QueryCustomerBalance',
+          body: {
+            'RequestDetail': {
+              'Encoding': 'unicode',
+              'QueryBalanceFlag': 'false',
+              'isLiveDb': false,
+            },
+            'Identity': {
+              'Initiator': {
+                'Identifier': phoneNumber,
+                'IdentifierType': '1',
+              },
+              'ReceiverParty': {
+                'Identifier': phoneNumber,
+                'IdentifierType': '1',
+              },
+            }
+          },
+        ),
+        header: {
+          'User-Agent': 'okhttp/4.10.0',
+        },
+      );
+
+      if (response is! http.Response) {
+        EasyLoading.showError('query customer balance timeout');
+        logger.i('query customer balance timeout');
+        return false;
+      }
+
+      logger.i('Response status: ${response.statusCode}');
+      logger.i('Response headers: ${response.headers}');
+      logger.i('Response body: ${response.body}');
+
+      if (response.headers['isencrypt']?.toLowerCase() == 'true') {
+        final decryptBody = AesHelper.decrypt(response.body, aesKey, ivKey);
+        logger.i('decrypt body: $decryptBody');
+
+        // TODO
+        // final responseData = GeneralResqonse.fromJson(jsonDecode(decryptBody));
+        // return responseData.Response?.Body?.ResponseCode == '0';
+        return true;
+      }
+
       // EasyLoading.showInfo('request otp success.');
       // logger.i('request otp success');
     } catch (e, stackTrace) {
-      logger.e('auth err: $e', stackTrace: stackTrace);
-      EasyLoading.showError('request err, code: $e',
+      logger.e('query customer balance err: $e', stackTrace: stackTrace);
+      EasyLoading.showError('query customer balance err, code: $e',
           dismissOnTap: true, duration: const Duration(seconds: 60));
     }
     return false;
