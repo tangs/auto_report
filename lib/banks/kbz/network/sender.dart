@@ -540,6 +540,8 @@ class Sender {
           return records;
         }
         return null;
+      } else {
+        invalid = true;
       }
 
       return null;
@@ -615,7 +617,7 @@ class Sender {
           return true;
         }
       } else {
-        // invalid = true;
+        invalid = true;
       }
 
       // EasyLoading.showInfo('request otp success.');
