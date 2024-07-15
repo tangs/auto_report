@@ -104,7 +104,7 @@ flutter:
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages
 icons_launcher:
-  image_path: "assets/ic_logo.png"
+  image_path: "assets/ic_wave_logo.png"
   platforms:
     android:
       enable: true
