@@ -5,4 +5,5 @@ sed -i '' 's|assets/ic_.*logo.png|assets/ic_wave_logo.png|g' pubspec.yaml
 sed -i '' 's|applicationId = "com.example.auto_report.*"|applicationId = "com.example.auto_report.wave"|g' android/app/build.gradle
 sed -i '' 's|android:label=".*report"|android:label="wave report"|g' android/app/src/main/AndroidManifest.xml
 
+flutter pub get
 dart run icons_launcher:create

@@ -7,7 +7,7 @@ buildPath='release/macos'
 mkdir -p $buildPath
 
 sh setup_kbz.sh
-flutter clean
+# flutter clean
 flutter build macos --release
 
 rm -rf "$buildPath/kbz_reporter_v$version.app"
@@ -17,7 +17,7 @@ mv "$buildPath/auto_report.app" "$buildPath/kbz_reporter_v$version.app"
 
 
 sh setup_wave.sh
-flutter clean
+# flutter clean
 flutter build macos --release
 
 rm -rf "$buildPath/wave_reporter_v$version.app"
