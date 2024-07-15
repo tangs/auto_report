@@ -1,9 +1,11 @@
+import 'package:auto_report/config/global_config.dart';
 import 'package:auto_report/proto/report/response/get_platforms_response.dart';
 import 'package:auto_report/banks/wave/pages/auth_page.dart' as wave_auth;
 import 'package:auto_report/banks/wave/pages/home_page.dart' as wave_home;
 import 'package:auto_report/banks/kbz/pages/auth_page.dart' as kbz_auth;
 import 'package:auto_report/banks/kbz/pages/home_page.dart' as kbz_home;
 import 'package:auto_report/pages/login_page.dart';
+import 'package:auto_report/widges/bank_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:localstorage/localstorage.dart';
@@ -14,7 +16,7 @@ final logger = Logger(
   printer: PrettyPrinter(),
 );
 
-const _title = 'Auto report';
+// const _title = 'Auto report';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,8 +30,9 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final title = GlobalConfig.bankType == BankType.kbz ? 'KBZ' : 'Wave';
     return MaterialApp(
-      title: _title,
+      title: title,
       routes: {
         '/wave/auth': (context) {
           final data = ModalRoute.of(context)?.settings.arguments
@@ -45,7 +48,7 @@ class MyApp extends StatelessWidget {
         '/wave/home': (context) {
           final data = ModalRoute.of(context)?.settings.arguments
               as List<GetPlatformsResponseData?>?;
-          return wave_home.HomePage(title: _title, platforms: data);
+          return wave_home.HomePage(title: title, platforms: data);
         },
         '/kbz/auth': (context) {
           final data = ModalRoute.of(context)?.settings.arguments
@@ -61,11 +64,11 @@ class MyApp extends StatelessWidget {
         '/kbz/home': (context) {
           final data = ModalRoute.of(context)?.settings.arguments
               as List<GetPlatformsResponseData?>?;
-          return kbz_home.HomePage(title: _title, platforms: data);
+          return kbz_home.HomePage(title: title, platforms: data);
         },
       },
       // theme: ThemeData.light(),
-      home: const LoginPage(title: _title),
+      home: LoginPage(title: title),
       builder: EasyLoading.init(),
     );
   }

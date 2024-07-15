@@ -5,7 +5,7 @@ import 'package:auto_report/banks/wave/config/config.dart';
 import 'package:auto_report/banks/wave/data/account/account_data.dart';
 import 'package:auto_report/banks/wave/data/account/accounts.dart';
 import 'package:auto_report/banks/wave/data/log/log_item.dart';
-import 'package:auto_report/banks/wave/data/manager/data_manager.dart';
+import 'package:auto_report/manager/data_manager.dart';
 import 'package:auto_report/proto/report/response/get_platforms_response.dart';
 import 'package:auto_report/main.dart';
 import 'package:auto_report/banks/wave/pages/accounts_page.dart';

@@ -1,4 +1,4 @@
-import 'package:auto_report/banks/wave/data/manager/data_manager.dart';
+import 'package:auto_report/manager/data_manager.dart';
 import 'package:flutter/material.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -73,9 +73,9 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                     Slider(
                       value: _orderRefreshTime,
-                      min: 60,
+                      min: 50,
                       max: 120,
-                      divisions: 6,
+                      divisions: 7,
                       label: '${_orderRefreshTime.toInt()}',
                       onChanged: (double value) {
                         setState(() => _orderRefreshTime = value);

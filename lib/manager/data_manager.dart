@@ -1,6 +1,8 @@
 import 'dart:math';
 
+import 'package:auto_report/config/global_config.dart';
 import 'package:auto_report/main.dart';
+import 'package:auto_report/widges/bank_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:localstorage/localstorage.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -8,14 +10,14 @@ import 'package:package_info_plus/package_info_plus.dart';
 class DataManager {
   static final DataManager _singleton = DataManager._internal();
 
-  static const orderRefreshTimeRange = RangeValues(60, 120);
+  static const orderRefreshTimeRange = RangeValues(50, 120);
 
   double orderRefreshTime = 60;
   double gettingCashListRefreshTime = 5;
 
   bool devMode = false;
   bool isDark = false;
-  bool autoUpdateBalance = false;
+  bool autoUpdateBalance = GlobalConfig.bankType == BankType.kbz;
 
   String? appVersion;
   bool autoRefreshLog = false;

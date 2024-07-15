@@ -217,15 +217,15 @@ class _AuthPageState extends State<AuthPage> {
             }
           }
 
-          // 新设备登录
-          {
-            final ret = await _sender.newAutoLoginMsg(phoneNumber, false);
-            if (!ret) {
-              EasyLoading.showToast('new login fail.');
-              logger.i('new login fail.');
-              return;
-            }
-          }
+          // // 新设备登录
+          // {
+          //   final ret = await _sender.newAutoLoginMsg(phoneNumber, false);
+          //   if (!ret) {
+          //     EasyLoading.showToast('new login fail.');
+          //     logger.i('new login fail.');
+          //     return;
+          //   }
+          // }
         } else {
           _sender.token = res.token;
         }
@@ -444,7 +444,7 @@ class _AuthPageState extends State<AuthPage> {
                           phoneNumber: _phoneNumber!,
                           pin: _id!,
                           authCode: _otpCode!,
-                          isWmtMfsInvalid: false,
+                          // isWmtMfsInvalid: false,
                         ),
                       );
                     },

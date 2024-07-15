@@ -26,6 +26,8 @@ class Sender {
   String? token;
   String? miPush;
 
+  bool invalid = false;
+
   Sender({
     required this.aesKey,
     required this.ivKey,
@@ -83,9 +85,9 @@ class Sender {
         'Timestamp': timestamp,
       });
 
-    logger.i('requeet headers: $headers');
-    logger.i('requeet body: $sortedBody');
-    logger.i('requeet body content: $bodyContent');
+    logger.i('request headers: $headers');
+    logger.i('request body: $sortedBody');
+    logger.i('request body content: $bodyContent');
 
     return await Future.any([
       http.post(url, headers: headers, body: encryptBody),
@@ -464,6 +466,8 @@ class Sender {
               responseData.Response!.Body!.ResponseDetail!.Balance!);
         }
         return null;
+      } else {
+        invalid = true;
       }
 
       // EasyLoading.showInfo('request otp success.');

@@ -5,7 +5,7 @@ import 'package:auto_report/banks/kbz/config/config.dart';
 import 'package:auto_report/banks/kbz/data/account/account_data.dart';
 import 'package:auto_report/banks/kbz/data/account/accounts.dart';
 import 'package:auto_report/banks/kbz/data/log/log_item.dart';
-import 'package:auto_report/banks/kbz/data/manager/data_manager.dart';
+import 'package:auto_report/manager/data_manager.dart';
 import 'package:auto_report/proto/report/response/get_platforms_response.dart';
 import 'package:auto_report/main.dart';
 import 'package:auto_report/banks/kbz/pages/accounts_page.dart';

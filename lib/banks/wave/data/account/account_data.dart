@@ -4,7 +4,7 @@ import 'dart:convert';
 import 'package:auto_report/banks/wave/config/config.dart';
 import 'package:auto_report/banks/wave/data/account/histories_response.dart';
 import 'package:auto_report/banks/wave/data/log/log_item.dart';
-import 'package:auto_report/banks/wave/data/manager/data_manager.dart';
+import 'package:auto_report/manager/data_manager.dart';
 import 'package:auto_report/banks/wave/data/proto/response/cash/get_cash_list_response.dart';
 import 'package:auto_report/banks/wave/data/proto/response/cash/send_money_response.dart';
 import 'package:auto_report/banks/wave/data/proto/response/generate_otp_response.dart';

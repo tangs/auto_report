@@ -3,11 +3,11 @@ import 'dart:convert';
 
 import 'package:auto_report/banks/kbz/config/config.dart';
 import 'package:auto_report/banks/kbz/data/log/log_item.dart';
-import 'package:auto_report/banks/kbz/data/manager/data_manager.dart';
 import 'package:auto_report/banks/kbz/data/proto/response/cash/get_cash_list_response.dart';
 import 'package:auto_report/banks/kbz/data/proto/response/new_trans_record_list_resqonse.dart';
 import 'package:auto_report/banks/kbz/network/sender.dart';
 import 'package:auto_report/main.dart';
+import 'package:auto_report/manager/data_manager.dart';
 import 'package:auto_report/proto/report/response/general_response.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -29,11 +29,7 @@ class AccountData {
   late String pin;
   late String authCode;
 
-  // late String deviceId;
-  // late String model;
-  // late String osVersion;
-
-  late bool isWmtMfsInvalid;
+  // late bool isWmtMfsInvalid;
 
   /// 上报服务器授权失败
   bool isAuthInvidWithReport = false;
@@ -60,7 +56,7 @@ class AccountData {
   // final List<HistoriesResponseResponseMapTnxHistoryList?> _waitReportList = [];
   // final List<GetCashListResponseDataList> _waitCashList = [];
   String? _lastTransId;
-  int? _lasttransDate = 0;
+  int? _lasttransDate;
 
   int reportSuccessCnt = 0;
   int reportFailCnt = 0;
@@ -79,10 +75,7 @@ class AccountData {
     required this.phoneNumber,
     required this.pin,
     required this.authCode,
-    required this.isWmtMfsInvalid,
-    // required this.deviceId,
-    // required this.model,
-    // required this.osVersion,
+    // required this.isWmtMfsInvalid,
     this.disableReport = true,
     this.disableCash = true,
     this.showDetail = false,
@@ -99,12 +92,16 @@ class AccountData {
       'phoneNumber': phoneNumber,
       'pin': pin,
       'authCode': authCode,
-      // 'deviceId': deviceId,
-      // 'model': model,
-      // 'osVersion': osVersion,
-      'isWmtMfsInvalid': isWmtMfsInvalid,
+      // 'isWmtMfsInvalid': isWmtMfsInvalid,
       'pauseReport': disableReport,
       'disableCash': disableCash,
+      'send_aesKey': sender.aesKey,
+      'send_ivKey': sender.ivKey,
+      'send_deviceId': sender.deviceId,
+      'send_uuid': sender.uuid,
+      'send_model': sender.model,
+      'send_miPush': sender.miPush,
+      'send_token': sender.token,
     };
   }
 
@@ -121,21 +118,23 @@ class AccountData {
     pin = json['pin'];
     authCode = json['authCode'];
 
-    // deviceId = json['deviceId'];
-    // model = json['model'];
-    // osVersion = json['osVersion'];
-    isWmtMfsInvalid = json['isWmtMfsInvalid'];
-    // isWmtMfsInvalid = false;
+    // isWmtMfsInvalid = json['isWmtMfsInvalid'];
     disableReport = json['pauseReport'];
     disableCash = json['disableCash'];
-    // isWmtMfsInvalid = false;
-    // TODO
+
     sender = Sender(
-        aesKey: '',
-        ivKey: 'ivKey',
-        deviceId: 'deviceId',
-        uuid: 'uuid',
-        model: 'model');
+      aesKey: json['send_aesKey'],
+      ivKey: json['send_ivKey'],
+      deviceId: json['send_deviceId'],
+      uuid: json['send_uuid'],
+      model: json['send_model'],
+      miPush: json['send_miPush'],
+      token: json['send_token'],
+    );
+  }
+
+  get isWmtMfsInvalid {
+    return sender.invalid;
   }
 
   _getLogItem({required LogItemType type, required String content}) {
@@ -163,7 +162,7 @@ class AccountData {
       final isFirst = _lasttransDate == null;
       final lastTime = _lasttransDate ?? 0;
       final records =
-          await sender.newTransRecordListMsg(phoneNumber, 0, recordCount);
+          await sender.newTransRecordListMsg(phoneNumber, offset, recordCount);
 
       if (records == null) return false;
 
@@ -487,6 +486,7 @@ class AccountData {
       for (var i = 0; i < 3; ++i) {
         if (await report(dataUpdated, cell, _payId++)) {
           isFail = false;
+          await Future.delayed(const Duration(milliseconds: 10));
           break;
         }
         await Future.delayed(const Duration(milliseconds: 100));
