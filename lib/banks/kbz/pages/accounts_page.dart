@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 typedef ReLoginCallback = void Function(
-    {String phoneNumber, String pin, String token, String remark});
+    {String phoneNumber, String pin, String id, String token, String remark});
 
 class AccountsPage extends StatefulWidget {
   final List<AccountData> accountsData;
@@ -43,6 +43,7 @@ class _AccountsPageState extends State<AccountsPage> {
     return [
       _buildSub('auth code', data.authCode, null, null),
       _buildSub('pin', data.pin, null, null),
+      _buildSub('id', data.id, null, null),
       // _buildSub('deviceId', data.deviceId, null, null),
       // _buildSub('model', data.model, null, null),
       // _buildSub('os version', data.osVersion, null, null),
@@ -94,6 +95,7 @@ class _AccountsPageState extends State<AccountsPage> {
                   ? null
                   : () => data.updateBalance(
                       () => setState(() => data = data), widget.onLogged),
+              // : () => data.sendingMoney('09779215769', '10'),
               child: Text(isUpdatingBalance ? 'updating' : 'update'),
             )
           ],
@@ -254,6 +256,7 @@ class _AccountsPageState extends State<AccountsPage> {
             onPressed: () => widget.onReLogin(
               phoneNumber: data.phoneNumber,
               pin: data.pin,
+              id: data.id,
               token: data.token,
               remark: data.remark,
             ),

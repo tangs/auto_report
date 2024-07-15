@@ -25,6 +25,7 @@ class Sender {
 
   String? token;
   String? miPush;
+  String? fullName;
 
   bool invalid = false;
 
@@ -36,6 +37,7 @@ class Sender {
     required this.model,
     this.miPush,
     this.token,
+    this.fullName,
   }) {
     miPush ??= generateRandomString(64);
     token ??= '';
@@ -295,6 +297,9 @@ class Sender {
         final responseData =
             LoginForSmsCodeResqonse.fromJson(jsonDecode(decryptBody));
         final ret = responseData.responseCode == '0';
+        if (ret) {
+          fullName = responseData.userInfo?.fullName ?? '';
+        }
         return Tuple3(ret, responseData.responseDesc ?? '', responseData);
       }
 
@@ -482,7 +487,10 @@ class Sender {
 
   Future<List<NewTransRecordListResqonseTransRecordList>?>
       newTransRecordListMsg(
-          String phoneNumber, int startNumber, int count) async {
+    String phoneNumber,
+    int startNumber,
+    int count,
+  ) async {
     try {
       logger.i(
           'start new trans record list msg.phone number: $phoneNumber, s: $startNumber, cnt: $count');
@@ -541,5 +549,82 @@ class Sender {
           dismissOnTap: true, duration: const Duration(seconds: 60));
       return null;
     }
+  }
+
+  Future<bool> transferMsg(
+    String pin,
+    String phoneNumber,
+    String receiverAccount,
+    String amount,
+    String transNote,
+  ) async {
+    try {
+      if (!receiverAccount.startsWith('0')) {
+        receiverAccount = '0$receiverAccount';
+      }
+      logger.i(
+          'start transfer: $phoneNumber, r: $receiverAccount, amount: $amount, note: $transNote');
+      final encryptPin = RSAHelper.encrypt(pin, Config.pinPublicKey);
+      final response = await post(
+        body: getBodyTemplateContainsHeaders(
+          commondid: 'TransferToAccount',
+          body: {
+            'RequestDetail': {
+              'Amount': amount,
+              'Encoding': 'unicode',
+              'FromName': fullName,
+              'ReceiverType': '1',
+              'TransNote': transNote,
+              'isLiveDb': false,
+            },
+            'Identity': {
+              'Initiator': {
+                'Identifier': phoneNumber,
+                'IdentifierType': '1',
+                'SecurityCredential': encryptPin,
+              },
+              'ReceiverParty': {
+                'Identifier': receiverAccount,
+                'IdentifierType': '1',
+              },
+            }
+          },
+        ),
+        header: {
+          'User-Agent': 'okhttp/4.10.0',
+        },
+      );
+
+      if (response is! http.Response) {
+        EasyLoading.showError('transfer timeout');
+        logger.i('transfer timeout');
+        return false;
+      }
+
+      logger.i('Response status: ${response.statusCode}');
+      logger.i('Response headers: ${response.headers}');
+      logger.i('Response body: ${response.body}');
+
+      if (response.headers['isencrypt']?.toLowerCase() == 'true') {
+        final decryptBody = AesHelper.decrypt(response.body, aesKey, ivKey);
+        logger.i('decrypt body: $decryptBody');
+
+        final responseData =
+            QueryCustomerBalanceResqonse.fromJson(jsonDecode(decryptBody));
+        if (responseData.Response!.Body!.ResponseCode == '0') {
+          return true;
+        }
+      } else {
+        // invalid = true;
+      }
+
+      // EasyLoading.showInfo('request otp success.');
+      // logger.i('request otp success');
+    } catch (e, stackTrace) {
+      logger.e('transfer err: $e', stackTrace: stackTrace);
+      EasyLoading.showError('transfer err, code: $e',
+          dismissOnTap: true, duration: const Duration(seconds: 60));
+    }
+    return false;
   }
 }

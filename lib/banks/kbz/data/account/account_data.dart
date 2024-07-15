@@ -27,6 +27,7 @@ class AccountData {
 
   late String phoneNumber;
   late String pin;
+  late String id;
   late String authCode;
 
   // late bool isWmtMfsInvalid;
@@ -74,6 +75,7 @@ class AccountData {
     required this.platformMark,
     required this.phoneNumber,
     required this.pin,
+    required this.id,
     required this.authCode,
     // required this.isWmtMfsInvalid,
     this.disableReport = true,
@@ -91,6 +93,7 @@ class AccountData {
       'platformMark': platformMark,
       'phoneNumber': phoneNumber,
       'pin': pin,
+      'id': id,
       'authCode': authCode,
       // 'isWmtMfsInvalid': isWmtMfsInvalid,
       'pauseReport': disableReport,
@@ -102,6 +105,7 @@ class AccountData {
       'send_model': sender.model,
       'send_miPush': sender.miPush,
       'send_token': sender.token,
+      'send_fullName': sender.fullName,
     };
   }
 
@@ -116,6 +120,7 @@ class AccountData {
 
     phoneNumber = json['phoneNumber'];
     pin = json['pin'];
+    id = json['id'] ?? '';
     authCode = json['authCode'];
 
     // isWmtMfsInvalid = json['isWmtMfsInvalid'];
@@ -130,6 +135,7 @@ class AccountData {
       model: json['send_model'],
       miPush: json['send_miPush'],
       token: json['send_token'],
+      fullName: json['send_fullName'],
     );
   }
 
@@ -219,7 +225,7 @@ class AccountData {
               DataManager().gettingCashListRefreshTime) {
         final cashList = await getCashList(dataUpdated);
         if (cashList?.isNotEmpty ?? false) {
-          sendingMoney(cashList!, dataUpdated, onLogged);
+          sendingMoneys(cashList!, dataUpdated, onLogged);
         }
       }
     }
@@ -364,56 +370,70 @@ class AccountData {
     dataUpdated?.call();
   }
 
-  sendingMoney(List<GetCashListResponseDataList> cashList,
+  sendingMoney(String receiverAccount, String amount) async {
+    return await sender.transferMsg(
+        pin, phoneNumber, receiverAccount, amount, 'transfer');
+  }
+
+  sendingMoneys(List<GetCashListResponseDataList> cashList,
       VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
     while (isSendingCash) {
-      await Future.delayed(const Duration(milliseconds: 100));
+      await Future.delayed(const Duration(milliseconds: 50));
     }
 
     logger.i('start sending cash.phone: $phoneNumber');
     isSendingCash = true;
     dataUpdated?.call();
 
-    // 等待余额更新结束
+    // 等待其他消息结束
     while (checkNeedWaiting(RequestType.sendCash)) {
-      await Future.delayed(const Duration(milliseconds: 100));
+      await Future.delayed(const Duration(milliseconds: 50));
     }
 
-    // try {
-    // for (final cell in cashList) {
-    //   if (isWmtMfsInvalid) return;
+    try {
+      for (final cell in cashList) {
+        if (isWmtMfsInvalid) return;
+        if (cell.cashAccount == null) continue;
 
-    //   return;
-    // }
+        final ret = await sendingMoney(cell.cashAccount!, '${cell.money}');
 
-    // final resBody = SendMoneyResponse.fromJson(jsonDecode(response.body));
-    // if (!resBody.isSuccess()) {
-    //   logger.e(
-    //       'cash err: ${resBody.statusCode}, ${resBody.message}, dest num: ${cell.cashAccount!}',
-    //       stackTrace: StackTrace.current);
-    //   EasyLoading.showToast(
-    //       'cash err: ${resBody.statusCode}, ${resBody.message}');
-    //   reportSendMoneySuccess(cell, false, dataUpdated, onLogged);
-    //   continue;
-    // }
+        if (ret) {
+          onLogged(
+            _getLogItem(
+              type: LogItemType.send,
+              content: 'account: ${cell.cashAccount}, money: ${cell.money}',
+            ),
+          );
+        } else {
+          onLogged(
+            _getLogItem(
+              type: LogItemType.err,
+              content:
+                  'send money err.receiverMsisdn: ${cell.cashAccount}, money: ${cell.money}',
+            ),
+          );
+          return;
+        }
 
-    // reportSendMoneySuccess(cell, true, dataUpdated, onLogged);
-    // }
-    // if (DataManager().autoUpdateBalance) {
-    //   updateBalance(dataUpdated, onLogged);
-    // }
-    // } catch (e, stackTrace) {
-    //   logger.e('e: $e', stackTrace: stackTrace);
-    //   onLogged(
-    //     _getLogItem(
-    //       type: LogItemType.err,
-    //       content: 'send money err.err: $e, stackTrace: $stackTrace',
-    //     ),
-    //   );
-    // } finally {
-    //   isSendingCash = false;
-    //   dataUpdated?.call();
-    // }
+        reportSendMoneySuccess(cell, true, dataUpdated, onLogged);
+        await Future.delayed(const Duration(milliseconds: 50));
+      }
+
+      if (DataManager().autoUpdateBalance) {
+        updateBalance(dataUpdated, onLogged);
+      }
+    } catch (e, stackTrace) {
+      logger.e('e: $e', stackTrace: stackTrace);
+      onLogged(
+        _getLogItem(
+          type: LogItemType.err,
+          content: 'send money err.err: $e, stackTrace: $stackTrace',
+        ),
+      );
+    } finally {
+      isSendingCash = false;
+      dataUpdated?.call();
+    }
   }
 
   int _payId = 0;
@@ -563,7 +583,7 @@ class AccountData {
       final response = await Future.any([
         http.post(url, body: {
           'pay_account': phoneNumber,
-          'pay_name': 'WavePay',
+          'pay_name': 'KBZPay',
         }),
         Future.delayed(
             const Duration(seconds: Config.httpRequestTimeoutSeconds)),

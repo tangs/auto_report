@@ -71,6 +71,7 @@ class _HomePageState extends State<HomePage> {
   void newAccount({
     String? phoneNumber = '',
     String? pin = '',
+    String? id = '',
     String? token,
     String? remark,
   }) async {
@@ -78,6 +79,7 @@ class _HomePageState extends State<HomePage> {
         await Navigator.of(context).pushNamed("/kbz/auth", arguments: {
       'phoneNumber': phoneNumber ?? '',
       'pin': pin ?? '',
+      'id': id ?? '',
       'token': token ?? '',
       'remark': remark ?? '',
       'platforms': widget.platforms,
@@ -154,12 +156,14 @@ class _HomePageState extends State<HomePage> {
                   onReLogin: ({
                     String? phoneNumber,
                     String? pin,
+                    String? id,
                     String? token,
                     String? remark,
                   }) =>
                       newAccount(
                     phoneNumber: phoneNumber,
                     pin: pin,
+                    id: id,
                     token: token,
                     remark: remark,
                   ),

@@ -56,7 +56,8 @@ class MyApp extends StatelessWidget {
           return kbz_auth.AuthPage(
             platforms: data['platforms'],
             phoneNumber: data['phoneNumber'],
-            id: data['pin'],
+            id: data['id'],
+            pin: data['pin'],
             token: data['token'],
             remark: data['remark'],
           );

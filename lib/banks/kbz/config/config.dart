@@ -1,6 +1,16 @@
 class Config {
   static const wmtMfsKey = 'wmt-mfs';
 
+  static const pinPublicKey = '''-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArvCjjTiXtN++gUs3HHBT
+lqV6ZslJ/JXOyBO93lI0y5QjcMpe27xfljy6snHkFEMOibz+XibNqgLFxhCFXrcl
+9ac0naphGhnabWDvlg4W/Wvg3IOm5s+PUNXl0jyr1yahVvSHOvQlU9+HzbvLlUtX
+GLS+EGUcXuu3tQB3MUd+XgDjRwLReeGw0YNDOwqQ8Wt7udaXE/+hiM3xKD7pQJ+A
+CGX1YtLh+OsV2RVpA9Hqbz5yaxpQScM+HO8sS/Q6sEG0Bto6ngVBtSAs5vtA5gBM
+UeeQgtg8MDnr1Gq/sOo5k27YsdEiJh4IO5yrEAY9fgX0HJ15MXyUaPjfrfRFs9un
+oQIDAQAB
+-----END PUBLIC KEY-----''';
+
   static const rsaPublicKey = '''-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAh/3LI5TjENXjwdr85cK9
 wZW+MTBLd8AlZoRtMU4+8E/Yj6u0vhNtGvumR20Q3d82/N4+kva8suqEQjy4QeOj

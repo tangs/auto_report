@@ -19,6 +19,7 @@ class AuthPage extends StatefulWidget {
   final List<GetPlatformsResponseData?>? platforms;
   final String? phoneNumber;
   final String? id;
+  final String? pin;
   final String? token;
   final String? remark;
 
@@ -27,6 +28,7 @@ class AuthPage extends StatefulWidget {
     required this.platforms,
     this.phoneNumber,
     this.id,
+    this.pin,
     this.token,
     this.remark,
   });
@@ -38,6 +40,7 @@ class AuthPage extends StatefulWidget {
 class _AuthPageState extends State<AuthPage> {
   String? _phoneNumber;
   String? _id;
+  String? _pin;
   String? _otpCode;
 
   String? _token;
@@ -59,6 +62,7 @@ class _AuthPageState extends State<AuthPage> {
 
     _phoneNumber = widget.phoneNumber ?? '';
     _id = widget.id ?? '';
+    _pin = widget.pin ?? '';
 
     // _token = widget.token ?? '';
     _token = '';
@@ -386,6 +390,16 @@ class _AuthPageState extends State<AuthPage> {
                 decoration: _buildInputDecoration("id", Icons.password),
               ),
             ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(15, 0, 15, 15),
+              child: TextFormField(
+                controller: TextEditingController()..text = _pin ?? "",
+                onChanged: (value) => _pin = value,
+                // validator: _validator,
+                keyboardType: TextInputType.number,
+                decoration: _buildInputDecoration("pin", Icons.password),
+              ),
+            ),
             OutlinedButton(
                 onPressed: _requestOtp, child: const Text('request otp code.')),
             Padding(
@@ -442,7 +456,8 @@ class _AuthPageState extends State<AuthPage> {
                           platformKey: _platformsResponseData!.key!,
                           platformMark: _platformsResponseData!.mark!,
                           phoneNumber: _phoneNumber!,
-                          pin: _id!,
+                          pin: _pin!,
+                          id: _id!,
                           authCode: _otpCode!,
                           // isWmtMfsInvalid: false,
                         ),
