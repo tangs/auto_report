@@ -245,7 +245,7 @@ class _AccountsPageState extends State<AccountsPage> {
         Row(
           children: [
             Text(
-                'state: ${data.isUpdatingOrders ? 'Update recieve orders' : data.isSendingCash ? 'update send orders' : 'Waiting'}')
+                'state: ${data.isUpdatingOrders ? 'Update receive orders' : data.isSendingCash ? 'update send orders' : 'Waiting'}')
           ],
         ),
         Visibility(

@@ -520,7 +520,8 @@ class Sender {
         final ret = responseData.responseCode == '0';
         if (ret) {
           final records = responseData.transRecordList!
-              .where((record) => record != null && record.amount! > 0)
+              // .where((record) => record != null && record.amount! > 0)
+              .where((record) => record != null)
               .cast<NewTransRecordListResqonseTransRecordList>()
               .toList()
             ..sort((a, b) => a.compareTo(b));

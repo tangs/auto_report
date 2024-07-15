@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:auto_report/banks/kbz/config/config.dart';
-import 'package:auto_report/banks/kbz/data/account/histories_response.dart';
 import 'package:auto_report/banks/kbz/data/log/log_item.dart';
 import 'package:auto_report/banks/kbz/data/manager/data_manager.dart';
 import 'package:auto_report/banks/kbz/data/proto/response/cash/get_cash_list_response.dart';
@@ -60,7 +59,7 @@ class AccountData {
 
   // final List<HistoriesResponseResponseMapTnxHistoryList?> _waitReportList = [];
   // final List<GetCashListResponseDataList> _waitCashList = [];
-  // String? _lastTransId;
+  String? _lastTransId;
   int? _lasttransDate = 0;
 
   int reportSuccessCnt = 0;
@@ -160,25 +159,35 @@ class AccountData {
       int offset,
       ValueChanged<LogItem> onLogged) async {
     try {
+      const recordCount = 10;
       final isFirst = _lasttransDate == null;
-      final now = DateTime.fromMicrosecondsSinceEpoch(0).millisecondsSinceEpoch;
-      final lastTime = _lasttransDate ?? now;
-      var records = await sender.newTransRecordListMsg(phoneNumber, 0, 10);
-      if (records != null && records.isNotEmpty) {
-        records =
-            records.where((record) => record.tradeTime! > lastTime).toList();
-      }
+      final lastTime = _lasttransDate ?? 0;
+      final records =
+          await sender.newTransRecordListMsg(phoneNumber, 0, recordCount);
 
-      final hasRecords = records != null && records.isNotEmpty;
+      if (records == null) return false;
+
       if (isFirst) {
-        // _lasttransDate = hasRecords ? records.last.tradeTime : now;
+        waitReportList.addAll(records);
         return false;
       }
 
-      if (hasRecords) {
-        waitReportList.addAll(records);
-        return records.last.tradeTime! > lastTime;
+      final filtedRecords = records
+          .where((record) => record.tradeTime! > lastTime && record.amount! > 0)
+          .toList();
+      waitReportList.addAll(filtedRecords);
+
+      // 查询出来的数量小于指定的数量
+      if (records.length < recordCount) {
+        return false;
       }
+
+      // 以前没有相关记录时
+      if (lastTime == 0) return false;
+
+      if (filtedRecords.isEmpty) return false;
+
+      return filtedRecords.last.tradeTime! > lastTime;
     } catch (e, stackTrace) {
       logger.e('err: ${e.toString()}', stackTrace: stackTrace);
       EasyLoading.showError('request err, code: $e',
@@ -237,7 +246,7 @@ class AccountData {
     while (isUpdatingOrders) {
       await Future.delayed(const Duration(milliseconds: 100));
     }
-    // _lastTransId = null;
+    _lastTransId = null;
     _lasttransDate = null;
   }
 
@@ -253,66 +262,65 @@ class AccountData {
     }
 
     final waitReportList = <NewTransRecordListResqonseTransRecordList>[];
-    // // _waitReportList.clear();
-
     var offset = 0;
+
     while (
         !isWmtMfsInvalid && await getOrders(waitReportList, offset, onLogged)) {
       offset += 6;
-      await Future.delayed(const Duration(milliseconds: 150));
+      await Future.delayed(const Duration(milliseconds: 100));
     }
-    // waitReportList.sort((a, b) => a.compareTo(b));
-    // final isFirst = _lasttransDate == null;
-    // if (isFirst) {
-    //   if (waitReportList.isEmpty) {
-    //     _lasttransDate = DateTime.fromMicrosecondsSinceEpoch(0);
-    //     _lastTransId = '-1';
-    //   } else {
-    //     final cell = waitReportList.last;
-    //     _lastTransId = cell.transId;
-    //     _lasttransDate = cell.toDateTime();
-    //   }
-    //   logger.i('report: init last date time: $_lasttransDate, $_lastTransId');
-    //   onLogged(LogItem(
-    //     type: LogItemType.info,
-    //     platformName: platformName,
-    //     platformKey: platformKey,
-    //     phone: phoneNumber,
-    //     time: DateTime.now(),
-    //     content:
-    //         'get last order info. time : $_lasttransDate, id: $_lastTransId',
-    //   ));
-    // } else {
-    //   final ids = <String>{};
-    //   final needReportList = waitReportList.where((cell) {
-    //     if (cell.transId == null) return false;
-    //     if (ids.contains(cell.transId)) return false;
-    //     ids.add(cell.transId!);
-    //     return true;
-    //   }).map((cell) {
-    //     logger.i(
-    //         'report: phone: $phoneNumber id: ${cell.transId}, amount: ${cell.amount}, time: ${cell.transDate}');
-    //     return cell;
-    //   }).toList();
-    //   logger.i('report: cnt: ${needReportList.length}, phone: $phoneNumber');
 
-    //   if (needReportList.isNotEmpty) {
-    //     final lastCell = needReportList.last;
-    //     _lastTransId = lastCell.transId!;
-    //     _lasttransDate = lastCell.toDateTime();
+    waitReportList.sort((a, b) => a.compareTo(b));
 
-    //     reports(needReportList, dataUpdated, onLogged);
-    //     if (DataManager().autoUpdateBalance) {
-    //       updateBalance(dataUpdated, onLogged);
-    //     }
-    //   }
-    // }
-    // // var seconds = DateTime.now().difference(lastUpdateTime).inSeconds;
-    // // logger.i('seconds: $seconds');
+    final isFirst = _lasttransDate == null;
+    if (isFirst) {
+      if (waitReportList.isEmpty) {
+        _lasttransDate = 0;
+        _lastTransId = '-1';
+      } else {
+        final cell = waitReportList.last;
+        _lastTransId = cell.orderId;
+        _lasttransDate = cell.tradeTime!;
+      }
+      logger.i('report: init last date time: $_lasttransDate, $_lastTransId');
+      onLogged(LogItem(
+        type: LogItemType.info,
+        platformName: platformName,
+        platformKey: platformKey,
+        phone: phoneNumber,
+        time: DateTime.now(),
+        content:
+            'get last order info. time : $_lasttransDate, id: $_lastTransId',
+      ));
+    } else {
+      final ids = <String>{};
+      final needReportList = waitReportList.where((cell) {
+        if (cell.orderId == null) return false;
+        if (ids.contains(cell.orderId)) return false;
+        ids.add(cell.orderId!);
+        return true;
+      }).map((cell) {
+        logger.i(
+            'report: phone: $phoneNumber id: ${cell.orderId}, amount: ${cell.amount}, time: ${cell.tradeTime}');
+        return cell;
+      }).toList();
+      logger.i('report: cnt: ${needReportList.length}, phone: $phoneNumber');
 
-    // waitReportList.clear();
+      if (needReportList.isNotEmpty) {
+        final lastCell = needReportList.last;
+        _lastTransId = lastCell.orderId!;
+        _lasttransDate = lastCell.tradeTime;
 
-    // await sender.newTransRecordListMsg(phoneNumber, 0, 10);
+        reports(needReportList, dataUpdated, onLogged);
+        if (DataManager().autoUpdateBalance) {
+          updateBalance(dataUpdated, onLogged);
+        }
+      }
+    }
+    // var seconds = DateTime.now().difference(lastUpdateTime).inSeconds;
+    // logger.i('seconds: $seconds');
+
+    waitReportList.clear();
 
     logger.i('end update order.phone: $phoneNumber');
     lastUpdateTime = DateTime.now();
@@ -411,7 +419,7 @@ class AccountData {
 
   int _payId = 0;
   Future<bool> report(VoidCallback? dataUpdated,
-      HistoriesResponseResponseMapTnxHistoryList data, int payId) async {
+      NewTransRecordListResqonseTransRecordList data, int payId) async {
     if (isWmtMfsInvalid) return false;
     try {
       final host = platformUrl.replaceAll('http://', '');
@@ -423,14 +431,14 @@ class AccountData {
         http.post(url, body: {
           'token': token,
           'phone': phoneNumber,
-          'terminal': data.msisdn,
+          'terminal': remark,
           'platform': 'KBZ',
           'pay_id': '$payId',
           'type': '9008',
-          'pay_order_num': data.transId,
-          'order_type': data.transType,
+          'pay_order_num': data.orderId,
+          'order_type': 'p2p',
           'pay_money': '${data.amount}',
-          'bank_time': data.transDate,
+          'bank_time': '${data.tradeTime}',
         }),
         Future.delayed(
             const Duration(seconds: Config.httpRequestTimeoutSeconds)),
@@ -439,7 +447,7 @@ class AccountData {
       if (response is! http.Response) {
         EasyLoading.showError('report order timeout');
         logger.i(
-            'report order timeout, phone: $phoneNumber, id: ${data.transId}');
+            'report order timeout, phone: $phoneNumber, id: ${data.orderId}');
         return false;
       }
 
@@ -463,7 +471,7 @@ class AccountData {
     return true;
   }
 
-  reports(List<HistoriesResponseResponseMapTnxHistoryList> reportList,
+  reports(List<NewTransRecordListResqonseTransRecordList> reportList,
       VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
     // final reportList = <HistoriesResponseResponseMapTnxHistoryList?>[];
     // reportList.addAll(list);
@@ -490,7 +498,7 @@ class AccountData {
         phone: phoneNumber,
         time: DateTime.now(),
         content:
-            'transId: ${cell.transId}, amount: ${cell.amount}, transDate: ${cell.transDate}, report ret: ${!isFail}',
+            'transId: ${cell.orderId}, amount: ${cell.amount}, transDate: ${cell.tradeTime}, report ret: ${!isFail}',
       ));
       if (isFail) {
         onLogged(LogItem(
@@ -500,11 +508,11 @@ class AccountData {
           phone: phoneNumber,
           time: DateTime.now(),
           content:
-              'transId: ${cell.transId}, amount: ${cell.amount}, transDate: ${cell.transDate}.',
+              'transId: ${cell.orderId}, amount: ${cell.amount}, transDate: ${cell.tradeTime}.',
         ));
       }
       logger.i(
-          'report: ret: ${!isFail}, phone: $phoneNumber, id: ${cell.transId}, amount: ${cell.amount}, date: ${cell.transDate}');
+          'report: ret: ${!isFail}, phone: $phoneNumber, id: ${cell.orderId}, amount: ${cell.amount}, date: ${cell.tradeTime}');
       if (isFail) {
         reportFailCnt++;
       } else {
