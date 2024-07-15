@@ -317,8 +317,8 @@ class AccountData {
         }
       }
     }
-    // var seconds = DateTime.now().difference(lastUpdateTime).inSeconds;
-    // logger.i('seconds: $seconds');
+    var seconds = DateTime.now().difference(lastUpdateTime).inSeconds;
+    logger.i('seconds: $seconds');
 
     waitReportList.clear();
 
