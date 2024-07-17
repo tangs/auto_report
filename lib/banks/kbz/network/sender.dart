@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:auto_report/banks/kbz/config/config.dart';
+import 'package:auto_report/banks/kbz/data/account/account_data.dart';
+import 'package:auto_report/banks/kbz/data/log/log_item.dart';
 import 'package:auto_report/banks/kbz/data/proto/response/general_resqonse.dart';
 import 'package:auto_report/banks/kbz/data/proto/response/guest_login_resqonse.dart';
 import 'package:auto_report/banks/kbz/data/proto/response/login_for_sms_code_resqonse.dart';
@@ -11,6 +13,7 @@ import 'package:auto_report/banks/kbz/utils/aes_helper.dart';
 import 'package:auto_report/banks/kbz/utils/sha_helper.dart';
 import 'package:auto_report/main.dart';
 import 'package:auto_report/rsa/rsa_helper.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:http/http.dart' as http;
 import 'package:tuple/tuple.dart';
@@ -420,7 +423,11 @@ class Sender {
     return false;
   }
 
-  Future<double?> queryCustomerBalanceMsg(String phoneNumber) async {
+  Future<double?> queryCustomerBalanceMsg(
+    String phoneNumber, {
+    ValueChanged<LogItem>? onLogged,
+    AccountData? account,
+  }) async {
     try {
       logger.i('start query customer balance: $phoneNumber');
 
@@ -453,6 +460,14 @@ class Sender {
       if (response is! http.Response) {
         EasyLoading.showError('query customer balance timeout');
         logger.i('query customer balance timeout');
+        onLogged?.call(LogItem(
+          type: LogItemType.err,
+          platformName: account?.platformName ?? '',
+          platformKey: account?.platformKey ?? '',
+          phone: phoneNumber,
+          time: DateTime.now(),
+          content: 'query balance timeout.',
+        ));
         return null;
       }
 
@@ -470,9 +485,25 @@ class Sender {
           return double.parse(
               responseData.Response!.Body!.ResponseDetail!.Balance!);
         }
+        onLogged?.call(LogItem(
+          type: LogItemType.err,
+          platformName: account?.platformName ?? '',
+          platformKey: account?.platformKey ?? '',
+          phone: phoneNumber,
+          time: DateTime.now(),
+          content: 'query balance err, err: $e, response decrypt: $decryptBody',
+        ));
         return null;
       } else {
         invalid = true;
+        onLogged?.call(LogItem(
+          type: LogItemType.err,
+          platformName: account?.platformName ?? '',
+          platformKey: account?.platformKey ?? '',
+          phone: phoneNumber,
+          time: DateTime.now(),
+          content: 'query balance err, err: $e, response: ${response.body}',
+        ));
       }
 
       // EasyLoading.showInfo('request otp success.');
@@ -481,6 +512,14 @@ class Sender {
       logger.e('query customer balance err: $e', stackTrace: stackTrace);
       EasyLoading.showError('query customer balance err, code: $e',
           dismissOnTap: true, duration: const Duration(seconds: 60));
+      onLogged?.call(LogItem(
+        type: LogItemType.err,
+        platformName: account?.platformName ?? '',
+        platformKey: account?.platformKey ?? '',
+        phone: phoneNumber,
+        time: DateTime.now(),
+        content: 'query balance err, err: $e, stack: $stackTrace',
+      ));
     }
     return null;
   }
@@ -489,8 +528,10 @@ class Sender {
       newTransRecordListMsg(
     String phoneNumber,
     int startNumber,
-    int count,
-  ) async {
+    int count, {
+    ValueChanged<LogItem>? onLogged,
+    AccountData? account,
+  }) async {
     try {
       logger.i(
           'start new trans record list msg.phone number: $phoneNumber, s: $startNumber, cnt: $count');
@@ -517,6 +558,14 @@ class Sender {
       if (response is! http.Response) {
         EasyLoading.showError('new trans record list msg timeout');
         logger.i('new trans record list msg timeout');
+        onLogged?.call(LogItem(
+          type: LogItemType.err,
+          platformName: account?.platformName ?? '',
+          platformKey: account?.platformKey ?? '',
+          phone: phoneNumber,
+          time: DateTime.now(),
+          content: 'get record list timeout, s: $startNumber, count: $count',
+        ));
         return null;
       }
 
@@ -539,9 +588,27 @@ class Sender {
             ..sort((a, b) => a.compareTo(b));
           return records;
         }
+        onLogged?.call(LogItem(
+          type: LogItemType.err,
+          platformName: account?.platformName ?? '',
+          platformKey: account?.platformKey ?? '',
+          phone: phoneNumber,
+          time: DateTime.now(),
+          content:
+              'get record list fail, s: $startNumber, count: $count, response decrypt: $decryptBody',
+        ));
         return null;
       } else {
         invalid = true;
+        onLogged?.call(LogItem(
+          type: LogItemType.err,
+          platformName: account?.platformName ?? '',
+          platformKey: account?.platformKey ?? '',
+          phone: phoneNumber,
+          time: DateTime.now(),
+          content:
+              'get record list fail, s: $startNumber, count: $count, response: ${response.body}',
+        ));
       }
 
       return null;
@@ -549,6 +616,15 @@ class Sender {
       logger.e('new trans record list msg err: $e', stackTrace: stackTrace);
       EasyLoading.showError('new trans record list msg err, code: $e',
           dismissOnTap: true, duration: const Duration(seconds: 60));
+      onLogged?.call(LogItem(
+        type: LogItemType.err,
+        platformName: account?.platformName ?? '',
+        platformKey: account?.platformKey ?? '',
+        phone: phoneNumber,
+        time: DateTime.now(),
+        content:
+            'get record list fail, s: $startNumber, count: $count, err: $e, stack: $stackTrace',
+      ));
       return null;
     }
   }
@@ -558,8 +634,10 @@ class Sender {
     String phoneNumber,
     String receiverAccount,
     String amount,
-    String transNote,
-  ) async {
+    String transNote, {
+    ValueChanged<LogItem>? onLogged,
+    AccountData? account,
+  }) async {
     try {
       if (!receiverAccount.startsWith('0')) {
         receiverAccount = '0$receiverAccount';
@@ -600,6 +678,14 @@ class Sender {
       if (response is! http.Response) {
         EasyLoading.showError('transfer timeout');
         logger.i('transfer timeout');
+        onLogged?.call(LogItem(
+          type: LogItemType.err,
+          platformName: account?.platformName ?? '',
+          platformKey: account?.platformKey ?? '',
+          phone: phoneNumber,
+          time: DateTime.now(),
+          content: 'transfer timeout, dest: $receiverAccount, amount: $amount',
+        ));
         return false;
       }
 
@@ -616,16 +702,40 @@ class Sender {
         if (responseData.Response!.Body!.ResponseCode == '0') {
           return true;
         }
+        onLogged?.call(LogItem(
+          type: LogItemType.err,
+          platformName: account?.platformName ?? '',
+          platformKey: account?.platformKey ?? '',
+          phone: phoneNumber,
+          time: DateTime.now(),
+          content:
+              'transfer fail, dest: $receiverAccount, amount: $amount, response decrypt: $decryptBody',
+        ));
       } else {
+        onLogged?.call(LogItem(
+          type: LogItemType.err,
+          platformName: account?.platformName ?? '',
+          platformKey: account?.platformKey ?? '',
+          phone: phoneNumber,
+          time: DateTime.now(),
+          content:
+              'transfer fail, dest: $receiverAccount, amount: $amount, response: ${response.body}',
+        ));
         invalid = true;
       }
-
-      // EasyLoading.showInfo('request otp success.');
-      // logger.i('request otp success');
     } catch (e, stackTrace) {
       logger.e('transfer err: $e', stackTrace: stackTrace);
       EasyLoading.showError('transfer err, code: $e',
           dismissOnTap: true, duration: const Duration(seconds: 60));
+      onLogged?.call(LogItem(
+        type: LogItemType.err,
+        platformName: account?.platformName ?? '',
+        platformKey: account?.platformKey ?? '',
+        phone: phoneNumber,
+        time: DateTime.now(),
+        content:
+            'transfer fail, dest: $receiverAccount, amount: $amount, err: $e, stack: $stackTrace',
+      ));
     }
     return false;
   }

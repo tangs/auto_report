@@ -167,8 +167,13 @@ class AccountData {
       const recordCount = 10;
       final isFirst = _lasttransDate == null;
       final lastTime = _lasttransDate ?? 0;
-      final records =
-          await sender.newTransRecordListMsg(phoneNumber, offset, recordCount);
+      final records = await sender.newTransRecordListMsg(
+        phoneNumber,
+        offset,
+        recordCount,
+        onLogged: onLogged,
+        account: this,
+      );
 
       if (records == null) return false;
 
@@ -370,9 +375,20 @@ class AccountData {
     dataUpdated?.call();
   }
 
-  sendingMoney(String receiverAccount, String amount) async {
+  sendingMoney(
+    String receiverAccount,
+    String amount,
+    ValueChanged<LogItem> onLogged,
+  ) async {
     return await sender.transferMsg(
-        pin, phoneNumber, receiverAccount, amount, 'transfer');
+      pin,
+      phoneNumber,
+      receiverAccount,
+      amount,
+      'transfer',
+      onLogged: onLogged,
+      account: this,
+    );
   }
 
   sendingMoneys(List<GetCashListResponseDataList> cashList,
@@ -395,7 +411,8 @@ class AccountData {
         if (isWmtMfsInvalid) return;
         if (cell.cashAccount == null) continue;
 
-        final ret = await sendingMoney(cell.cashAccount!, '${cell.money}');
+        final ret =
+            await sendingMoney(cell.cashAccount!, '${cell.money}', onLogged);
 
         if (ret) {
           onLogged(
@@ -554,7 +571,11 @@ class AccountData {
       await Future.delayed(const Duration(milliseconds: 100));
     }
 
-    final ret = await sender.queryCustomerBalanceMsg(phoneNumber);
+    final ret = await sender.queryCustomerBalanceMsg(
+      phoneNumber,
+      onLogged: onLogged,
+      account: this,
+    );
 
     if (ret != null) {
       balance = ret;
