@@ -311,8 +311,8 @@ class AccountData {
         ids.add(cell.orderId!);
         return true;
       }).map((cell) {
-        logger.i(
-            'report: phone: $phoneNumber id: ${cell.orderId}, amount: ${cell.amount}, time: ${cell.tradeTime}');
+        logger.i('report: phone: $phoneNumber id: ${cell.orderId}'
+            ', amount: ${cell.amount}, time: ${cell.tradeTime}');
         return cell;
       }).toList();
       logger.i('report: cnt: ${needReportList.length}, phone: $phoneNumber');
@@ -368,8 +368,8 @@ class AccountData {
       platformKey: platformKey,
       phone: phoneNumber,
       time: DateTime.now(),
-      content:
-          'dest phone number: ${cell.cashAccount}, amount: ${cell.money}, report ret: ${!isFail}',
+      content: 'dest phone number: ${cell.cashAccount}, amount: ${cell.money}'
+          ', report ret: ${!isFail}',
     ));
     logger.i('report send money success.');
     cashSuccessCnt++;
@@ -426,8 +426,8 @@ class AccountData {
           onLogged(
             _getLogItem(
               type: LogItemType.err,
-              content:
-                  'send money err.receiverMsisdn: ${cell.cashAccount}, money: ${cell.money}',
+              content: 'send money err.receiverMsisdn: ${cell.cashAccount}'
+                  ', money: ${cell.money}',
             ),
           );
           return;
@@ -480,7 +480,8 @@ class AccountData {
           'bank_time': '${data.tradeTime}',
         }),
         Future.delayed(
-            const Duration(seconds: Config.httpRequestTimeoutSeconds)),
+          const Duration(seconds: Config.httpRequestTimeoutSeconds),
+        ),
       ]);
 
       if (response is! http.Response) {
@@ -547,8 +548,8 @@ class AccountData {
         platformKey: platformKey,
         phone: phoneNumber,
         time: DateTime.now(),
-        content:
-            'transId: ${cell.orderId}, amount: ${cell.amount}, transDate: ${cell.tradeTime}, report ret: ${!isFail}, err msg: ${errMsg ?? ''}',
+        content: 'transId: ${cell.orderId}, amount: ${cell.amount}, '
+            'transDate: ${cell.tradeTime}, report ret: ${!isFail}, ',
       ));
       if (isFail) {
         onLogged(LogItem(
@@ -558,11 +559,13 @@ class AccountData {
           phone: phoneNumber,
           time: DateTime.now(),
           content:
-              'transId: ${cell.orderId}, amount: ${cell.amount}, transDate: ${cell.tradeTime}.',
+              'report err, transId: ${cell.orderId}, amount: ${cell.amount},'
+              ' transDate: ${cell.tradeTime}, err msg: ${errMsg ?? ''}',
         ));
       }
       logger.i(
-          'report: ret: ${!isFail}, phone: $phoneNumber, id: ${cell.orderId}, amount: ${cell.amount}, date: ${cell.tradeTime}');
+          'report: ret: ${!isFail}, phone: $phoneNumber, id: ${cell.orderId},'
+          ' amount: ${cell.amount}, date: ${cell.tradeTime}');
       if (isFail) {
         reportFailCnt++;
       } else {
