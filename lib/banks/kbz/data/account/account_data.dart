@@ -495,6 +495,8 @@ class AccountData {
         if (res.message == 'not authorized') {
           isAuthInvidWithReport = true;
           dataUpdated?.call();
+        }
+        if (res.message != 'ERROR-repeat-pay_order_num') {
           EasyLoading.showError(
               'report order fail. code: ${res.status}, msg: ${res.message}');
           return false;
