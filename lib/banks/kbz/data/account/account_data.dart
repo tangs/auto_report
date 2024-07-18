@@ -495,10 +495,10 @@ class AccountData {
         if (res.message == 'not authorized') {
           isAuthInvidWithReport = true;
           dataUpdated?.call();
+          EasyLoading.showError(
+              'report order fail. code: ${res.status}, msg: ${res.message}');
+          return false;
         }
-        EasyLoading.showError(
-            'report order fail. code: ${res.status}, msg: ${res.message}');
-        return false;
       }
     } catch (e, stackTrace) {
       logger.e('e: $e', stackTrace: stackTrace);
