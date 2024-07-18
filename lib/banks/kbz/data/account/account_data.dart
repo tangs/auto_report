@@ -12,6 +12,7 @@ import 'package:auto_report/proto/report/response/general_response.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:http/http.dart' as http;
+import 'package:tuple/tuple.dart';
 
 enum RequestType { updateOrder, updateBalance, sendCash }
 
@@ -454,9 +455,11 @@ class AccountData {
   }
 
   int _payId = 0;
-  Future<bool> report(VoidCallback? dataUpdated,
+
+  /// ret: isSuccess, needRepeat, errMsg
+  Future<Tuple3<bool, bool, String?>> report(VoidCallback? dataUpdated,
       NewTransRecordListResqonseTransRecordList data, int payId) async {
-    if (isWmtMfsInvalid) return false;
+    if (isWmtMfsInvalid) return const Tuple3(false, false, 'token invalid');
     try {
       final host = platformUrl.replaceAll('http://', '');
       const path = 'api/pay/payinfo_app';
@@ -481,10 +484,11 @@ class AccountData {
       ]);
 
       if (response is! http.Response) {
+        final errMsg =
+            'report order timeout, phone: $phoneNumber, id: ${data.orderId}';
         EasyLoading.showError('report order timeout');
-        logger.i(
-            'report order timeout, phone: $phoneNumber, id: ${data.orderId}');
-        return false;
+        logger.i(errMsg);
+        return Tuple3(false, true, errMsg);
       }
 
       final body = response.body;
@@ -497,16 +501,17 @@ class AccountData {
           dataUpdated?.call();
         }
         if (res.message != 'ERROR-repeat-pay_order_num') {
-          EasyLoading.showError(
-              'report order fail. code: ${res.status}, msg: ${res.message}');
-          return false;
+          final errMsg =
+              'report order fail. code: ${res.status}, msg: ${res.message}';
+          EasyLoading.showError(errMsg);
+          return Tuple3(false, false, errMsg);
         }
       }
     } catch (e, stackTrace) {
       logger.e('e: $e', stackTrace: stackTrace);
-      return false;
+      return Tuple3(false, true, 'err: $e, s: $stackTrace');
     }
-    return true;
+    return const Tuple3(true, false, null);
   }
 
   reports(List<NewTransRecordListResqonseTransRecordList> reportList,
@@ -521,14 +526,20 @@ class AccountData {
     reporting = true;
     for (final cell in reportList) {
       var isFail = true;
+      String? errMsg;
       // 重试3次
       for (var i = 0; i < 3; ++i) {
-        if (await report(dataUpdated, cell, _payId++)) {
+        final ret = await report(dataUpdated, cell, _payId++);
+        final isSuccess = ret.item1;
+        final needRepeat = ret.item2;
+        errMsg = ret.item3;
+        if (isSuccess) {
           isFail = false;
           await Future.delayed(const Duration(milliseconds: 10));
           break;
         }
         await Future.delayed(const Duration(milliseconds: 100));
+        if (!needRepeat) break;
       }
       onLogged(LogItem(
         type: LogItemType.receive,
@@ -537,7 +548,7 @@ class AccountData {
         phone: phoneNumber,
         time: DateTime.now(),
         content:
-            'transId: ${cell.orderId}, amount: ${cell.amount}, transDate: ${cell.tradeTime}, report ret: ${!isFail}',
+            'transId: ${cell.orderId}, amount: ${cell.amount}, transDate: ${cell.tradeTime}, report ret: ${!isFail}, err msg: ${errMsg ?? ''}',
       ));
       if (isFail) {
         onLogged(LogItem(
