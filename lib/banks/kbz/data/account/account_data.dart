@@ -339,8 +339,12 @@ class AccountData {
     dataUpdated?.call();
   }
 
-  reportSendMoneySuccess(GetCashListResponseDataList cell, bool isSuccess,
-      VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
+  reportSendMoneySuccess(
+    GetCashListResponseDataList cell,
+    bool isSuccess,
+    VoidCallback? dataUpdated,
+    ValueChanged<LogItem> onLogged,
+  ) async {
     final host = platformUrl.replaceAll('http://', '');
     const path = 'api/pay/callback_cash';
     final url = Uri.http(host, path);
