@@ -448,7 +448,8 @@ class AccountData {
 
         withdrawalsIds.add(withdrawalsId);
         withdrawalsIdSeq.add(withdrawalsId);
-        if (withdrawalsIdSeq.length > withdrawalsIdsMaxLen) {
+        if (withdrawalsIdSeq.isNotEmpty &&
+            withdrawalsIdSeq.length > withdrawalsIdsMaxLen) {
           final firstId = withdrawalsIds.first;
           withdrawalsIds.remove(firstId);
           withdrawalsIdSeq.removeAt(0);
