@@ -392,6 +392,10 @@ class AccountData {
     );
   }
 
+  final withdrawalsIds = <String>{};
+  final withdrawalsIdSeq = <String>[];
+  static const withdrawalsIdsMaxLen = 1024;
+
   sendingMoneys(List<GetCashListResponseDataList> cashList,
       VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
     while (isSendingCash) {
@@ -410,7 +414,13 @@ class AccountData {
     try {
       for (final cell in cashList) {
         if (isWmtMfsInvalid) return;
+
         if (cell.cashAccount == null) continue;
+        if (cell.withdrawalsId == null) continue;
+
+        final withdrawalsId = cell.withdrawalsId!;
+        if (withdrawalsId.isEmpty) continue;
+        if (withdrawalsIds.contains(withdrawalsId)) continue;
 
         final ret =
             await sendingMoney(cell.cashAccount!, '${cell.money}', onLogged);
@@ -435,6 +445,14 @@ class AccountData {
 
         reportSendMoneySuccess(cell, true, dataUpdated, onLogged);
         await Future.delayed(const Duration(milliseconds: 50));
+
+        withdrawalsIds.add(withdrawalsId);
+        withdrawalsIdSeq.add(withdrawalsId);
+        if (withdrawalsIdSeq.length > withdrawalsIdsMaxLen) {
+          final firstId = withdrawalsIds.first;
+          withdrawalsIds.remove(firstId);
+          withdrawalsIdSeq.removeAt(0);
+        }
       }
 
       if (DataManager().autoUpdateBalance) {
@@ -549,7 +567,8 @@ class AccountData {
         phone: phoneNumber,
         time: DateTime.now(),
         content: 'transId: ${cell.orderId}, amount: ${cell.amount}, '
-            'transDate: ${cell.tradeTime}, report ret: ${!isFail}, ',
+            'transDate: ${cell.tradeTime}, report ret: ${!isFail}, '
+            'err msg: ${errMsg ?? ''}',
       ));
       if (isFail) {
         onLogged(LogItem(
