@@ -447,7 +447,7 @@ class AccountData {
           return;
         }
 
-        reportSendMoneySuccess(cell, true, dataUpdated, onLogged);
+        reportSendMoneySuccess(cell, ret, dataUpdated, onLogged);
         await Future.delayed(const Duration(milliseconds: 50));
 
         withdrawalsIds.add(withdrawalsId);
