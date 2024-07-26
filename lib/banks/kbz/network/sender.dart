@@ -699,7 +699,8 @@ class Sender {
 
         final responseData =
             QueryCustomerBalanceResqonse.fromJson(jsonDecode(decryptBody));
-        if (responseData.Response!.Body!.ResponseCode == '0') {
+        if (responseData.Response!.Body!.ResponseCode == '0' &&
+            responseData.Response!.Body!.ResponseDetail!.ResultCode == '0') {
           onLogged?.call(LogItem(
             type: LogItemType.send,
             platformName: account?.platformName ?? '',
@@ -707,7 +708,7 @@ class Sender {
             phone: phoneNumber,
             time: DateTime.now(),
             content:
-                'transfer success, dest: $receiverAccount, amount: $amount, response data: $responseData',
+                'transfer success, dest: $receiverAccount, amount: $amount, response data: $decryptBody',
           ));
           return true;
         }
@@ -718,7 +719,7 @@ class Sender {
           phone: phoneNumber,
           time: DateTime.now(),
           content:
-              'transfer fail, dest: $receiverAccount, amount: $amount, response data: $responseData, response decrypt: $decryptBody',
+              'transfer fail, dest: $receiverAccount, amount: $amount, response data: ${response.body}, response decrypt: $decryptBody',
         ));
       } else {
         onLogged?.call(LogItem(
