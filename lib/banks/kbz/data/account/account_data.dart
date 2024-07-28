@@ -390,7 +390,8 @@ class AccountData {
       phoneNumber,
       receiverAccount,
       amount,
-      'transfer',
+      // 'transfer',
+      receiverAccount,
       onLogged: onLogged,
       account: this,
     );
