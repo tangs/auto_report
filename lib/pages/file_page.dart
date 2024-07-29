@@ -24,8 +24,10 @@ class _FilesPageState extends State<FilesPage> {
 
   void listFiles() async {
     final dir = Directory(logsDirPath!);
-    final logs =
-        await dir.list().where((name) => name.path.endsWith('.log')).toList();
+    final logs = await dir
+        .list()
+        .where((name) => name.path.endsWith('log.txt'))
+        .toList();
     setState(() => files = logs);
   }
 
@@ -70,7 +72,7 @@ class _FileCell extends StatelessWidget {
             Text('size: ${file.statSync().size}'),
             IconButton(
                 onPressed: () async {
-                  Share.shareXFiles([XFile(file.path)], text: 'Log file.');
+                  Share.shareXFiles([XFile(file.path)]);
                 },
                 icon: const Icon(Icons.share)),
           ],

@@ -29,7 +29,7 @@ final class LogItem extends LinkedListEntry<LogItem> {
 
   @override
   String toString() {
-    return '$type $phone[$time]: $content';
+    return 'type: ${getType()}, platformName: $platformName, phone: $phone, time: $time, content: $content';
   }
 
   String getType() {

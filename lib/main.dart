@@ -32,10 +32,7 @@ class LogOutputIns extends LogOutput {
     while (true) {
       await Future.delayed(const Duration(seconds: 5));
       if (size > 20 || size == eventsCache.length) {
-        final file = File('$logsDirPath/${_getCurrentDate()}.log');
-        // if (!await file.exists()) {
-        //   await file.create();
-        // }
+        final file = File('$logsDirPath/${_getCurrentDate()}.log.txt');
         final sb = StringBuffer();
         for (final event in eventsCache) {
           sb.writeln(event.lines.join('\n'));
@@ -64,8 +61,8 @@ final logger = Logger(
     printEmojis: true,
     colors: kDebugMode,
   ),
-  // output: kDebugMode ? null : LogOutputIns(),
-  output: LogOutputIns(),
+  output: kDebugMode ? null : LogOutputIns(),
+  // output: LogOutputIns(),
 );
 
 // const _title = 'Auto report';

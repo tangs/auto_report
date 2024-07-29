@@ -116,6 +116,7 @@ class _HomePageState extends State<HomePage> {
     } else {
       _logs.add(item);
     }
+    logger.i(item.toString());
   }
 
   @override
