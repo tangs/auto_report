@@ -24,7 +24,7 @@ class _LogOutputIns extends LogOutput {
 
   String _getCurrentDate() {
     final DateTime now = DateTime.now();
-    return '${now.year}_${now.month}_${now.day}';
+    return '${now.year}_${now.month}_${now.day}__${now.hour < 10 ? '0' : ''}${now.hour}';
   }
 
   void _writeLogs() async {
@@ -61,8 +61,8 @@ final logger = Logger(
     printEmojis: true,
     colors: kDebugMode,
   ),
-  output: kDebugMode ? null : _LogOutputIns(),
-  // output: _LogOutputIns(),
+  // output: kDebugMode ? null : _LogOutputIns(),
+  output: _LogOutputIns(),
 );
 
 // const _title = 'Auto report';
