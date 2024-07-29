@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:auto_report/banks/wave/config/config.dart';
 import 'package:auto_report/banks/wave/data/account/histories_response.dart';
@@ -451,6 +452,8 @@ class AccountData {
     dataUpdated?.call();
   }
 
+  final _rand = Random();
+
   sendingMoney(List<GetCashListResponseDataList> cashList,
       VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
     while (isSendingCash) {
@@ -529,6 +532,8 @@ class AccountData {
             if (resBody.codeStatus == 'PL001' &&
                 resBody.message == 'Not enough balance.') {
               reportSendMoneySuccess(cell, false, dataUpdated, onLogged);
+              await Future.delayed(
+                  Duration(milliseconds: 2000 + _rand.nextInt(1500)));
               continue;
             }
           }
@@ -550,11 +555,16 @@ class AccountData {
           EasyLoading.showToast(
               'cash err: ${resBody.statusCode}, ${resBody.message}');
           reportSendMoneySuccess(cell, false, dataUpdated, onLogged);
+          await Future.delayed(
+              Duration(milliseconds: 2000 + _rand.nextInt(1500)));
           continue;
         }
 
         reportSendMoneySuccess(cell, true, dataUpdated, onLogged);
+        await Future.delayed(
+            Duration(milliseconds: 2000 + _rand.nextInt(1500)));
       }
+
       if (DataManager().autoUpdateBalance) {
         updateBalance(dataUpdated, onLogged);
       }
