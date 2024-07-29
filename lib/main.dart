@@ -24,7 +24,8 @@ class _LogOutputIns extends LogOutput {
 
   String _getCurrentDate() {
     final DateTime now = DateTime.now();
-    return '${now.year}_${now.month}_${now.day}__${now.hour < 10 ? '0' : ''}${now.hour}';
+    return '${now.year}_${now.month.toString().padLeft(2, '0')}_${now.day}'
+        '__${now.hour.toString().padLeft(2, '0')}';
   }
 
   void _writeLogs() async {
