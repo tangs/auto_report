@@ -17,14 +17,14 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:path_provider/path_provider.dart';
 
 // RLogger? rLogger;
-String? _logsDirPath;
+String? logsDirPath;
 
 class LogOutputIns extends LogOutput {
   final eventsCache = <OutputEvent>[];
 
   String _getCurrentDate() {
     final DateTime now = DateTime.now();
-    return '${now.year}-${now.month}-${now.day}';
+    return '${now.year}_${now.month}_${now.day}';
   }
 
   void writeLogs() async {
@@ -32,12 +32,15 @@ class LogOutputIns extends LogOutput {
     while (true) {
       await Future.delayed(const Duration(seconds: 5));
       if (size > 20 || size == eventsCache.length) {
-        final file = File('$_logsDirPath/${_getCurrentDate()}.log');
+        final file = File('$logsDirPath/${_getCurrentDate()}.log');
+        // if (!await file.exists()) {
+        //   await file.create();
+        // }
         final sb = StringBuffer();
         for (final event in eventsCache) {
           sb.writeln(event.lines.join('\n'));
         }
-        await file.writeAsString(sb.toString(), mode: FileMode.append);
+        await file.writeAsString(sb.toString(), mode: FileMode.writeOnlyAppend);
         eventsCache.clear();
         break;
       }
@@ -56,12 +59,14 @@ class LogOutputIns extends LogOutput {
 }
 
 final logger = Logger(
-    printer: PrettyPrinter(
-      printTime: true,
-      printEmojis: true,
-      colors: kDebugMode,
-    ),
-    output: LogOutputIns());
+  printer: PrettyPrinter(
+    printTime: true,
+    printEmojis: true,
+    colors: kDebugMode,
+  ),
+  // output: kDebugMode ? null : LogOutputIns(),
+  output: LogOutputIns(),
+);
 
 // const _title = 'Auto report';
 
@@ -73,7 +78,7 @@ void main() async {
   final tmpDir = await getApplicationCacheDirectory();
   final logsDir = Directory('${tmpDir.path}/logs');
   debugPrint('logs dir: $logsDir');
-  _logsDirPath = logsDir.path;
+  logsDirPath = logsDir.path;
 
   if (!await logsDir.exists()) {
     await logsDir.create();

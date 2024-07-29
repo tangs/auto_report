@@ -97,6 +97,7 @@ class _LoginPageState extends State<LoginPage> {
       );
     } catch (e, stackTrace) {
       logger.e('e: $e', stackTrace: stackTrace);
+      EasyLoading.showToast('login fail.');
     } finally {
       setState(() => _logging = false);
     }

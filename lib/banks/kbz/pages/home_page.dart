@@ -6,6 +6,7 @@ import 'package:auto_report/banks/kbz/data/account/account_data.dart';
 import 'package:auto_report/banks/kbz/data/account/accounts.dart';
 import 'package:auto_report/banks/kbz/data/log/log_item.dart';
 import 'package:auto_report/manager/data_manager.dart';
+import 'package:auto_report/pages/file_page.dart';
 import 'package:auto_report/proto/report/response/get_platforms_response.dart';
 import 'package:auto_report/main.dart';
 import 'package:auto_report/banks/kbz/pages/accounts_page.dart';
@@ -174,6 +175,7 @@ class _HomePageState extends State<HomePage> {
                   platforms: widget.platforms,
                   accountsData: accounts.accountsData,
                 ),
+                const FilesPage(),
                 SettingsPage(
                   onThemeInvalid: () => setState(
                     () => _isDark = DataManager().isDark,
@@ -202,12 +204,17 @@ class _HomePageState extends State<HomePage> {
               label: 'Logs',
             ),
             BottomNavigationBarItem(
+              icon: Icon(Icons.file_open),
+              label: 'Files',
+            ),
+            BottomNavigationBarItem(
               icon: Icon(Icons.settings),
               label: 'Setting',
             ),
           ],
           currentIndex: _navIndex,
           selectedItemColor: Colors.amber[800],
+          unselectedItemColor: Colors.blue,
           onTap: (index) {
             setState(() => _navIndex = index);
             _pageViewController.jumpToPage(_navIndex);
