@@ -19,7 +19,7 @@ import 'package:path_provider/path_provider.dart';
 // RLogger? rLogger;
 String? logsDirPath;
 
-class LogOutputIns extends LogOutput {
+class _LogOutputIns extends LogOutput {
   final eventsCache = <OutputEvent>[];
 
   String _getCurrentDate() {
@@ -27,7 +27,7 @@ class LogOutputIns extends LogOutput {
     return '${now.year}_${now.month}_${now.day}';
   }
 
-  void writeLogs() async {
+  void _writeLogs() async {
     var size = eventsCache.length;
     while (true) {
       await Future.delayed(const Duration(seconds: 5));
@@ -51,7 +51,7 @@ class LogOutputIns extends LogOutput {
     eventsCache.add(event);
     if (isNotEmpty) return;
 
-    writeLogs();
+    _writeLogs();
   }
 }
 
@@ -61,8 +61,8 @@ final logger = Logger(
     printEmojis: true,
     colors: kDebugMode,
   ),
-  output: kDebugMode ? null : LogOutputIns(),
-  // output: LogOutputIns(),
+  // output: kDebugMode ? null : LogOutputIns(),
+  output: _LogOutputIns(),
 );
 
 // const _title = 'Auto report';
