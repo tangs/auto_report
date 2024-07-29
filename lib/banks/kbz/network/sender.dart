@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:auto_report/banks/kbz/config/config.dart';
 import 'package:auto_report/banks/kbz/data/account/account_data.dart';
 import 'package:auto_report/banks/kbz/data/log/log_item.dart';
+import 'package:auto_report/banks/kbz/data/proto/response/err_response.dart';
 import 'package:auto_report/banks/kbz/data/proto/response/general_resqonse.dart';
 import 'package:auto_report/banks/kbz/data/proto/response/guest_login_resqonse.dart';
 import 'package:auto_report/banks/kbz/data/proto/response/login_for_sms_code_resqonse.dart';
@@ -495,7 +496,11 @@ class Sender {
         ));
         return null;
       } else {
-        invalid = true;
+        final responseData = ErrResponse.fromJson(jsonDecode(response.body));
+        if (responseData.Response!.Body!.ResponseCode == 'AS403') {
+          invalid = true;
+        }
+
         onLogged?.call(LogItem(
           type: LogItemType.err,
           platformName: account?.platformName ?? '',
@@ -599,7 +604,11 @@ class Sender {
         ));
         return null;
       } else {
-        invalid = true;
+        final responseData = ErrResponse.fromJson(jsonDecode(response.body));
+        if (responseData.Response!.Body!.ResponseCode == 'AS403') {
+          invalid = true;
+        }
+
         onLogged?.call(LogItem(
           type: LogItemType.err,
           platformName: account?.platformName ?? '',
@@ -699,6 +708,7 @@ class Sender {
 
         final responseData =
             QueryCustomerBalanceResqonse.fromJson(jsonDecode(decryptBody));
+
         if (responseData.Response!.Body!.ResponseCode == '0' &&
             responseData.Response!.Body!.ResponseDetail!.ResultCode == '0') {
           onLogged?.call(LogItem(
@@ -722,6 +732,14 @@ class Sender {
               'transfer fail, dest: $receiverAccount, amount: $amount, response data: ${response.body}, response decrypt: $decryptBody',
         ));
       } else {
+        final responseData = ErrResponse.fromJson(jsonDecode(response.body));
+        if (responseData.Response!.Body!.ResponseCode == 'AS403') {
+          invalid = true;
+        }
+        // final decryptDesc = AesHelper.decrypt(
+        //     responseData.Response!.Body!.ResponseDesc!, aesKey, ivKey);
+        // logger.i('decrypt desc: $decryptDesc');
+
         onLogged?.call(LogItem(
           type: LogItemType.err,
           platformName: account?.platformName ?? '',
@@ -731,7 +749,6 @@ class Sender {
           content:
               'transfer fail, dest: $receiverAccount, amount: $amount, response: ${response.body}',
         ));
-        invalid = true;
       }
     } catch (e, stackTrace) {
       logger.e('transfer err: $e', stackTrace: stackTrace);
