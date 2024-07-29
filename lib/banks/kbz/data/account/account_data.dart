@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:auto_report/banks/kbz/config/config.dart';
 import 'package:auto_report/banks/kbz/data/log/log_item.dart';
@@ -400,6 +401,7 @@ class AccountData {
   final withdrawalsIds = <String>{};
   final withdrawalsIdSeq = <String>[];
   static const withdrawalsIdsMaxLen = 1024;
+  final _rand = Random();
 
   sendingMoneys(List<GetCashListResponseDataList> cashList,
       VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
@@ -449,7 +451,8 @@ class AccountData {
         }
 
         reportSendMoneySuccess(cell, ret, dataUpdated, onLogged);
-        await Future.delayed(const Duration(milliseconds: 50));
+        await Future.delayed(
+            Duration(milliseconds: 2000 + _rand.nextInt(1500)));
 
         withdrawalsIds.add(withdrawalsId);
         withdrawalsIdSeq.add(withdrawalsId);
