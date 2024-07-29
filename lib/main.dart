@@ -61,8 +61,8 @@ final logger = Logger(
     printEmojis: true,
     colors: kDebugMode,
   ),
-  // output: kDebugMode ? null : LogOutputIns(),
-  output: _LogOutputIns(),
+  output: kDebugMode ? null : _LogOutputIns(),
+  // output: _LogOutputIns(),
 );
 
 // const _title = 'Auto report';
