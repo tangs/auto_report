@@ -19,6 +19,13 @@ import 'package:path_provider/path_provider.dart';
 // RLogger? rLogger;
 String? logsDirPath;
 
+class MyFilter extends LogFilter {
+  @override
+  bool shouldLog(LogEvent event) {
+    return true;
+  }
+}
+
 class _LogOutputIns extends LogOutput {
   final eventsCache = <OutputEvent>[];
 
@@ -48,6 +55,7 @@ class _LogOutputIns extends LogOutput {
 
   @override
   void output(OutputEvent event) {
+    // print('${event.level}: ${event.lines.join('\n')}');
     final isNotEmpty = eventsCache.isNotEmpty;
     eventsCache.add(event);
     if (isNotEmpty) return;
@@ -64,11 +72,14 @@ final logger = Logger(
   ),
   // output: kDebugMode ? null : _LogOutputIns(),
   output: _LogOutputIns(),
+  level: Level.all,
+  filter: MyFilter(),
 );
 
 // const _title = 'Auto report';
 
 void main() async {
+  Logger.level = Level.all;
   WidgetsFlutterBinding.ensureInitialized();
   await initLocalStorage();
   WakelockPlus.enable();
