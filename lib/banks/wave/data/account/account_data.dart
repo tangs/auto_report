@@ -16,6 +16,7 @@ import 'package:auto_report/rsa/rsa_helper.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:http/http.dart' as http;
+import 'package:tuple/tuple.dart';
 
 enum RequestType { updateOrder, updateBalance, sendCash }
 
@@ -153,7 +154,7 @@ class AccountData {
     return 'phone number: $phoneNumber, pin: $pin, auth code: $authCode, wmt mfs: $wmtMfs';
   }
 
-  Future<bool> getOrders(
+  Future<Tuple2<bool, bool>> getOrders(
       List<HistoriesResponseResponseMapTnxHistoryList> waitReportList,
       int offset,
       ValueChanged<LogItem> onLogged) async {
@@ -183,7 +184,7 @@ class AccountData {
       if (response is! http.Response) {
         EasyLoading.showError('get order timeout');
         logger.i('get order timeout');
-        return false;
+        return const Tuple2(false, false);
       }
 
       wmtMfs = response.headers[Config.wmtMfsKey] ?? wmtMfs;
@@ -205,7 +206,7 @@ class AccountData {
                 'get order err.status code: ${response.statusCode}, body: ${response.body}',
           ),
         );
-        return false;
+        return const Tuple2(false, false);
       }
       final lastTime = _lasttransDate ?? DateTime.fromMicrosecondsSinceEpoch(0);
       final histories = HistoriesResponse.fromJson(jsonDecode(response.body));
@@ -220,16 +221,17 @@ class AccountData {
           }).toList() ??
           []
         ..sort((a, b) => a.compareTo(b));
-      if (cells.isEmpty) return false;
+      if (cells.isEmpty) return const Tuple2(true, false);
 
       waitReportList.addAll(cells);
       // 第一次只需要获取最新的订单
-      if (_lasttransDate == null) return false;
+      if (_lasttransDate == null) return const Tuple2(true, false);
       // 没有多余订单了
-      if ((tnxHistoryList?.length ?? 0) < 20) return false;
-      return !tnxHistoryList!
+      if ((tnxHistoryList?.length ?? 0) < 20) return const Tuple2(true, false);
+      final ret = !tnxHistoryList!
           .where((cell) => cell?.isReceve() ?? false)
           .any((cell) => !cell!.toDateTime().isAfter(lastTime));
+      return Tuple2(true, ret);
       // return cells.last!.toDateTime().isAfter(lastTime);
     } catch (e, stackTrace) {
       logger.e('err: ${e.toString()}', stackTrace: stackTrace);
@@ -241,8 +243,8 @@ class AccountData {
           content: 'get order err.err: $e, stackTrace: $stackTrace',
         ),
       );
+      return const Tuple2(false, false);
     }
-    return false;
   }
 
   update(VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
@@ -308,54 +310,60 @@ class AccountData {
     // _waitReportList.clear();
 
     var offset = 0;
-    while (
-        !isWmtMfsInvalid && await getOrders(waitReportList, offset, onLogged)) {
+    var hasErr = false;
+    while (!isWmtMfsInvalid) {
+      final ret = await getOrders(waitReportList, offset, onLogged);
+      hasErr = ret.item1;
+      if (!ret.item2) break;
       offset += 15;
       await Future.delayed(const Duration(milliseconds: 300));
     }
-    waitReportList.sort((a, b) => a.compareTo(b));
-    final isFirst = _lasttransDate == null;
-    if (isFirst) {
-      if (waitReportList.isEmpty) {
-        _lasttransDate = DateTime.fromMicrosecondsSinceEpoch(0);
-        _lastTransId = '-1';
+
+    if (!hasErr) {
+      waitReportList.sort((a, b) => a.compareTo(b));
+      final isFirst = _lasttransDate == null;
+      if (isFirst) {
+        if (waitReportList.isEmpty) {
+          _lasttransDate = DateTime.fromMicrosecondsSinceEpoch(0);
+          _lastTransId = '-1';
+        } else {
+          final cell = waitReportList.last;
+          _lastTransId = cell.transId;
+          _lasttransDate = cell.toDateTime();
+        }
+        logger.i('report: init last date time: $_lasttransDate, $_lastTransId');
+        onLogged(LogItem(
+          type: LogItemType.info,
+          platformName: platformName,
+          platformKey: platformKey,
+          phone: phoneNumber,
+          time: DateTime.now(),
+          content:
+              'get last order info. time : $_lasttransDate, id: $_lastTransId',
+        ));
       } else {
-        final cell = waitReportList.last;
-        _lastTransId = cell.transId;
-        _lasttransDate = cell.toDateTime();
-      }
-      logger.i('report: init last date time: $_lasttransDate, $_lastTransId');
-      onLogged(LogItem(
-        type: LogItemType.info,
-        platformName: platformName,
-        platformKey: platformKey,
-        phone: phoneNumber,
-        time: DateTime.now(),
-        content:
-            'get last order info. time : $_lasttransDate, id: $_lastTransId',
-      ));
-    } else {
-      final ids = <String>{};
-      final needReportList = waitReportList.where((cell) {
-        if (cell.transId == null) return false;
-        if (ids.contains(cell.transId)) return false;
-        ids.add(cell.transId!);
-        return true;
-      }).map((cell) {
-        logger.i(
-            'report: phone: $phoneNumber id: ${cell.transId}, amount: ${cell.amount}, time: ${cell.transDate}');
-        return cell;
-      }).toList();
-      logger.i('report: cnt: ${needReportList.length}, phone: $phoneNumber');
+        final ids = <String>{};
+        final needReportList = waitReportList.where((cell) {
+          if (cell.transId == null) return false;
+          if (ids.contains(cell.transId)) return false;
+          ids.add(cell.transId!);
+          return true;
+        }).map((cell) {
+          logger.i(
+              'report: phone: $phoneNumber id: ${cell.transId}, amount: ${cell.amount}, time: ${cell.transDate}');
+          return cell;
+        }).toList();
+        logger.i('report: cnt: ${needReportList.length}, phone: $phoneNumber');
 
-      if (needReportList.isNotEmpty) {
-        final lastCell = needReportList.last;
-        _lastTransId = lastCell.transId!;
-        _lasttransDate = lastCell.toDateTime();
+        if (needReportList.isNotEmpty) {
+          final lastCell = needReportList.last;
+          _lastTransId = lastCell.transId!;
+          _lasttransDate = lastCell.toDateTime();
 
-        reports(needReportList, dataUpdated, onLogged);
-        if (DataManager().autoUpdateBalance) {
-          updateBalance(dataUpdated, onLogged);
+          reports(needReportList, dataUpdated, onLogged);
+          if (DataManager().autoUpdateBalance) {
+            updateBalance(dataUpdated, onLogged);
+          }
         }
       }
     }
