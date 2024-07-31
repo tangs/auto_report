@@ -119,7 +119,10 @@ class MyApp extends StatelessWidget {
         '/wave/home': (context) {
           final data = ModalRoute.of(context)?.settings.arguments
               as List<GetPlatformsResponseData?>?;
-          return wave_home.HomePage(title: title, platforms: data);
+          return wave_home.HomePage(
+            title: GlobalConfig.bankType == BankType.kbz ? 'KBZ' : 'Wave',
+            platforms: data,
+          );
         },
         '/kbz/auth': (context) {
           final data = ModalRoute.of(context)?.settings.arguments
@@ -136,7 +139,10 @@ class MyApp extends StatelessWidget {
         '/kbz/home': (context) {
           final data = ModalRoute.of(context)?.settings.arguments
               as List<GetPlatformsResponseData?>?;
-          return kbz_home.HomePage(title: title, platforms: data);
+          return kbz_home.HomePage(
+            title: GlobalConfig.bankType == BankType.kbz ? 'KBZ' : 'Wave',
+            platforms: data,
+          );
         },
       },
       // theme: ThemeData.light(),
