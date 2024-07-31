@@ -88,7 +88,7 @@ class _AccountsPageState extends State<AccountsPage> {
             const Icon(Icons.phone_android_sharp),
             Text(data.phoneNumber),
             const Spacer(),
-            Text('Balance: ${data.balance?.toString() ?? 'never updated'}'),
+            Text('Balance: ${data.balance?.toString() ?? '??'}'),
             const Padding(padding: EdgeInsets.only(left: 10)),
             OutlinedButton(
               onPressed: (isUpdatingBalance || invalid)

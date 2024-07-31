@@ -267,7 +267,7 @@ class _AuthPageState extends State<AuthPage> {
       return false;
     }
     if (_pin?.isEmpty ?? true) {
-      EasyLoading.showToast('password is empty.');
+      EasyLoading.showToast('pin is empty.');
       return false;
     }
     if (checkOtp && (_otpCode?.isEmpty ?? true)) {
