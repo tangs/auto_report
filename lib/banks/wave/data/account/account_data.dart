@@ -154,6 +154,7 @@ class AccountData {
     return 'phone number: $phoneNumber, pin: $pin, auth code: $authCode, wmt mfs: $wmtMfs';
   }
 
+  /// return [isSuccess, hasUnreadOrder]
   Future<Tuple2<bool, bool>> getOrders(
       List<HistoriesResponseResponseMapTnxHistoryList> waitReportList,
       int offset,
@@ -310,16 +311,16 @@ class AccountData {
     // _waitReportList.clear();
 
     var offset = 0;
-    var hasErr = false;
+    var isSuccess = false;
     while (!isWmtMfsInvalid) {
       final ret = await getOrders(waitReportList, offset, onLogged);
-      hasErr = ret.item1;
+      isSuccess = ret.item1;
       if (!ret.item2) break;
       offset += 15;
       await Future.delayed(const Duration(milliseconds: 300));
     }
 
-    if (!hasErr) {
+    if (isSuccess) {
       waitReportList.sort((a, b) => a.compareTo(b));
       final isFirst = _lasttransDate == null;
       if (isFirst) {
