@@ -70,8 +70,8 @@ final logger = Logger(
     printEmojis: true,
     colors: kDebugMode,
   ),
-  // output: kDebugMode ? null : _LogOutputIns(),
-  output: _LogOutputIns(),
+  output: (kDebugMode && Platform.isMacOS) ? null : _LogOutputIns(),
+  // output: _LogOutputIns(),
   level: Level.all,
   filter: MyFilter(),
 );
