@@ -68,7 +68,7 @@ final logger = Logger(
   printer: PrettyPrinter(
     printTime: true,
     printEmojis: true,
-    colors: kDebugMode,
+    colors: true,
   ),
   output: (kDebugMode && Platform.isMacOS) ? null : _LogOutputIns(),
   // output: _LogOutputIns(),
