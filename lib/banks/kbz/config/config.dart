@@ -102,10 +102,10 @@ w8UsJovG2xCw3FHr3Qzl1XRMb19BwYflGgikMbIfAsWhRHC1Gg==''';
   static const deviceVersion = '30';
 
   // static const deviceid = 'fd701ebde3dcc9342ab647f5b5800f76ba3a7b5d';
-  static const device = '';
-  static const product = 'redfin';
-  static const cpuabi = 'arm64-v8a,armeabi-v7a,armeabi';
-  static const manufacturer = 'Google';
+  // static const device = '';
+  // static const product = 'redfin';
+  // static const cpuabi = 'arm64-v8a,armeabi-v7a,armeabi';
+  // static const manufacturer = 'Google';
   // static const model = 'Pixel 5';
   // static const osversion = '11';
 

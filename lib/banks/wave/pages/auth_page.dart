@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
 
 import 'package:auto_report/banks/wave/config/config.dart';
@@ -13,6 +14,7 @@ import 'package:auto_report/widges/platform_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:http/http.dart' as http;
+import 'package:device_info_plus/device_info_plus.dart';
 
 class AuthPage extends StatefulWidget {
   final List<GetPlatformsResponseData?>? platforms;
@@ -78,7 +80,11 @@ class _AuthPageState extends State<AuthPage> {
       }
       _token = sb.toString();
     }
+    init();
+    EasyLoading.show();
+  }
 
+  void init() async {
     // generate device id
     var deviceId = '';
     final ran = Random.secure();
@@ -91,7 +97,14 @@ class _AuthPageState extends State<AuthPage> {
     _osVersion = _osVersions[ran.nextInt(_osVersions.length)];
     _deviceId = deviceId;
 
+    if (Platform.isAndroid) {
+      final deviceInfoPlugin = await DeviceInfoPlugin().androidInfo;
+      _model = deviceInfoPlugin.model;
+      _osVersion = deviceInfoPlugin.version.release;
+    }
+
     logger.i('device id: $_deviceId, model: $_model, os version: $_osVersion');
+    EasyLoading.dismiss();
   }
 
   void _requestOtp() async {

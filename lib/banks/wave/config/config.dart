@@ -1,3 +1,8 @@
+import 'dart:io';
+
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
+
 class Config {
   static const wmtMfsKey = 'wmt-mfs';
 
@@ -89,14 +94,25 @@ w8UsJovG2xCw3FHr3Qzl1XRMb19BwYflGgikMbIfAsWhRHC1Gg==''';
 
   // static const deviceid = 'fd701ebde3dcc9342ab647f5b5800f76ba3a7b5d';
   static const device = '';
-  static const product = 'redfin';
-  static const cpuabi = 'arm64-v8a,armeabi-v7a,armeabi';
-  static const manufacturer = 'Google';
+  static var product = 'redfin';
+  static var cpuabi = 'arm64-v8a,armeabi-v7a,armeabi';
+  static var manufacturer = 'Google';
   // static const model = 'Pixel 5';
   // static const osversion = '11';
 
   static const httpRequestTimeoutSeconds = 20;
   static const logCountMax = 1024;
+
+  static init() async {
+    if (!Platform.isAndroid) return;
+
+    EasyLoading.show();
+    final deviceInfoPlugin = await DeviceInfoPlugin().androidInfo;
+    Config.product = deviceInfoPlugin.product;
+    Config.cpuabi = deviceInfoPlugin.supportedAbis.join(',');
+    Config.manufacturer = deviceInfoPlugin.manufacturer;
+    EasyLoading.dismiss();
+  }
 
   static Map<String, String> getHeaders(
       {required String deviceid,
