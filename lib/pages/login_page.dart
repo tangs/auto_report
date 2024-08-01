@@ -76,9 +76,9 @@ class _LoginPageState extends State<LoginPage> {
         return;
       }
 
-      for (var cell in resData.data!) {
-        logger.i('cell: ${cell!.key}, ${cell.name}, ${cell.url}, ${cell.mark}');
-      }
+      // for (var cell in resData.data!) {
+      //   logger.i('cell: ${cell!.key}, ${cell.name}, ${cell.url}, ${cell.mark}');
+      // }
 
       if (!mounted) return;
 
