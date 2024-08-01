@@ -100,7 +100,7 @@ w8UsJovG2xCw3FHr3Qzl1XRMb19BwYflGgikMbIfAsWhRHC1Gg==''';
   // static const model = 'Pixel 5';
   // static const osversion = '11';
 
-  static const httpRequestTimeoutSeconds = 20;
+  static const httpRequestTimeoutSeconds = 60;
   static const logCountMax = 1024;
 
   static init() async {
