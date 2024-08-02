@@ -92,7 +92,7 @@ class Sender {
       });
 
     logger.i('request headers: $headers');
-    logger.i('request body: $sortedBody');
+    // logger.i('request body: $sortedBody');
     logger.i('request body content: $bodyContent');
 
     return await Future.any([
