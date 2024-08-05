@@ -386,6 +386,10 @@ class AccountData {
     String amount,
     ValueChanged<LogItem> onLogged,
   ) async {
+    if ((await sender.checkAccount(phoneNumber, receiverAccount)).item2 ==
+        false) {
+      return false;
+    }
     return await sender.transferMsg(
       pin,
       phoneNumber,

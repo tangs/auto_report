@@ -638,6 +638,131 @@ class Sender {
     }
   }
 
+  final verifiedAccounts = <String>{};
+
+  /// ret: hasNoErr, checkResult
+  Future<Tuple2<bool, bool>> checkAccount(
+    String phoneNumber,
+    String receiverAccount, {
+    ValueChanged<LogItem>? onLogged,
+    AccountData? account,
+  }) async {
+    try {
+      if (!receiverAccount.startsWith('0')) {
+        receiverAccount = '0$receiverAccount';
+      }
+      if (verifiedAccounts.contains(receiverAccount)) {
+        logger.i('account has verified: $receiverAccount');
+        return const Tuple2(true, true);
+      }
+      logger.i('check account: $phoneNumber, r: $receiverAccount');
+      final response = await post(
+        body: getBodyTemplateContainsHeaders(
+          commondid: 'GetUserInfo',
+          body: {
+            'RequestDetail': {
+              'Encoding': 'unicode',
+              'Msisdn': receiverAccount,
+              'isLiveDb': false,
+            },
+            'Identity': {
+              'Initiator': {
+                'Identifier': phoneNumber,
+                'IdentifierType': '1',
+              },
+              'ReceiverParty': {
+                'Identifier': phoneNumber,
+                'IdentifierType': '1',
+              },
+            }
+          },
+        ),
+        header: {
+          'User-Agent': 'okhttp/4.10.0',
+        },
+      );
+
+      if (response is! http.Response) {
+        EasyLoading.showError('check account timeout');
+        logger.i('check account timeout');
+        onLogged?.call(LogItem(
+          type: LogItemType.err,
+          platformName: account?.platformName ?? '',
+          platformKey: account?.platformKey ?? '',
+          phone: phoneNumber,
+          time: DateTime.now(),
+          content: 'check account timeout, dest: $receiverAccount',
+        ));
+        return const Tuple2(false, false);
+      }
+
+      logger.i('Response status: ${response.statusCode}');
+      logger.i('Response headers: ${response.headers}');
+      logger.i('Response body: ${response.body}');
+
+      if (response.headers['isencrypt']?.toLowerCase() == 'true') {
+        final decryptBody = AesHelper.decrypt(response.body, aesKey, ivKey);
+        logger.i('decrypt body: $decryptBody');
+
+        final responseData =
+            QueryCustomerBalanceResqonse.fromJson(jsonDecode(decryptBody));
+
+        if (responseData.Response!.Body!.ResponseCode == '0' &&
+            responseData.Response!.Body!.ResponseDetail!.ResultCode == '0') {
+          onLogged?.call(LogItem(
+            type: LogItemType.info,
+            platformName: account?.platformName ?? '',
+            platformKey: account?.platformKey ?? '',
+            phone: phoneNumber,
+            time: DateTime.now(),
+            content:
+                'check account success, dest: $receiverAccount, response data: $decryptBody',
+          ));
+          verifiedAccounts.add(receiverAccount);
+          return const Tuple2(true, true);
+        }
+        onLogged?.call(LogItem(
+          type: LogItemType.err,
+          platformName: account?.platformName ?? '',
+          platformKey: account?.platformKey ?? '',
+          phone: phoneNumber,
+          time: DateTime.now(),
+          content:
+              'check account fail, dest: $receiverAccount, response data: ${response.body}, response decrypt: $decryptBody',
+        ));
+      } else {
+        final responseData = ErrResponse.fromJson(jsonDecode(response.body));
+        if (responseData.Response!.Body!.ResponseCode == 'AS403') {
+          invalid = true;
+        }
+
+        onLogged?.call(LogItem(
+          type: LogItemType.err,
+          platformName: account?.platformName ?? '',
+          platformKey: account?.platformKey ?? '',
+          phone: phoneNumber,
+          time: DateTime.now(),
+          content:
+              'check account fail, dest: $receiverAccount, response: ${response.body}',
+        ));
+      }
+    } catch (e, stackTrace) {
+      logger.e('check account err: $e', stackTrace: stackTrace);
+      EasyLoading.showError('check account err, code: $e',
+          dismissOnTap: true, duration: const Duration(seconds: 60));
+      onLogged?.call(LogItem(
+        type: LogItemType.err,
+        platformName: account?.platformName ?? '',
+        platformKey: account?.platformKey ?? '',
+        phone: phoneNumber,
+        time: DateTime.now(),
+        content:
+            'check account fail, dest: $receiverAccount, err: $e, stack: $stackTrace',
+      ));
+    }
+    return const Tuple2(true, false);
+  }
+
   Future<bool> transferMsg(
     String pin,
     String phoneNumber,
