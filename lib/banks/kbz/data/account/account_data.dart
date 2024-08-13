@@ -5,6 +5,7 @@ import 'dart:math';
 import 'package:auto_report/banks/kbz/config/config.dart';
 import 'package:auto_report/banks/kbz/data/log/log_item.dart';
 import 'package:auto_report/banks/kbz/data/proto/response/cash/get_cash_list_response.dart';
+import 'package:auto_report/banks/kbz/data/proto/response/cash/get_recharge_transfer_list.dart';
 import 'package:auto_report/banks/kbz/data/proto/response/new_trans_record_list_resqonse.dart';
 import 'package:auto_report/banks/kbz/network/sender.dart';
 import 'package:auto_report/main.dart';
@@ -222,19 +223,33 @@ class AccountData {
       if (!isUpdatingOrders &&
           DateTime.now().difference(lastUpdateTime).inSeconds >=
               DataManager().orderRefreshTime) {
-        updateOrder(dataUpdated, onLogged);
+        await updateOrder(dataUpdated, onLogged);
       }
     }
 
-    if (!disableCash) {
-      if (!isGettingCashList &&
-          DateTime.now().difference(lastGetCashListTime).inSeconds >=
-              DataManager().gettingCashListRefreshTime) {
+    if (!isGettingCashList &&
+        DateTime.now().difference(lastGetCashListTime).inSeconds >=
+            DataManager().gettingCashListRefreshTime) {
+      isGettingCashList = true;
+      if (!disableCash) {
         final cashList = await getCashList(dataUpdated);
-        if (cashList?.isNotEmpty ?? false) {
-          sendingMoneys(cashList!, dataUpdated, onLogged);
+        if (cashList.isNotEmpty) {
+          await sendingMoneys(cashList, dataUpdated, onLogged);
         }
       }
+
+      var needUpdateBalance = false;
+      final transferList = await getRechargeTransferList(dataUpdated);
+      if (transferList.isNotEmpty) {
+        await transferMoneys(transferList, dataUpdated, onLogged);
+        needUpdateBalance = true;
+      }
+
+      isGettingCashList = false;
+      if (needUpdateBalance) {
+        await updateBalance(dataUpdated, onLogged);
+      }
+      lastGetCashListTime = DateTime.now();
     }
 
     if (!isUpdatingBalance &&
@@ -381,6 +396,48 @@ class AccountData {
     dataUpdated?.call();
   }
 
+  reportTransferSuccess(
+    GetRechargeTransferListData cell,
+    bool isSuccess,
+    VoidCallback? dataUpdated,
+    ValueChanged<LogItem> onLogged,
+  ) async {
+    final host = platformUrl.replaceAll('http://', '');
+    const path = 'api/pay/callback_recharge_transfer';
+    final url = Uri.http(host, path);
+    final response = await Future.any([
+      http.post(url, body: {
+        'id': '${cell.id}',
+        'log': '',
+        'type': '${isSuccess ? 2 : 3}',
+      }),
+      Future.delayed(const Duration(seconds: Config.httpRequestTimeoutSeconds)),
+    ]);
+
+    final isFail = response is! http.Response;
+
+    if (isFail) {
+      EasyLoading.showError('transfer timeout');
+      logger.i('transfer timeout');
+      cashFailCnt++;
+      dataUpdated?.call();
+      return null;
+    }
+
+    onLogged(LogItem(
+      type: LogItemType.transfer,
+      platformName: platformName,
+      platformKey: platformKey,
+      phone: phoneNumber,
+      time: DateTime.now(),
+      content: 'dest phone number: ${cell.inCardNum}, amount: ${cell.money}'
+          ', report ret: ${!isFail}',
+    ));
+    logger.i('transfer success, id: ${cell.id}, responce: ${response.body}');
+    cashSuccessCnt++;
+    dataUpdated?.call();
+  }
+
   sendingMoney(
     String receiverAccount,
     String amount,
@@ -404,8 +461,85 @@ class AccountData {
 
   final withdrawalsIds = <String>{};
   final withdrawalsIdSeq = <String>[];
+  final transferIds = <int>{};
+  final transferIdSeq = <int>[];
+
   static const withdrawalsIdsMaxLen = 1024;
   final _rand = Random();
+
+  transferMoneys(List<GetRechargeTransferListData> transferList,
+      VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
+    while (isSendingCash) {
+      await Future.delayed(const Duration(milliseconds: 50));
+    }
+
+    logger.i('start transfer. phone: $phoneNumber');
+    isSendingCash = true;
+    dataUpdated?.call();
+
+    // 等待其他消息结束
+    while (checkNeedWaiting(RequestType.sendCash)) {
+      await Future.delayed(const Duration(milliseconds: 50));
+    }
+
+    try {
+      for (final cell in transferList) {
+        if (isWmtMfsInvalid) return;
+        if (cell.id == null) continue;
+        final id = cell.id!;
+        if (transferIds.contains(id)) continue;
+
+        logger.i('transfer. phone: ${cell.inCardNum}, money: ${cell.money}');
+        final ret = await sendingMoney(cell.inCardNum!, cell.money!, onLogged);
+
+        if (ret) {
+          onLogged(
+            _getLogItem(
+              type: LogItemType.transfer,
+              content: 'account: ${cell.inCardNum}, money: ${cell.money}',
+            ),
+          );
+        } else {
+          onLogged(
+            _getLogItem(
+              type: LogItemType.err,
+              content: 'transfer money err.account: ${cell.inCardNum}'
+                  ', money: ${cell.money}',
+            ),
+          );
+          return;
+        }
+
+        transferIds.add(id);
+        transferIdSeq.add(id);
+        if (transferIdSeq.isNotEmpty &&
+            transferIdSeq.length > withdrawalsIdsMaxLen) {
+          final firstId = transferIds.first;
+          transferIds.remove(firstId);
+          transferIdSeq.removeAt(0);
+        }
+
+        reportTransferSuccess(cell, ret, dataUpdated, onLogged);
+        await Future.delayed(
+            Duration(milliseconds: 2000 + _rand.nextInt(1500)));
+      }
+
+      if (DataManager().autoUpdateBalance) {
+        updateBalance(dataUpdated, onLogged);
+      }
+    } catch (e, stackTrace) {
+      logger.e('e: $e', stackTrace: stackTrace);
+      onLogged(
+        _getLogItem(
+          type: LogItemType.err,
+          content: 'transfer money err.err: $e, stackTrace: $stackTrace',
+        ),
+      );
+    } finally {
+      isSendingCash = false;
+      dataUpdated?.call();
+    }
+  }
 
   sendingMoneys(List<GetCashListResponseDataList> cashList,
       VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
@@ -454,10 +588,6 @@ class AccountData {
           return;
         }
 
-        reportSendMoneySuccess(cell, ret, dataUpdated, onLogged);
-        await Future.delayed(
-            Duration(milliseconds: 2000 + _rand.nextInt(1500)));
-
         withdrawalsIds.add(withdrawalsId);
         withdrawalsIdSeq.add(withdrawalsId);
         if (withdrawalsIdSeq.isNotEmpty &&
@@ -466,6 +596,10 @@ class AccountData {
           withdrawalsIds.remove(firstId);
           withdrawalsIdSeq.removeAt(0);
         }
+
+        reportSendMoneySuccess(cell, ret, dataUpdated, onLogged);
+        await Future.delayed(
+            Duration(milliseconds: 2000 + _rand.nextInt(1500)));
       }
 
       if (DataManager().autoUpdateBalance) {
@@ -485,11 +619,11 @@ class AccountData {
     }
   }
 
-  int _payId = 0;
+  // int _payId = 0;
 
   /// ret: isSuccess, needRepeat, errMsg
   Future<Tuple3<bool, bool, String?>> report(VoidCallback? dataUpdated,
-      NewTransRecordListResqonseTransRecordList data, int payId) async {
+      NewTransRecordListResqonseTransRecordList data, String payId) async {
     if (isWmtMfsInvalid) return const Tuple3(false, false, 'token invalid');
     try {
       final host = platformUrl.replaceAll('http://', '');
@@ -503,7 +637,7 @@ class AccountData {
           'phone': phoneNumber,
           'terminal': remark,
           'platform': 'KBZ',
-          'pay_id': '$payId',
+          'pay_id': payId,
           'type': '9008',
           'pay_order_num': data.orderId,
           'order_type': 'p2p',
@@ -561,7 +695,8 @@ class AccountData {
       String? errMsg;
       // 重试3次
       for (var i = 0; i < 3; ++i) {
-        final ret = await report(dataUpdated, cell, _payId++);
+        // final ret = await report(dataUpdated, cell, _payId++);
+        final ret = await report(dataUpdated, cell, cell.orderId!);
         final isSuccess = ret.item1;
         final needRepeat = ret.item2;
         errMsg = ret.item3;
@@ -641,14 +776,12 @@ class AccountData {
     lastUpdateBalanceTime = DateTime.now();
   }
 
-  Future<List<GetCashListResponseDataList>?> getCashList(
+  Future<List<GetCashListResponseDataList>> getCashList(
       VoidCallback? dataUpdated) async {
     try {
       final host = platformUrl.replaceAll('http://', '');
       const path = 'api/pay/get_cash_list';
       final url = Uri.http(host, path);
-      // logger.i('url: ${url.toString()}');
-      // logger.i('host: $host, path: $path');
       final response = await Future.any([
         http.post(url, body: {
           'pay_account': phoneNumber,
@@ -659,13 +792,11 @@ class AccountData {
       ]);
 
       if (response is! http.Response) {
-        // EasyLoading.showError('et cash list timeout');
         logger.i('get cash list timeout, phone: $phoneNumber');
-        return null;
+        return [];
       }
 
       final body = response.body;
-      // logger.i('cash res body: $body');
 
       final jsonData = jsonDecode(body);
       if (jsonData['success'] == false) {
@@ -675,7 +806,7 @@ class AccountData {
       final res = GetCashListResponse.fromJson(jsonData);
       if (res.error?.isNotEmpty ?? false) {
         EasyLoading.showError('get cash list fail. err: ${res.error}');
-        return null;
+        return [];
       }
 
       final waitCashList = (res.data?.list ?? [])
@@ -690,9 +821,54 @@ class AccountData {
       return waitCashList;
     } catch (e, stackTrace) {
       logger.e('e: $e', stackTrace: stackTrace);
-    } finally {
-      lastGetCashListTime = DateTime.now();
     }
-    return null;
+    return [];
+  }
+
+  Future<List<GetRechargeTransferListData>> getRechargeTransferList(
+      VoidCallback? dataUpdated) async {
+    try {
+      final host = platformUrl.replaceAll('http://', '');
+      const path = 'api/pay/get_recharge_transfer_list';
+      final url = Uri.http(host, path);
+      final response = await Future.any([
+        http.post(url, body: {
+          'pay_account': phoneNumber,
+          'bank_name': 'KBZPay',
+        }),
+        Future.delayed(
+            const Duration(seconds: Config.httpRequestTimeoutSeconds)),
+      ]);
+
+      if (response is! http.Response) {
+        logger.i('get cash list timeout, phone: $phoneNumber');
+        return [];
+      }
+
+      final body = response.body;
+
+      final jsonData = jsonDecode(body);
+      if (jsonData['success'] == false) {
+        // 当前没有需要转账的数据
+        return [];
+      }
+      final res = GetRechargeTransferList.fromJson(jsonData);
+      if (res.success != true) {
+        return [];
+      }
+      if (res.error?.isNotEmpty ?? false) {
+        EasyLoading.showError('get cash list fail. err: ${res.error}');
+        return [];
+      }
+
+      if (res.data == null) {
+        return [];
+      }
+
+      return [res.data!];
+    } catch (e, stackTrace) {
+      logger.e('e: $e', stackTrace: stackTrace);
+    }
+    return [];
   }
 }

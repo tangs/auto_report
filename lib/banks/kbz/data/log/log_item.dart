@@ -3,6 +3,8 @@ import 'dart:collection';
 enum LogItemType {
   receive,
   send,
+  // 内部转账
+  transfer,
   err,
   newAccount,
   deleteAccount,
@@ -38,6 +40,8 @@ final class LogItem extends LinkedListEntry<LogItem> {
         return 'receive money';
       case LogItemType.send:
         return 'send money';
+      case LogItemType.transfer:
+        return 'transfer money';
       case LogItemType.err:
         return 'err';
       case LogItemType.newAccount:
