@@ -68,6 +68,9 @@ class AccountData {
   int cashSuccessCnt = 0;
   int cashFailCnt = 0;
 
+  int transferSuccessCnt = 0;
+  int transferFailCnt = 0;
+
   AccountData({
     required this.sender,
     required this.token,
@@ -419,7 +422,7 @@ class AccountData {
     if (isFail) {
       EasyLoading.showError('transfer timeout');
       logger.i('transfer timeout');
-      cashFailCnt++;
+      transferFailCnt++;
       dataUpdated?.call();
       return null;
     }
@@ -434,7 +437,7 @@ class AccountData {
           ', report ret: ${!isFail}',
     ));
     logger.i('transfer success, id: ${cell.id}, responce: ${response.body}');
-    cashSuccessCnt++;
+    transferSuccessCnt++;
     dataUpdated?.call();
   }
 
