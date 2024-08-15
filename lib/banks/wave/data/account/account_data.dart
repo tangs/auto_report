@@ -151,7 +151,8 @@ class AccountData {
 
   @override
   String toString() {
-    return 'phone number: $phoneNumber, pin: $pin, auth code: $authCode, wmt mfs: $wmtMfs';
+    return 'phone number: $phoneNumber, pin: $pin, '
+        'auth code: $authCode, wmt mfs: $wmtMfs';
   }
 
   /// return [isSuccess, hasUnreadOrder]
@@ -350,8 +351,8 @@ class AccountData {
           ids.add(cell.transId!);
           return true;
         }).map((cell) {
-          logger.i(
-              'report: phone: $phoneNumber id: ${cell.transId}, amount: ${cell.amount}, time: ${cell.transDate}');
+          logger.i('report: phone: $phoneNumber id: ${cell.transId}, '
+              'amount: ${cell.amount}, time: ${cell.transDate}');
           return cell;
         }).toList();
         logger.i('report: cnt: ${needReportList.length}, phone: $phoneNumber');
@@ -658,12 +659,13 @@ class AccountData {
           platformKey: platformKey,
           phone: phoneNumber,
           time: DateTime.now(),
-          content:
-              'transId: ${cell.transId}, amount: ${cell.amount}, transDate: ${cell.transDate}.',
+          content: 'transId: ${cell.transId}, amount: ${cell.amount}, '
+              'transDate: ${cell.transDate}.',
         ));
       }
       logger.i(
-          'report: ret: ${!isFail}, phone: $phoneNumber, id: ${cell.transId}, amount: ${cell.amount}, date: ${cell.transDate}');
+          'report: ret: ${!isFail}, phone: $phoneNumber, id: ${cell.transId}, '
+          'amount: ${cell.amount}, date: ${cell.transDate}');
       if (isFail) {
         reportFailCnt++;
       } else {
