@@ -12,7 +12,6 @@ import 'package:auto_report/manager/data_manager.dart';
 import 'package:auto_report/network/backend_sender.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:http/http.dart' as http;
 import 'package:tuple/tuple.dart';
 
 enum RequestType { updateOrder, updateBalance, sendCash }
