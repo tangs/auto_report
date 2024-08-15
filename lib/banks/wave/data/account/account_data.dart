@@ -6,10 +6,10 @@ import 'package:auto_report/banks/wave/config/config.dart';
 import 'package:auto_report/banks/wave/data/account/histories_response.dart';
 import 'package:auto_report/banks/wave/data/log/log_item.dart';
 import 'package:auto_report/manager/data_manager.dart';
-import 'package:auto_report/banks/wave/data/proto/response/cash/get_cash_list_response.dart';
 import 'package:auto_report/banks/wave/data/proto/response/cash/send_money_response.dart';
 import 'package:auto_report/banks/wave/data/proto/response/generate_otp_response.dart';
-import 'package:auto_report/proto/report/response/general_response.dart';
+import 'package:auto_report/network/backend_sender.dart';
+import 'package:auto_report/network/proto/get_cash_list_response.dart';
 import 'package:auto_report/banks/wave/data/proto/response/wallet_balance_response.dart';
 import 'package:auto_report/main.dart';
 import 'package:auto_report/rsa/rsa_helper.dart';
@@ -203,8 +203,8 @@ class AccountData {
         onLogged(
           _getLogItem(
             type: LogItemType.err,
-            content:
-                'get order err.status code: ${response.statusCode}, body: ${response.body}',
+            content: 'get order err.status code: ${response.statusCode}, '
+                'body: ${response.body}',
           ),
         );
         return const Tuple2(false, false);
@@ -591,58 +591,27 @@ class AccountData {
     }
   }
 
-  int _payId = 0;
-  Future<bool> report(VoidCallback? dataUpdated,
-      HistoriesResponseResponseMapTnxHistoryList data, int payId) async {
-    if (isWmtMfsInvalid) return false;
-    try {
-      final host = platformUrl.replaceAll('http://', '');
-      const path = 'api/pay/payinfo_app';
-      final url = Uri.http(host, path);
-      logger.i('url: ${url.toString()}');
-      logger.i('host: $host, path: $path');
-      final response = await Future.any([
-        http.post(url, body: {
-          'token': token,
-          'phone': phoneNumber,
-          'terminal': data.msisdn,
-          'platform': 'WavePay',
-          'pay_id': '$payId',
-          'type': '9002',
-          'pay_order_num': data.transId,
-          'order_type': data.transType,
-          'pay_money': '${data.amount}',
-          'bank_time': data.transDate,
-        }),
-        Future.delayed(
-            const Duration(seconds: Config.httpRequestTimeoutSeconds)),
-      ]);
-
-      if (response is! http.Response) {
-        EasyLoading.showError('report order timeout');
-        logger.i(
-            'report order timeout, phone: $phoneNumber, id: ${data.transId}');
-        return false;
-      }
-
-      final body = response.body;
-      logger.i('res body: $body');
-
-      final res = ReportGeneralResponse.fromJson(jsonDecode(body));
-      if (res.status != 'T') {
-        if (res.message == 'not authorized') {
-          isAuthInvidWithReport = true;
-          dataUpdated?.call();
-        }
-        EasyLoading.showError(
-            'report order fail. code: ${res.status}, msg: ${res.message}');
-        return false;
-      }
-    } catch (e, stackTrace) {
-      logger.e('e: $e', stackTrace: stackTrace);
-      return false;
+  // int _payId = 0;
+  Future<Tuple3<bool, bool, String?>> report(VoidCallback? dataUpdated,
+      HistoriesResponseResponseMapTnxHistoryList data, String payId) async {
+    if (isWmtMfsInvalid) return const Tuple3(false, false, 'token invalid');
+    final ret = await BackendSender.report(
+      platformUrl: platformUrl,
+      phoneNumber: phoneNumber,
+      remark: remark,
+      token: token,
+      orderId: '${data.transId}',
+      payId: payId,
+      platform: 'WavePay',
+      type: '9002',
+      amount: '${data.amount}',
+      bankTime: '${data.transDate}',
+      httpRequestTimeoutSeconds: Config.httpRequestTimeoutSeconds,
+    );
+    if (ret.item4) {
+      isAuthInvidWithReport = true;
     }
-    return true;
+    return Tuple3(ret.item1, ret.item2, ret.item3);
   }
 
   reports(List<HistoriesResponseResponseMapTnxHistoryList> reportList,
@@ -655,15 +624,22 @@ class AccountData {
     }
 
     reporting = true;
+    String? errMsg;
     for (final cell in reportList) {
       var isFail = true;
       // 重试3次
       for (var i = 0; i < 3; ++i) {
-        if (await report(dataUpdated, cell, _payId++)) {
+        final ret = await report(dataUpdated, cell, cell.transId!);
+        final isSuccess = ret.item1;
+        final needRepeat = ret.item2;
+        errMsg = ret.item3;
+        if (isSuccess) {
           isFail = false;
+          await Future.delayed(const Duration(milliseconds: 10));
           break;
         }
         await Future.delayed(const Duration(milliseconds: 100));
+        if (!needRepeat) break;
       }
       onLogged(LogItem(
         type: LogItemType.receive,
@@ -671,8 +647,9 @@ class AccountData {
         platformKey: platformKey,
         phone: phoneNumber,
         time: DateTime.now(),
-        content:
-            'transId: ${cell.transId}, amount: ${cell.amount}, transDate: ${cell.transDate}, report ret: ${!isFail}',
+        content: 'transId: ${cell.transId}, amount: ${cell.amount}, '
+            'transDate: ${cell.transDate}, report ret: ${!isFail}'
+            'err msg: ${errMsg ?? ''}',
       ));
       if (isFail) {
         onLogged(LogItem(
@@ -780,56 +757,11 @@ class AccountData {
 
   Future<List<GetCashListResponseDataList>?> getCashList(
       VoidCallback? dataUpdated) async {
-    try {
-      final host = platformUrl.replaceAll('http://', '');
-      const path = 'api/pay/get_cash_list';
-      final url = Uri.http(host, path);
-      // logger.i('url: ${url.toString()}');
-      // logger.i('host: $host, path: $path');
-      final response = await Future.any([
-        http.post(url, body: {
-          'pay_account': phoneNumber,
-          'pay_name': 'WavePay',
-        }),
-        Future.delayed(
-            const Duration(seconds: Config.httpRequestTimeoutSeconds)),
-      ]);
-
-      if (response is! http.Response) {
-        // EasyLoading.showError('et cash list timeout');
-        logger.i('get cash list timeout, phone: $phoneNumber');
-        return null;
-      }
-
-      final body = response.body;
-      // logger.i('cash res body: $body');
-
-      final jsonData = jsonDecode(body);
-      if (jsonData['success'] == false) {
-        // 当前没有需要转账的数据
-        return [];
-      }
-      final res = GetCashListResponse.fromJson(jsonData);
-      if (res.error?.isNotEmpty ?? false) {
-        EasyLoading.showError('get cash list fail. err: ${res.error}');
-        return null;
-      }
-
-      final waitCashList = (res.data?.list ?? [])
-          .where((cell) => cell != null)
-          .cast<GetCashListResponseDataList>()
-          .toList();
-
-      if (waitCashList.isNotEmpty) {
-        logger.i('get cash list.len: ${waitCashList.length}');
-      }
-
-      return waitCashList;
-    } catch (e, stackTrace) {
-      logger.e('e: $e', stackTrace: stackTrace);
-    } finally {
-      lastGetCashListTime = DateTime.now();
-    }
-    return null;
+    return BackendSender.getCashList(
+      payName: 'WavePay',
+      platformUrl: platformUrl,
+      phoneNumber: phoneNumber,
+      httpRequestTimeoutSeconds: Config.httpRequestTimeoutSeconds,
+    );
   }
 }
