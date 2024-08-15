@@ -12,6 +12,7 @@ import 'package:auto_report/network/backend_sender.dart';
 import 'package:auto_report/network/proto/get_cash_list_response.dart';
 import 'package:auto_report/banks/wave/data/proto/response/wallet_balance_response.dart';
 import 'package:auto_report/main.dart';
+import 'package:auto_report/network/proto/get_recharge_transfer_list.dart';
 import 'package:auto_report/rsa/rsa_helper.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -427,39 +428,33 @@ class AccountData {
 
   reportSendMoneySuccess(GetCashListResponseDataList cell, bool isSuccess,
       VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
-    final host = platformUrl.replaceAll('http://', '');
-    const path = 'api/pay/callback_cash';
-    final url = Uri.http(host, path);
-    final response = await Future.any([
-      http.post(url, body: {
-        'withdrawals_id': cell.withdrawalsId,
-        'type': '${isSuccess ? 2 : 3}',
-      }),
-      Future.delayed(const Duration(seconds: Config.httpRequestTimeoutSeconds)),
-    ]);
-
-    final isFail = response is! http.Response;
-
-    if (isFail) {
-      EasyLoading.showError('report send money timeout');
-      logger.i('report send money timeout');
+    final ret = await BackendSender.reportSendMoneySuccess(
+      platformUrl: platformUrl,
+      platformName: platformName,
+      platformKey: platformKey,
+      phoneNumber: phoneNumber,
+      destNumber: cell.cashAccount!,
+      money: '${cell.money}',
+      withdrawalsId: cell.withdrawalsId!,
+      isSuccess: isSuccess,
+      httpRequestTimeoutSeconds: Config.httpRequestTimeoutSeconds,
+      dataUpdated: dataUpdated,
+      // onLogged: onLogged,
+    );
+    if (ret) {
+      cashSuccessCnt++;
+    } else {
       cashFailCnt++;
-      dataUpdated?.call();
-      return null;
     }
-
     onLogged(LogItem(
       type: LogItemType.send,
       platformName: platformName,
       platformKey: platformKey,
       phone: phoneNumber,
       time: DateTime.now(),
-      content:
-          'dest phone number: ${cell.cashAccount}, amount: ${cell.money}, report ret: ${!isFail}',
+      content: 'dest phone number: ${cell.cashAccount}, amount: ${cell.money}'
+          ', report ret: $ret',
     ));
-    logger.i('report send money success.');
-    cashSuccessCnt++;
-    dataUpdated?.call();
   }
 
   final _rand = Random();
@@ -593,6 +588,8 @@ class AccountData {
   }
 
   // int _payId = 0;
+
+  /// ret: isSuccess, needRepeat, errMsg
   Future<Tuple3<bool, bool, String?>> report(VoidCallback? dataUpdated,
       HistoriesResponseResponseMapTnxHistoryList data, String payId) async {
     if (isWmtMfsInvalid) return const Tuple3(false, false, 'token invalid');
@@ -760,6 +757,16 @@ class AccountData {
   Future<List<GetCashListResponseDataList>?> getCashList(
       VoidCallback? dataUpdated) async {
     return BackendSender.getCashList(
+      payName: 'WavePay',
+      platformUrl: platformUrl,
+      phoneNumber: phoneNumber,
+      httpRequestTimeoutSeconds: Config.httpRequestTimeoutSeconds,
+    );
+  }
+
+  Future<List<GetRechargeTransferListData>> getRechargeTransferList(
+      VoidCallback? dataUpdated) async {
+    return BackendSender.getRechargeTransferList(
       payName: 'WavePay',
       platformUrl: platformUrl,
       phoneNumber: phoneNumber,

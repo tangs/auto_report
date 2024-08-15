@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:auto_report/banks/kbz/data/log/log_item.dart';
 import 'package:auto_report/main.dart';
 import 'package:auto_report/network/proto/get_cash_list_response.dart';
 import 'package:auto_report/network/proto/get_recharge_transfer_list.dart';
@@ -194,18 +193,18 @@ class BackendSender {
     required String phoneNumber,
     required String destNumber,
     required String money,
-    required String id,
+    required String withdrawalsId,
     required bool isSuccess,
     required int httpRequestTimeoutSeconds,
     required VoidCallback? dataUpdated,
-    required ValueChanged<LogItem> onLogged,
+    // required ValueChanged<LogItem> onLogged,
   }) async {
     final host = platformUrl.replaceAll('http://', '');
     const path = 'api/pay/callback_cash';
     final url = Uri.http(host, path);
     final response = await Future.any([
       http.post(url, body: {
-        'withdrawals_id': id,
+        'withdrawals_id': withdrawalsId,
         'type': '${isSuccess ? 2 : 3}',
       }),
       Future.delayed(Duration(seconds: httpRequestTimeoutSeconds)),
@@ -221,15 +220,15 @@ class BackendSender {
       return false;
     }
 
-    onLogged(LogItem(
-      type: LogItemType.send,
-      platformName: platformName,
-      platformKey: platformKey,
-      phone: phoneNumber,
-      time: DateTime.now(),
-      content: 'dest phone number: $destNumber, amount: $money'
-          ', report ret: ${!isFail}',
-    ));
+    // onLogged(LogItem(
+    //   type: LogItemType.send,
+    //   platformName: platformName,
+    //   platformKey: platformKey,
+    //   phone: phoneNumber,
+    //   time: DateTime.now(),
+    //   content: 'dest phone number: $destNumber, amount: $money'
+    //       ', report ret: ${!isFail}',
+    // ));
     logger.i('report send money success.');
     // cashSuccessCnt++;
     dataUpdated?.call();
@@ -247,7 +246,7 @@ class BackendSender {
     required bool isSuccess,
     required int httpRequestTimeoutSeconds,
     required VoidCallback? dataUpdated,
-    required ValueChanged<LogItem> onLogged,
+    // required ValueChanged<LogItem> onLogged,
   }) async {
     final host = platformUrl.replaceAll('http://', '');
     const path = 'api/pay/callback_recharge_transfer';
@@ -271,15 +270,15 @@ class BackendSender {
       return false;
     }
 
-    onLogged(LogItem(
-      type: LogItemType.transfer,
-      platformName: platformName,
-      platformKey: platformKey,
-      phone: phoneNumber,
-      time: DateTime.now(),
-      content: 'dest phone number: $destNumber, amount: $money'
-          ', report ret: ${!isFail}',
-    ));
+    // onLogged(LogItem(
+    //   type: LogItemType.transfer,
+    //   platformName: platformName,
+    //   platformKey: platformKey,
+    //   phone: phoneNumber,
+    //   time: DateTime.now(),
+    //   content: 'dest phone number: $destNumber, amount: $money'
+    //       ', report ret: ${!isFail}',
+    // ));
     logger.i('transfer success, id: $id, responce: ${response.body}');
     // transferSuccessCnt++;
     dataUpdated?.call();

@@ -362,23 +362,33 @@ class AccountData {
     VoidCallback? dataUpdated,
     ValueChanged<LogItem> onLogged,
   ) async {
-    if (await BackendSender.reportTransferSuccess(
+    final ret = await BackendSender.reportSendMoneySuccess(
       platformUrl: platformUrl,
       platformName: platformName,
       platformKey: platformKey,
       phoneNumber: phoneNumber,
       destNumber: cell.cashAccount!,
       money: '${cell.money}',
-      id: id,
+      withdrawalsId: '${cell.withdrawalsId}',
       isSuccess: isSuccess,
       httpRequestTimeoutSeconds: Config.httpRequestTimeoutSeconds,
       dataUpdated: dataUpdated,
-      onLogged: onLogged,
-    )) {
+      // onLogged: onLogged,
+    );
+    if (ret) {
       cashSuccessCnt++;
     } else {
       cashFailCnt++;
     }
+    onLogged(LogItem(
+      type: LogItemType.send,
+      platformName: platformName,
+      platformKey: platformKey,
+      phone: phoneNumber,
+      time: DateTime.now(),
+      content: 'dest phone number: ${cell.cashAccount}, amount: ${cell.money}'
+          ', report ret: $ret',
+    ));
   }
 
   reportTransferSuccess(
@@ -387,23 +397,33 @@ class AccountData {
     VoidCallback? dataUpdated,
     ValueChanged<LogItem> onLogged,
   ) async {
-    if (await BackendSender.reportTransferSuccess(
+    final ret = await BackendSender.reportTransferSuccess(
       platformUrl: platformUrl,
       platformName: platformName,
       platformKey: platformKey,
       phoneNumber: phoneNumber,
       destNumber: cell.inCardNum!,
       money: cell.money!,
-      id: id,
+      id: '${cell.id}',
       isSuccess: isSuccess,
       httpRequestTimeoutSeconds: Config.httpRequestTimeoutSeconds,
       dataUpdated: dataUpdated,
-      onLogged: onLogged,
-    )) {
+      // onLogged: onLogged,
+    );
+    if (ret) {
       transferSuccessCnt++;
     } else {
       transferFailCnt++;
     }
+    onLogged(LogItem(
+      type: LogItemType.transfer,
+      platformName: platformName,
+      platformKey: platformKey,
+      phone: phoneNumber,
+      time: DateTime.now(),
+      content: 'dest phone number: ${cell.inCardNum}, amount: ${cell.money}'
+          ', report ret: $ret',
+    ));
   }
 
   sendingMoney(
