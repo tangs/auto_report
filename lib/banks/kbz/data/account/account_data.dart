@@ -1,16 +1,15 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:math';
 
 import 'package:auto_report/banks/kbz/config/config.dart';
 import 'package:auto_report/banks/kbz/data/log/log_item.dart';
-import 'package:auto_report/banks/kbz/data/proto/response/cash/get_cash_list_response.dart';
-import 'package:auto_report/banks/kbz/data/proto/response/cash/get_recharge_transfer_list.dart';
+import 'package:auto_report/network/proto/get_cash_list_response.dart';
+import 'package:auto_report/network/proto/get_recharge_transfer_list.dart';
 import 'package:auto_report/banks/kbz/data/proto/response/new_trans_record_list_resqonse.dart';
 import 'package:auto_report/banks/kbz/network/sender.dart';
 import 'package:auto_report/main.dart';
 import 'package:auto_report/manager/data_manager.dart';
-import 'package:auto_report/proto/report/response/general_response.dart';
+import 'package:auto_report/network/backend_sender.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:http/http.dart' as http;
@@ -364,39 +363,23 @@ class AccountData {
     VoidCallback? dataUpdated,
     ValueChanged<LogItem> onLogged,
   ) async {
-    final host = platformUrl.replaceAll('http://', '');
-    const path = 'api/pay/callback_cash';
-    final url = Uri.http(host, path);
-    final response = await Future.any([
-      http.post(url, body: {
-        'withdrawals_id': cell.withdrawalsId,
-        'type': '${isSuccess ? 2 : 3}',
-      }),
-      Future.delayed(const Duration(seconds: Config.httpRequestTimeoutSeconds)),
-    ]);
-
-    final isFail = response is! http.Response;
-
-    if (isFail) {
-      EasyLoading.showError('report send money timeout');
-      logger.i('report send money timeout');
-      cashFailCnt++;
-      dataUpdated?.call();
-      return null;
-    }
-
-    onLogged(LogItem(
-      type: LogItemType.send,
+    if (await BackendSender.reportTransferSuccess(
+      platformUrl: platformUrl,
       platformName: platformName,
       platformKey: platformKey,
-      phone: phoneNumber,
-      time: DateTime.now(),
-      content: 'dest phone number: ${cell.cashAccount}, amount: ${cell.money}'
-          ', report ret: ${!isFail}',
-    ));
-    logger.i('report send money success.');
-    cashSuccessCnt++;
-    dataUpdated?.call();
+      phoneNumber: phoneNumber,
+      destNumber: cell.cashAccount!,
+      money: '${cell.money}',
+      id: id,
+      isSuccess: isSuccess,
+      httpRequestTimeoutSeconds: Config.httpRequestTimeoutSeconds,
+      dataUpdated: dataUpdated,
+      onLogged: onLogged,
+    )) {
+      cashSuccessCnt++;
+    } else {
+      cashFailCnt++;
+    }
   }
 
   reportTransferSuccess(
@@ -405,40 +388,23 @@ class AccountData {
     VoidCallback? dataUpdated,
     ValueChanged<LogItem> onLogged,
   ) async {
-    final host = platformUrl.replaceAll('http://', '');
-    const path = 'api/pay/callback_recharge_transfer';
-    final url = Uri.http(host, path);
-    final response = await Future.any([
-      http.post(url, body: {
-        'id': '${cell.id}',
-        'log': '',
-        'type': '${isSuccess ? 2 : 3}',
-      }),
-      Future.delayed(const Duration(seconds: Config.httpRequestTimeoutSeconds)),
-    ]);
-
-    final isFail = response is! http.Response;
-
-    if (isFail) {
-      EasyLoading.showError('transfer timeout');
-      logger.i('transfer timeout');
-      transferFailCnt++;
-      dataUpdated?.call();
-      return null;
-    }
-
-    onLogged(LogItem(
-      type: LogItemType.transfer,
+    if (await BackendSender.reportTransferSuccess(
+      platformUrl: platformUrl,
       platformName: platformName,
       platformKey: platformKey,
-      phone: phoneNumber,
-      time: DateTime.now(),
-      content: 'dest phone number: ${cell.inCardNum}, amount: ${cell.money}'
-          ', report ret: ${!isFail}',
-    ));
-    logger.i('transfer success, id: ${cell.id}, responce: ${response.body}');
-    transferSuccessCnt++;
-    dataUpdated?.call();
+      phoneNumber: phoneNumber,
+      destNumber: cell.inCardNum!,
+      money: cell.money!,
+      id: id,
+      isSuccess: isSuccess,
+      httpRequestTimeoutSeconds: Config.httpRequestTimeoutSeconds,
+      dataUpdated: dataUpdated,
+      onLogged: onLogged,
+    )) {
+      transferSuccessCnt++;
+    } else {
+      transferFailCnt++;
+    }
   }
 
   sendingMoney(
@@ -628,59 +594,23 @@ class AccountData {
   Future<Tuple3<bool, bool, String?>> report(VoidCallback? dataUpdated,
       NewTransRecordListResqonseTransRecordList data, String payId) async {
     if (isWmtMfsInvalid) return const Tuple3(false, false, 'token invalid');
-    try {
-      final host = platformUrl.replaceAll('http://', '');
-      const path = 'api/pay/payinfo_app';
-      final url = Uri.http(host, path);
-      logger.i('url: ${url.toString()}');
-      logger.i('host: $host, path: $path');
-      final response = await Future.any([
-        http.post(url, body: {
-          'token': token,
-          'phone': phoneNumber,
-          'terminal': remark,
-          'platform': 'KBZ',
-          'pay_id': payId,
-          'type': '9008',
-          'pay_order_num': data.orderId,
-          'order_type': 'p2p',
-          'pay_money': '${data.amount}',
-          'bank_time': '${data.tradeTime}',
-        }),
-        Future.delayed(
-          const Duration(seconds: Config.httpRequestTimeoutSeconds),
-        ),
-      ]);
-
-      if (response is! http.Response) {
-        final errMsg =
-            'report order timeout, phone: $phoneNumber, id: ${data.orderId}';
-        EasyLoading.showError('report order timeout');
-        logger.i(errMsg);
-        return Tuple3(false, true, errMsg);
-      }
-
-      final body = response.body;
-      logger.i('res body: $body');
-
-      final res = ReportGeneralResponse.fromJson(jsonDecode(body));
-      if (res.status != 'T') {
-        if (res.message == 'not authorized') {
-          isAuthInvidWithReport = true;
-          dataUpdated?.call();
-        }
-        if (res.message != 'ERROR-repeat-pay_order_num') {
-          final errMsg =
-              'report order fail. code: ${res.status}, msg: ${res.message}';
-          EasyLoading.showError(errMsg);
-          return Tuple3(false, false, errMsg);
-        }
-      }
-    } catch (e, stackTrace) {
-      logger.e('e: $e', stackTrace: stackTrace);
-      return Tuple3(false, true, 'err: $e, s: $stackTrace');
+    final ret = await BackendSender.report(
+      platformUrl: platformUrl,
+      phoneNumber: phoneNumber,
+      remark: remark,
+      token: token,
+      orderId: data.orderId!,
+      payId: payId,
+      platform: 'KBZ',
+      type: '9008',
+      amount: '${data.amount}',
+      bankTime: '${data.tradeTime}',
+      httpRequestTimeoutSeconds: Config.httpRequestTimeoutSeconds,
+    );
+    if (ret.item4) {
+      isAuthInvidWithReport = true;
     }
-    return const Tuple3(true, false, null);
+    return Tuple3(ret.item1, ret.item2, ret.item3);
   }
 
   reports(List<NewTransRecordListResqonseTransRecordList> reportList,
@@ -781,97 +711,21 @@ class AccountData {
 
   Future<List<GetCashListResponseDataList>> getCashList(
       VoidCallback? dataUpdated) async {
-    try {
-      final host = platformUrl.replaceAll('http://', '');
-      const path = 'api/pay/get_cash_list';
-      final url = Uri.http(host, path);
-      final response = await Future.any([
-        http.post(url, body: {
-          'pay_account': phoneNumber,
-          'pay_name': 'KBZPay',
-        }),
-        Future.delayed(
-            const Duration(seconds: Config.httpRequestTimeoutSeconds)),
-      ]);
-
-      if (response is! http.Response) {
-        logger.i('get cash list timeout, phone: $phoneNumber');
-        return [];
-      }
-
-      final body = response.body;
-
-      final jsonData = jsonDecode(body);
-      if (jsonData['success'] == false) {
-        // 当前没有需要转账的数据
-        return [];
-      }
-      final res = GetCashListResponse.fromJson(jsonData);
-      if (res.error?.isNotEmpty ?? false) {
-        EasyLoading.showError('get cash list fail. err: ${res.error}');
-        return [];
-      }
-
-      final waitCashList = (res.data?.list ?? [])
-          .where((cell) => cell != null)
-          .cast<GetCashListResponseDataList>()
-          .toList();
-
-      if (waitCashList.isNotEmpty) {
-        logger.i('get cash list.len: ${waitCashList.length}');
-      }
-
-      return waitCashList;
-    } catch (e, stackTrace) {
-      logger.e('e: $e', stackTrace: stackTrace);
-    }
-    return [];
+    return BackendSender.getCashList(
+      payName: 'KBZPay',
+      platformUrl: platformUrl,
+      phoneNumber: phoneNumber,
+      httpRequestTimeoutSeconds: Config.httpRequestTimeoutSeconds,
+    );
   }
 
   Future<List<GetRechargeTransferListData>> getRechargeTransferList(
       VoidCallback? dataUpdated) async {
-    try {
-      final host = platformUrl.replaceAll('http://', '');
-      const path = 'api/pay/get_recharge_transfer_list';
-      final url = Uri.http(host, path);
-      final response = await Future.any([
-        http.post(url, body: {
-          'pay_account': phoneNumber,
-          'bank_name': 'KBZPay',
-        }),
-        Future.delayed(
-            const Duration(seconds: Config.httpRequestTimeoutSeconds)),
-      ]);
-
-      if (response is! http.Response) {
-        logger.i('get cash list timeout, phone: $phoneNumber');
-        return [];
-      }
-
-      final body = response.body;
-
-      final jsonData = jsonDecode(body);
-      if (jsonData['success'] == false) {
-        // 当前没有需要转账的数据
-        return [];
-      }
-      final res = GetRechargeTransferList.fromJson(jsonData);
-      if (res.success != true) {
-        return [];
-      }
-      if (res.error?.isNotEmpty ?? false) {
-        EasyLoading.showError('get cash list fail. err: ${res.error}');
-        return [];
-      }
-
-      if (res.data == null) {
-        return [];
-      }
-
-      return [res.data!];
-    } catch (e, stackTrace) {
-      logger.e('e: $e', stackTrace: stackTrace);
-    }
-    return [];
+    return BackendSender.getRechargeTransferList(
+      payName: 'KBZPay',
+      platformUrl: platformUrl,
+      phoneNumber: phoneNumber,
+      httpRequestTimeoutSeconds: Config.httpRequestTimeoutSeconds,
+    );
   }
 }
