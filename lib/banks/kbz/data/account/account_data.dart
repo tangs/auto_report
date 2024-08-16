@@ -164,9 +164,10 @@ class AccountData {
   }
 
   Future<bool> getOrders(
-      List<NewTransRecordListResqonseTransRecordList> waitReportList,
-      int offset,
-      ValueChanged<LogItem> onLogged) async {
+    List<NewTransRecordListResqonseTransRecordList> waitReportList,
+    int offset,
+    ValueChanged<LogItem> onLogged,
+  ) async {
     try {
       const recordCount = 10;
       final isFirst = _lasttransDate == null;
@@ -187,7 +188,8 @@ class AccountData {
       }
 
       final filtedRecords = records
-          .where((record) => record.tradeTime! > lastTime && record.amount! > 0)
+          .where((record) =>
+              record.tradeTime! > lastTime && (isFirst || record.amount! > 0))
           .toList();
       waitReportList.addAll(filtedRecords);
 
@@ -482,9 +484,9 @@ class AccountData {
         if (cell.money?.isEmpty ?? true) continue;
         if (double.parse(cell.money!) > balance!) continue;
 
-        hasTransfer = true;
         logger.i('transfer. phone: ${cell.inCardNum}, money: ${cell.money}');
         final ret = await sendingMoney(cell.inCardNum!, cell.money!, onLogged);
+        hasTransfer = true;
 
         if (ret) {
           onLogged(

@@ -188,6 +188,32 @@ class _AccountsPageState extends State<AccountsPage> {
             ),
           ],
         ),
+        Row(
+          children: [
+            RichText(
+              text: TextSpan(
+                text: 'Transfer',
+                style: DefaultTextStyle.of(context).style,
+                children: [
+                  TextSpan(
+                    text: '    succ: ${data.transferSuccessCnt}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue,
+                    ),
+                  ),
+                  TextSpan(
+                    text: '    fail: ${data.transferFailCnt}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
         Visibility(
           visible: DataManager().devMode,
           child: Row(
