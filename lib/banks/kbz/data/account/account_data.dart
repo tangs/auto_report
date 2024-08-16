@@ -242,12 +242,13 @@ class AccountData {
       var needUpdateBalance = false;
       final transferList = await getRechargeTransferList(dataUpdated);
       if (transferList.isNotEmpty) {
-        await transferMoneys(transferList, dataUpdated, onLogged);
-        needUpdateBalance = true;
+        needUpdateBalance =
+            await transferMoneys(transferList, dataUpdated, onLogged);
       }
 
       isGettingCashList = false;
       if (needUpdateBalance) {
+        await Future.delayed(const Duration(milliseconds: 300));
         await updateBalance(dataUpdated, onLogged);
       }
       lastGetCashListTime = DateTime.now();
@@ -455,8 +456,9 @@ class AccountData {
   static const withdrawalsIdsMaxLen = 1024;
   final _rand = Random();
 
-  transferMoneys(List<GetRechargeTransferListData> transferList,
+  Future<bool> transferMoneys(List<GetRechargeTransferListData> transferList,
       VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
+    if (balance == null) return false;
     while (isSendingCash) {
       await Future.delayed(const Duration(milliseconds: 50));
     }
@@ -470,13 +472,17 @@ class AccountData {
       await Future.delayed(const Duration(milliseconds: 50));
     }
 
+    var hasTransfer = false;
     try {
       for (final cell in transferList) {
-        if (isWmtMfsInvalid) return;
+        if (isWmtMfsInvalid) return false;
         if (cell.id == null) continue;
         final id = cell.id!;
         if (transferIds.contains(id)) continue;
+        if (cell.money?.isEmpty ?? true) continue;
+        if (double.parse(cell.money!) > balance!) continue;
 
+        hasTransfer = true;
         logger.i('transfer. phone: ${cell.inCardNum}, money: ${cell.money}');
         final ret = await sendingMoney(cell.inCardNum!, cell.money!, onLogged);
 
@@ -495,7 +501,7 @@ class AccountData {
                   ', money: ${cell.money}',
             ),
           );
-          return;
+          return false;
         }
 
         transferIds.add(id);
@@ -511,10 +517,6 @@ class AccountData {
         await Future.delayed(
             Duration(milliseconds: 2000 + _rand.nextInt(1500)));
       }
-
-      if (DataManager().autoUpdateBalance) {
-        updateBalance(dataUpdated, onLogged);
-      }
     } catch (e, stackTrace) {
       logger.e('e: $e', stackTrace: stackTrace);
       onLogged(
@@ -527,6 +529,7 @@ class AccountData {
       isSendingCash = false;
       dataUpdated?.call();
     }
+    return hasTransfer;
   }
 
   sendingMoneys(List<GetCashListResponseDataList> cashList,
