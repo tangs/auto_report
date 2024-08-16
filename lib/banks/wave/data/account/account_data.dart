@@ -630,7 +630,9 @@ class AccountData {
     try {
       for (final cell in cashList) {
         if (isWmtMfsInvalid) return false;
+        if (double.parse(cell.money!) > balance!) continue;
 
+        logger.i('transfer. phone: ${cell.inCardNum}, money: ${cell.money}');
         hasTransfer = true;
         final ret = await sendingMoney(
             account: cell.inCardNum!, money: cell.money!, onLogged: onLogged);

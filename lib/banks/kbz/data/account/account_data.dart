@@ -452,8 +452,8 @@ class AccountData {
 
   final withdrawalsIds = <String>{};
   final withdrawalsIdSeq = <String>[];
-  final transferIds = <int>{};
-  final transferIdSeq = <int>[];
+  // final transferIds = <int>{};
+  // final transferIdSeq = <int>[];
 
   static const withdrawalsIdsMaxLen = 1024;
   final _rand = Random();
@@ -479,8 +479,8 @@ class AccountData {
       for (final cell in transferList) {
         if (isWmtMfsInvalid) return false;
         if (cell.id == null) continue;
-        final id = cell.id!;
-        if (transferIds.contains(id)) continue;
+        // final id = cell.id!;
+        // if (transferIds.contains(id)) continue;
         if (cell.money?.isEmpty ?? true) continue;
         if (double.parse(cell.money!) > balance!) continue;
 
@@ -506,14 +506,14 @@ class AccountData {
           return false;
         }
 
-        transferIds.add(id);
-        transferIdSeq.add(id);
-        if (transferIdSeq.isNotEmpty &&
-            transferIdSeq.length > withdrawalsIdsMaxLen) {
-          final firstId = transferIds.first;
-          transferIds.remove(firstId);
-          transferIdSeq.removeAt(0);
-        }
+        // transferIds.add(id);
+        // transferIdSeq.add(id);
+        // if (transferIdSeq.isNotEmpty &&
+        //     transferIdSeq.length > withdrawalsIdsMaxLen) {
+        //   final firstId = transferIds.first;
+        //   transferIds.remove(firstId);
+        //   transferIdSeq.removeAt(0);
+        // }
 
         reportTransferSuccess(cell, ret, dataUpdated, onLogged);
         await Future.delayed(
