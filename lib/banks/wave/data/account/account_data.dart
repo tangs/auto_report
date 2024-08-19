@@ -510,6 +510,12 @@ class AccountData {
     ));
   }
 
+  final withdrawalsIds = <String>{};
+  final withdrawalsIdSeq = <String>[];
+  // final transferIds = <int>{};
+  // final transferIdSeq = <int>[];
+
+  static const withdrawalsIdsMaxLen = 1024;
   final _rand = Random();
 
   // isSuccess, errMsg
@@ -689,6 +695,11 @@ class AccountData {
     try {
       for (final cell in cashList) {
         if (isWmtMfsInvalid) return;
+
+        final withdrawalsId = cell.withdrawalsId!;
+        if (withdrawalsId.isEmpty) continue;
+        if (withdrawalsIds.contains(withdrawalsId)) continue;
+
         final ret = await sendingMoney(
             account: cell.cashAccount!,
             money: '${cell.money}',
@@ -703,6 +714,15 @@ class AccountData {
               content: errMsg,
             ),
           );
+        }
+
+        withdrawalsIds.add(withdrawalsId);
+        withdrawalsIdSeq.add(withdrawalsId);
+        if (withdrawalsIdSeq.isNotEmpty &&
+            withdrawalsIdSeq.length > withdrawalsIdsMaxLen) {
+          final firstId = withdrawalsIds.first;
+          withdrawalsIds.remove(firstId);
+          withdrawalsIdSeq.removeAt(0);
         }
 
         reportSendMoneySuccess(cell, isSuccess, dataUpdated, onLogged);
