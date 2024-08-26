@@ -319,9 +319,10 @@ class AccountData {
         await _updateBalance(dataUpdated, onLogged);
       }
     } catch (e, stack) {
-      isUpdating = false;
       logger.e(e, stackTrace: stack);
     }
+
+    isUpdating = false;
   }
 
   reopenReport() async {

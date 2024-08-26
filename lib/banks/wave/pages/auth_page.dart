@@ -81,10 +81,10 @@ class _AuthPageState extends State<AuthPage> {
       _token = sb.toString();
     }
     init();
-    EasyLoading.show();
   }
 
   void init() async {
+    EasyLoading.show();
     // generate device id
     var deviceId = '';
     final ran = Random.secure();

@@ -231,7 +231,7 @@ class _AccountsPageState extends State<AccountsPage> {
                   platformKey: data.platformKey,
                   phone: data.phoneNumber,
                   time: DateTime.now(),
-                  content: '${value ? 'open' : 'close'} send money.',
+                  content: '${value ? 'open' : 'close'} recharge transfer.',
                 ));
               },
             ),
