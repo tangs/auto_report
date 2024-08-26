@@ -5,6 +5,7 @@ import 'dart:math';
 import 'package:auto_report/banks/wave/config/config.dart';
 import 'package:auto_report/banks/wave/data/account/histories_response.dart';
 import 'package:auto_report/banks/wave/data/log/log_item.dart';
+import 'package:auto_report/container/limit_set.dart';
 import 'package:auto_report/manager/data_manager.dart';
 import 'package:auto_report/banks/wave/data/proto/response/cash/send_money_response.dart';
 import 'package:auto_report/banks/wave/data/proto/response/generate_otp_response.dart';
@@ -47,21 +48,24 @@ class AccountData {
 
   bool disableReport = false;
   bool disableCash = true;
+  bool disableRechargeTransfer = true;
   bool showDetail = false;
 
   double? balance;
 
   /// 当前正在更新余额
-  bool isUpdatingBalance = false;
-  bool isUpdatingOrders = false;
-  bool isSendingCash = false;
+  var isUpdatingBalance = false;
+  var isUpdatingOrders = false;
+  var isSendingCash = false;
 
-  bool reporting = false;
-  bool isGettingCashList = false;
+  var reporting = false;
+  var isGettingCashList = false;
+  var isRechargeTransfer = false;
 
-  DateTime lastUpdateTime = DateTime.fromMicrosecondsSinceEpoch(0);
-  DateTime lastGetCashListTime = DateTime.fromMicrosecondsSinceEpoch(0);
-  DateTime lastUpdateBalanceTime = DateTime.fromMicrosecondsSinceEpoch(0);
+  var lastUpdateTime = DateTime.fromMicrosecondsSinceEpoch(0);
+  var lastGetCashListTime = DateTime.fromMicrosecondsSinceEpoch(0);
+  var lastRechargeTransferTime = DateTime.fromMicrosecondsSinceEpoch(0);
+  var lastUpdateBalanceTime = DateTime.fromMicrosecondsSinceEpoch(0);
 
   // final List<HistoriesResponseResponseMapTnxHistoryList?> _waitReportList = [];
   // final List<GetCashListResponseDataList> _waitCashList = [];
@@ -76,6 +80,8 @@ class AccountData {
 
   int transferSuccessCnt = 0;
   int transferFailCnt = 0;
+
+  final LimitSet<String> transIds = LimitSet();
 
   AccountData({
     required this.token,
@@ -94,6 +100,7 @@ class AccountData {
     required this.osVersion,
     this.disableReport = true,
     this.disableCash = true,
+    this.disableRechargeTransfer = true,
     this.showDetail = false,
   });
 
@@ -115,6 +122,7 @@ class AccountData {
       'isWmtMfsInvalid': isWmtMfsInvalid,
       'pauseReport': disableReport,
       'disableCash': disableCash,
+      'disableRechargeTransfer': disableRechargeTransfer,
     };
   }
 
@@ -139,6 +147,7 @@ class AccountData {
     // isWmtMfsInvalid = false;
     disableReport = json['pauseReport'];
     disableCash = json['disableCash'];
+    disableRechargeTransfer = json['disableRechargeTransfer'];
     // isWmtMfsInvalid = false;
   }
 
@@ -161,13 +170,15 @@ class AccountData {
 
   /// return [isSuccess, hasUnreadOrder]
   Future<Tuple2<bool, bool>> getOrders(
-      List<HistoriesResponseResponseMapTnxHistoryList> waitReportList,
-      int offset,
-      ValueChanged<LogItem> onLogged) async {
+    List<HistoriesResponseResponseMapTnxHistoryList> waitReportList, {
+    required int offset,
+    required int limit,
+    required ValueChanged<LogItem> onLogged,
+  }) async {
     try {
       final url =
           Uri.https(Config.host, 'v3/mfs-customer/utility/tnx-histories', {
-        'limit': '${20}',
+        'limit': '$limit',
         'offset': '$offset',
       });
       final headers = Config.getHeaders(
@@ -257,43 +268,56 @@ class AccountData {
     if (isWmtMfsInvalid) return;
     if (isAuthInvidWithReport) return;
 
+    final dm = DataManager();
     if (!disableReport) {
       if (!isUpdatingOrders &&
           DateTime.now().difference(lastUpdateTime).inSeconds >=
-              DataManager().orderRefreshTime) {
+              dm.orderRefreshTime) {
+        logger.i('start get orders, phone: $phoneNumber');
         await updateOrder(dataUpdated, onLogged);
+        logger.i('end get orders, phone: $phoneNumber');
       }
     }
 
-    if (!isGettingCashList &&
+    if (!disableCash &&
+        !isGettingCashList &&
         DateTime.now().difference(lastGetCashListTime).inSeconds >=
-            DataManager().gettingCashListRefreshTime) {
+            dm.gettingCashListRefreshTime) {
+      logger.i('start get cash list, phone: $phoneNumber');
       final cashList = await getCashList(dataUpdated);
 
-      if (!disableCash) {
-        if (cashList?.isNotEmpty ?? false) {
-          await sendingMoneys(cashList!, dataUpdated, onLogged);
+      if (cashList?.isNotEmpty ?? false) {
+        await sendingMoneys(cashList!, dataUpdated, onLogged);
+      }
+
+      lastGetCashListTime = DateTime.now();
+      logger.i('end get cash list, phone: $phoneNumber');
+    }
+
+    if (dm.openRechargeTransfer &&
+        !disableRechargeTransfer &&
+        !isRechargeTransfer &&
+        DateTime.now().difference(lastRechargeTransferTime).inSeconds >=
+            dm.rechargeTransferRefreshTime) {
+      logger.i('start get recharge transfer list, phone: $phoneNumber');
+      final transferList = await getRechargeTransferList(dataUpdated);
+      if (transferList.isNotEmpty) {
+        final needUpdateBalance =
+            await transferMoneys(transferList, dataUpdated, onLogged);
+        if (needUpdateBalance) {
+          await Future.delayed(const Duration(milliseconds: 300));
+          lastUpdateBalanceTime = DateTime.fromMicrosecondsSinceEpoch(0);
         }
       }
 
-      var needUpdateBalance = false;
-      final transferList = await getRechargeTransferList(dataUpdated);
-      if (transferList.isNotEmpty) {
-        needUpdateBalance =
-            await transferMoneys(transferList, dataUpdated, onLogged);
-      }
-
-      isGettingCashList = false;
-      if (needUpdateBalance) {
-        await Future.delayed(const Duration(milliseconds: 300));
-        await updateBalance(dataUpdated, onLogged);
-      }
-      lastGetCashListTime = DateTime.now();
+      isRechargeTransfer = false;
+      lastRechargeTransferTime = DateTime.now();
+      logger.i('end get recharge transfer list, phone: $phoneNumber');
     }
 
     if (!isUpdatingBalance &&
         DateTime.now().difference(lastUpdateBalanceTime).inMinutes >= 30) {
-      updateBalance(dataUpdated, onLogged);
+      await updateBalance(dataUpdated, onLogged);
     }
   }
 
@@ -316,6 +340,10 @@ class AccountData {
     _lasttransDate = null;
   }
 
+  bool isFirstGetTransOrders() {
+    return _lasttransDate == null;
+  }
+
   updateOrder(VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
     if (isUpdatingOrders) return;
     logger.i('start update order.phone: $phoneNumber');
@@ -328,12 +356,41 @@ class AccountData {
     }
 
     final waitReportList = <HistoriesResponseResponseMapTnxHistoryList>[];
-    // _waitReportList.clear();
+    final isFirst = isFirstGetTransOrders();
+
+    // do {
+    // todo
+    // if (false) break;
+    // if (isFirst) {
+    //   final ret = await getOrders(
+    //     waitReportList,
+    //     offset: 0,
+    //     limit: 20,
+    //     onLogged: onLogged,
+    //   );
+    //   if (!ret.item1) break;
+
+    //   if (waitReportList.isEmpty) {
+    //     _lasttransDate = DateTime.fromMicrosecondsSinceEpoch(0);
+    //     _lastTransId = '-1';
+    //   } else {
+    //     waitReportList.sort((a, b) => a.compareTo(b));
+    //     final cell = waitReportList.last;
+    //     _lastTransId = cell.transId;
+    //     _lasttransDate = cell.toDateTime();
+    //   }
+    // } else {}
+    // } while (false);
 
     var offset = 0;
     var isSuccess = false;
     while (!isWmtMfsInvalid) {
-      final ret = await getOrders(waitReportList, offset, onLogged);
+      final ret = await getOrders(
+        waitReportList,
+        offset: offset,
+        limit: 20,
+        onLogged: onLogged,
+      );
       isSuccess = ret.item1;
       if (!ret.item2) break;
       offset += 15;
@@ -342,7 +399,6 @@ class AccountData {
 
     if (isSuccess) {
       waitReportList.sort((a, b) => a.compareTo(b));
-      final isFirst = _lasttransDate == null;
       if (isFirst) {
         if (waitReportList.isEmpty) {
           _lasttransDate = DateTime.fromMicrosecondsSinceEpoch(0);
@@ -388,10 +444,8 @@ class AccountData {
         }
       }
     }
-    // var seconds = DateTime.now().difference(lastUpdateTime).inSeconds;
-    // logger.i('seconds: $seconds');
 
-    waitReportList.clear();
+    // waitReportList.clear();
 
     logger.i('end update order.phone: $phoneNumber');
     lastUpdateTime = DateTime.now();

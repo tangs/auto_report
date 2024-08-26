@@ -13,9 +13,12 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   double _orderRefreshTime = DataManager().orderRefreshTime;
   double _sendMoneyRefreshTime = DataManager().gettingCashListRefreshTime;
+  double _rechargeTransferRefreshTime =
+      DataManager().rechargeTransferRefreshTime;
   bool _devMode = DataManager().devMode;
   bool _devModeSwich = DataManager().devMode;
   bool _isDark = DataManager().isDark;
+  bool _openRechargeTransfer = DataManager().openRechargeTransfer;
   bool _autoUpdateBalance = DataManager().autoUpdateBalance;
 
   int _clickTime = 0;
@@ -37,32 +40,51 @@ class _SettingsPageState extends State<SettingsPage> {
                   title: "General",
                   children: [
                     _CustomListTile(
-                        title: "Dark Mode",
-                        icon: Icons.dark_mode_outlined,
-                        trailing: Switch(
-                            value: _isDark,
-                            onChanged: (value) {
-                              final dm = DataManager();
-                              dm.isDark = value;
-                              dm.save;
-                              setState(() {
-                                _isDark = value;
-                              });
-                              widget.onThemeInvalid();
-                            })),
+                      title: "Dark Mode",
+                      icon: Icons.dark_mode_outlined,
+                      trailing: Switch(
+                        value: _isDark,
+                        onChanged: (value) {
+                          final dm = DataManager();
+                          dm.isDark = value;
+                          dm.save();
+                          setState(() {
+                            _isDark = value;
+                          });
+                          widget.onThemeInvalid();
+                        },
+                      ),
+                    ),
                     _CustomListTile(
-                        title: "Auto Update Balance",
-                        icon: Icons.autorenew,
-                        trailing: Switch(
-                            value: _autoUpdateBalance,
-                            onChanged: (value) {
-                              final dm = DataManager();
-                              dm.autoUpdateBalance = value;
-                              dm.save;
-                              setState(() {
-                                _autoUpdateBalance = value;
-                              });
-                            })),
+                      title: "Auto Update Balance",
+                      icon: Icons.autorenew,
+                      trailing: Switch(
+                        value: _autoUpdateBalance,
+                        onChanged: (value) {
+                          final dm = DataManager();
+                          dm.autoUpdateBalance = value;
+                          dm.save();
+                          setState(() {
+                            _autoUpdateBalance = value;
+                          });
+                        },
+                      ),
+                    ),
+                    _CustomListTile(
+                      title: "Open Recharge Transfer",
+                      icon: Icons.send,
+                      trailing: Switch(
+                        value: _openRechargeTransfer,
+                        onChanged: (value) {
+                          final dm = DataManager();
+                          dm.openRechargeTransfer = value;
+                          dm.save();
+                          setState(() {
+                            _openRechargeTransfer = value;
+                          });
+                        },
+                      ),
+                    ),
                     _CustomListTile(
                       title: "Receive money refresh seconds",
                       icon: Icons.refresh,
@@ -104,6 +126,29 @@ class _SettingsPageState extends State<SettingsPage> {
                         });
                         final dm = DataManager();
                         dm.gettingCashListRefreshTime = value;
+                        dm.save();
+                      },
+                    ),
+                    _CustomListTile(
+                      title: "Recharge transfer refresh seconds",
+                      icon: Icons.refresh,
+                      trailing: Text(
+                        '${_rechargeTransferRefreshTime.toInt()}',
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ),
+                    Slider(
+                      value: _rechargeTransferRefreshTime,
+                      min: 5,
+                      max: 65,
+                      divisions: 12,
+                      label: '${_rechargeTransferRefreshTime.toInt()}',
+                      onChanged: (double value) {
+                        setState(() {
+                          _rechargeTransferRefreshTime = value;
+                        });
+                        final dm = DataManager();
+                        dm.rechargeTransferRefreshTime = value;
                         dm.save();
                       },
                     ),

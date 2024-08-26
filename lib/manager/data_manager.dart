@@ -14,9 +14,11 @@ class DataManager {
 
   double orderRefreshTime = 60;
   double gettingCashListRefreshTime = 5;
+  double rechargeTransferRefreshTime = 30;
 
   bool devMode = false;
   bool isDark = false;
+  bool openRechargeTransfer = false;
   bool autoUpdateBalance = GlobalConfig.bankType == BankType.kbz;
 
   String? appVersion;
@@ -41,20 +43,33 @@ class DataManager {
     localStorage.setItem('orderRefreshTime', orderRefreshTime.toString());
     localStorage.setItem(
         'gettingCashListRefreshTime', gettingCashListRefreshTime.toString());
+    localStorage.setItem(
+        'rechargeTransferRefreshTime', rechargeTransferRefreshTime.toString());
+
     localStorage.setItem('isDark', isDark.toString());
+    localStorage.setItem(
+        'openRechargeTransfer', openRechargeTransfer.toString());
     localStorage.setItem('autoUpdateBalance', autoUpdateBalance.toString());
   }
 
   void restore() {
     try {
-      orderRefreshTime =
-          double.parse(localStorage.getItem('orderRefreshTime') ?? '60');
+      orderRefreshTime = double.parse(
+          localStorage.getItem('orderRefreshTime') ??
+              orderRefreshTime.toString());
       gettingCashListRefreshTime = double.parse(
-          localStorage.getItem('gettingCashListRefreshTime') ?? '5');
+          localStorage.getItem('gettingCashListRefreshTime') ??
+              gettingCashListRefreshTime.toString());
+      rechargeTransferRefreshTime = double.parse(
+          localStorage.getItem('rechargeTransferRefreshTime') ??
+              rechargeTransferRefreshTime.toString());
+
       orderRefreshTime = min(orderRefreshTimeRange.end,
           max(orderRefreshTimeRange.start, orderRefreshTime));
 
       isDark = bool.parse(localStorage.getItem('isDark') ?? 'false');
+      openRechargeTransfer =
+          bool.parse(localStorage.getItem('openRechargeTransfer') ?? 'false');
       autoUpdateBalance =
           bool.parse(localStorage.getItem('autoUpdateBalance') ?? 'false');
     } catch (e, stackTrace) {

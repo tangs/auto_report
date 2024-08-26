@@ -212,6 +212,23 @@ class _AccountsPageState extends State<AccountsPage> {
                 ],
               ),
             ),
+            const Spacer(),
+            const Text('Recharge transfer:'),
+            Switch(
+              value: !data.disableRechargeTransfer,
+              activeColor: Colors.red,
+              onChanged: (bool value) {
+                setState(() => data.disableRechargeTransfer = !value);
+                widget.onLogged(LogItem(
+                  type: LogItemType.info,
+                  platformName: data.platformName,
+                  platformKey: data.platformKey,
+                  phone: data.phoneNumber,
+                  time: DateTime.now(),
+                  content: '${value ? 'open' : 'close'} send money.',
+                ));
+              },
+            ),
           ],
         ),
         Visibility(
