@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:localstorage/localstorage.dart';
 import 'package:logger/logger.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -29,6 +30,17 @@ class MyFilter extends LogFilter {
 class _LogOutputIns extends LogOutput {
   final eventsCache = <OutputEvent>[];
 
+  String appVersion = '';
+
+  _LogOutputIns() {
+    initState();
+  }
+
+  void initState() async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    appVersion = packageInfo.version;
+  }
+
   String _getCurrentDate() {
     final DateTime now = DateTime.now();
     return '${now.year}_${now.month.toString().padLeft(2, '0')}_${now.day}'
@@ -42,6 +54,7 @@ class _LogOutputIns extends LogOutput {
       if (size > 20 || size == eventsCache.length) {
         final file = File('$logsDirPath/${_getCurrentDate()}.log.txt');
         final sb = StringBuffer();
+        sb.writeln("app ver: $appVersion");
         for (final event in eventsCache) {
           sb.writeln(event.lines.join('\n'));
         }
