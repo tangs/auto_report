@@ -90,13 +90,19 @@ class _AccountsPageState extends State<AccountsPage> {
             const Spacer(),
             Text('Balance: ${data.balance?.toString() ?? '??'}'),
             const Padding(padding: EdgeInsets.only(left: 10)),
+            // OutlinedButton(
+            //   onPressed: (isUpdatingBalance || invalid)
+            //       ? null
+            //       : () => data.updateBalance(
+            //           () => setState(() => data = data), widget.onLogged),
+            //   child: Text(isUpdatingBalance ? 'updating' : 'update'),
+            // )
             OutlinedButton(
               onPressed: (isUpdatingBalance || invalid)
                   ? null
-                  : () => data.updateBalance(
-                      () => setState(() => data = data), widget.onLogged),
+                  : () => data.updateBalance(),
               child: Text(isUpdatingBalance ? 'updating' : 'update'),
-            )
+            ),
           ],
         ),
         Row(
@@ -288,8 +294,7 @@ class _AccountsPageState extends State<AccountsPage> {
         // ),
         Row(
           children: [
-            Text(
-                'state: ${data.isUpdatingOrders ? 'Update recieve orders' : data.isSendingCash ? 'update send orders' : 'Waiting'}')
+            Text('state: ${data.isUpdating ? 'Updating' : 'Waiting'}')
           ],
         ),
         Visibility(

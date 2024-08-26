@@ -90,7 +90,7 @@ class BackendSender {
   }) async {
     try {
       final host = platformUrl.replaceAll('http://', '');
-      const path = 'api/pay/get_cash_list';
+      const path = 'api/pay/get_cash_list2';
       final url = Uri.http(host, path);
       final response = await Future.any([
         http.post(url, body: {

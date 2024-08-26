@@ -53,14 +53,15 @@ class AccountData {
 
   double? balance;
 
-  /// 当前正在更新余额
+  // /// 当前正在更新余额
   var isUpdatingBalance = false;
-  var isUpdatingOrders = false;
-  var isSendingCash = false;
+  // var isUpdatingOrders = false;
+  // var isSendingCash = false;
 
-  var reporting = false;
-  var isGettingCashList = false;
-  var isRechargeTransfer = false;
+  // var reporting = false;
+  // var isGettingCashList = false;
+  // var isRechargeTransfer = false;
+  var isUpdating = false;
 
   var lastUpdateTime = DateTime.fromMicrosecondsSinceEpoch(0);
   var lastGetCashListTime = DateTime.fromMicrosecondsSinceEpoch(0);
@@ -267,96 +268,81 @@ class AccountData {
   update(VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
     if (isWmtMfsInvalid) return;
     if (isAuthInvidWithReport) return;
+    if (isUpdating) return;
 
-    final dm = DataManager();
-    if (!disableReport) {
-      if (!isUpdatingOrders &&
+    isUpdating = true;
+
+    try {
+      final dm = DataManager();
+      if (!disableReport &&
           DateTime.now().difference(lastUpdateTime).inSeconds >=
               dm.orderRefreshTime) {
         logger.i('start get orders, phone: $phoneNumber');
-        await updateOrder(dataUpdated, onLogged);
+        await _updateOrder(dataUpdated, onLogged);
         logger.i('end get orders, phone: $phoneNumber');
       }
-    }
 
-    if (!disableCash &&
-        !isGettingCashList &&
-        DateTime.now().difference(lastGetCashListTime).inSeconds >=
-            dm.gettingCashListRefreshTime) {
-      logger.i('start get cash list, phone: $phoneNumber');
-      final cashList = await getCashList(dataUpdated);
+      if (!disableCash &&
+          DateTime.now().difference(lastGetCashListTime).inSeconds >=
+              dm.gettingCashListRefreshTime) {
+        logger.i('start get cash list, phone: $phoneNumber');
+        final cashList = await _getCashList(dataUpdated);
 
-      if (cashList?.isNotEmpty ?? false) {
-        await sendingMoneys(cashList!, dataUpdated, onLogged);
-      }
-
-      lastGetCashListTime = DateTime.now();
-      logger.i('end get cash list, phone: $phoneNumber');
-    }
-
-    if (dm.openRechargeTransfer &&
-        !disableRechargeTransfer &&
-        !isRechargeTransfer &&
-        DateTime.now().difference(lastRechargeTransferTime).inSeconds >=
-            dm.rechargeTransferRefreshTime) {
-      logger.i('start get recharge transfer list, phone: $phoneNumber');
-      final transferList = await getRechargeTransferList(dataUpdated);
-      if (transferList.isNotEmpty) {
-        final needUpdateBalance =
-            await transferMoneys(transferList, dataUpdated, onLogged);
-        if (needUpdateBalance) {
-          await Future.delayed(const Duration(milliseconds: 300));
-          lastUpdateBalanceTime = DateTime.fromMicrosecondsSinceEpoch(0);
+        if (cashList?.isNotEmpty ?? false) {
+          await _sendingMoneys(cashList!, dataUpdated, onLogged);
         }
+
+        lastGetCashListTime = DateTime.now();
+        logger.i('end get cash list, phone: $phoneNumber');
       }
 
-      isRechargeTransfer = false;
-      lastRechargeTransferTime = DateTime.now();
-      logger.i('end get recharge transfer list, phone: $phoneNumber');
-    }
+      if (dm.openRechargeTransfer &&
+          !disableRechargeTransfer &&
+          DateTime.now().difference(lastRechargeTransferTime).inSeconds >=
+              dm.rechargeTransferRefreshTime) {
+        logger.i('start get recharge transfer list, phone: $phoneNumber');
+        final transferList = await _getRechargeTransferList(dataUpdated);
+        if (transferList.isNotEmpty) {
+          final needUpdateBalance =
+              await _transferMoneys(transferList, dataUpdated, onLogged);
+          if (needUpdateBalance) {
+            await Future.delayed(const Duration(milliseconds: 300));
+            lastUpdateBalanceTime = DateTime.fromMicrosecondsSinceEpoch(0);
+          }
+        }
 
-    if (!isUpdatingBalance &&
-        DateTime.now().difference(lastUpdateBalanceTime).inMinutes >= 30) {
-      await updateBalance(dataUpdated, onLogged);
-    }
-  }
+        lastRechargeTransferTime = DateTime.now();
+        logger.i('end get recharge transfer list, phone: $phoneNumber');
+      }
 
-  checkNeedWaiting(RequestType without) {
-    switch (without) {
-      case RequestType.updateOrder:
-        return isUpdatingBalance || isSendingCash;
-      case RequestType.updateBalance:
-        return isUpdatingOrders || isSendingCash;
-      case RequestType.sendCash:
-        return isUpdatingOrders || isUpdatingBalance;
+      if (DateTime.now().difference(lastUpdateBalanceTime).inMinutes >= 30) {
+        await _updateBalance(dataUpdated, onLogged);
+      }
+    } catch (e, stack) {
+      isUpdating = false;
+      logger.e(e, stackTrace: stack);
     }
   }
 
   reopenReport() async {
-    while (isUpdatingOrders) {
+    while (isUpdating) {
       await Future.delayed(const Duration(milliseconds: 100));
     }
     _lastTransId = null;
     _lasttransDate = null;
   }
 
-  bool isFirstGetTransOrders() {
+  bool _isFirstGetTransOrders() {
     return _lasttransDate == null;
   }
 
-  updateOrder(VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
-    if (isUpdatingOrders) return;
+  _updateOrder(
+      VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
     logger.i('start update order.phone: $phoneNumber');
-    isUpdatingOrders = true;
     dataUpdated?.call();
 
-    // 等待余额更新结束
-    while (checkNeedWaiting(RequestType.updateOrder)) {
-      await Future.delayed(const Duration(milliseconds: 100));
-    }
-
     final waitReportList = <HistoriesResponseResponseMapTnxHistoryList>[];
-    final isFirst = isFirstGetTransOrders();
+    final isFirst = _isFirstGetTransOrders();
 
     // do {
     // todo
@@ -437,9 +423,9 @@ class AccountData {
           _lastTransId = lastCell.transId!;
           _lasttransDate = lastCell.toDateTime();
 
-          reports(needReportList, dataUpdated, onLogged);
+          _reports(needReportList, dataUpdated, onLogged);
           if (DataManager().autoUpdateBalance) {
-            updateBalance(dataUpdated, onLogged);
+            _updateBalance(dataUpdated, onLogged);
           }
         }
       }
@@ -449,7 +435,6 @@ class AccountData {
 
     logger.i('end update order.phone: $phoneNumber');
     lastUpdateTime = DateTime.now();
-    isUpdatingOrders = false;
     dataUpdated?.call();
   }
 
@@ -498,7 +483,7 @@ class AccountData {
     }
   }
 
-  reportSendMoneySuccess(GetCashListResponseDataList cell, bool isSuccess,
+  _reportSendMoneySuccess(GetCashListResponseDataList cell, bool isSuccess,
       VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
     final ret = await BackendSender.reportSendMoneySuccess(
       platformUrl: platformUrl,
@@ -529,7 +514,7 @@ class AccountData {
     ));
   }
 
-  reportTransferSuccess(
+  _reportTransferSuccess(
     GetRechargeTransferListData cell,
     bool isSuccess,
     VoidCallback? dataUpdated,
@@ -671,20 +656,10 @@ class AccountData {
     // reportSendMoneySuccess(cell, true, dataUpdated, onLogged);
   }
 
-  Future<bool> transferMoneys(List<GetRechargeTransferListData> cashList,
+  Future<bool> _transferMoneys(List<GetRechargeTransferListData> cashList,
       VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
-    while (isSendingCash) {
-      await Future.delayed(const Duration(milliseconds: 100));
-    }
-
     logger.i('start transfer. phone: $phoneNumber');
-    isSendingCash = true;
     dataUpdated?.call();
-
-    // 等待余额更新结束
-    while (checkNeedWaiting(RequestType.sendCash)) {
-      await Future.delayed(const Duration(milliseconds: 100));
-    }
 
     var hasTransfer = false;
     try {
@@ -708,13 +683,13 @@ class AccountData {
           );
         }
 
-        reportTransferSuccess(cell, isSuccess, dataUpdated, onLogged);
+        _reportTransferSuccess(cell, isSuccess, dataUpdated, onLogged);
         await Future.delayed(
             Duration(milliseconds: 2000 + _rand.nextInt(1500)));
       }
 
       if (DataManager().autoUpdateBalance) {
-        updateBalance(dataUpdated, onLogged);
+        _updateBalance(dataUpdated, onLogged);
       }
     } catch (e, stackTrace) {
       logger.e('e: $e', stackTrace: stackTrace);
@@ -725,26 +700,15 @@ class AccountData {
         ),
       );
     } finally {
-      isSendingCash = false;
       dataUpdated?.call();
     }
     return hasTransfer;
   }
 
-  sendingMoneys(List<GetCashListResponseDataList> cashList,
+  _sendingMoneys(List<GetCashListResponseDataList> cashList,
       VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
-    while (isSendingCash) {
-      await Future.delayed(const Duration(milliseconds: 100));
-    }
-
     logger.i('start sending cash.phone: $phoneNumber');
-    isSendingCash = true;
     dataUpdated?.call();
-
-    // 等待余额更新结束
-    while (checkNeedWaiting(RequestType.sendCash)) {
-      await Future.delayed(const Duration(milliseconds: 100));
-    }
 
     try {
       for (final cell in cashList) {
@@ -779,13 +743,13 @@ class AccountData {
           withdrawalsIdSeq.removeAt(0);
         }
 
-        reportSendMoneySuccess(cell, isSuccess, dataUpdated, onLogged);
+        _reportSendMoneySuccess(cell, isSuccess, dataUpdated, onLogged);
         await Future.delayed(
             Duration(milliseconds: 2000 + _rand.nextInt(1500)));
       }
 
       if (DataManager().autoUpdateBalance) {
-        updateBalance(dataUpdated, onLogged);
+        _updateBalance(dataUpdated, onLogged);
       }
     } catch (e, stackTrace) {
       logger.e('e: $e', stackTrace: stackTrace);
@@ -796,7 +760,6 @@ class AccountData {
         ),
       );
     } finally {
-      isSendingCash = false;
       dataUpdated?.call();
     }
   }
@@ -804,7 +767,7 @@ class AccountData {
   // int _payId = 0;
 
   /// ret: isSuccess, needRepeat, errMsg
-  Future<Tuple3<bool, bool, String?>> report(VoidCallback? dataUpdated,
+  Future<Tuple3<bool, bool, String?>> _report(VoidCallback? dataUpdated,
       HistoriesResponseResponseMapTnxHistoryList data, String payId) async {
     if (isWmtMfsInvalid) return const Tuple3(false, false, 'token invalid');
     final ret = await BackendSender.report(
@@ -826,22 +789,17 @@ class AccountData {
     return Tuple3(ret.item1, ret.item2, ret.item3);
   }
 
-  reports(List<HistoriesResponseResponseMapTnxHistoryList> reportList,
+  _reports(List<HistoriesResponseResponseMapTnxHistoryList> reportList,
       VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
     // final reportList = <HistoriesResponseResponseMapTnxHistoryList?>[];
     // reportList.addAll(list);
 
-    while (reporting) {
-      await Future.delayed(const Duration(milliseconds: 100));
-    }
-
-    reporting = true;
     String? errMsg;
     for (final cell in reportList) {
       var isFail = true;
       // 重试3次
       for (var i = 0; i < 3; ++i) {
-        final ret = await report(dataUpdated, cell, cell.transId!);
+        final ret = await _report(dataUpdated, cell, cell.transId!);
         final isSuccess = ret.item1;
         final needRepeat = ret.item2;
         errMsg = ret.item3;
@@ -883,20 +841,13 @@ class AccountData {
         reportSuccessCnt++;
       }
     }
-    reporting = false;
     dataUpdated?.call();
   }
 
-  updateBalance(
+  _updateBalance(
       VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
-    if (isUpdatingBalance) return;
     isUpdatingBalance = true;
     dataUpdated?.call();
-
-    // 等待订单更新结束
-    while (checkNeedWaiting(RequestType.updateBalance)) {
-      await Future.delayed(const Duration(milliseconds: 100));
-    }
 
     try {
       final url = Uri.https(Config.host, 'v2/mfs-customer/wallet-balance');
@@ -968,7 +919,11 @@ class AccountData {
     }
   }
 
-  Future<List<GetCashListResponseDataList>?> getCashList(
+  updateBalance() {
+    lastUpdateBalanceTime = DateTime.fromMicrosecondsSinceEpoch(0);
+  }
+
+  Future<List<GetCashListResponseDataList>?> _getCashList(
       VoidCallback? dataUpdated) async {
     return BackendSender.getCashList(
       payName: 'WavePay',
@@ -978,7 +933,7 @@ class AccountData {
     );
   }
 
-  Future<List<GetRechargeTransferListData>> getRechargeTransferList(
+  Future<List<GetRechargeTransferListData>> _getRechargeTransferList(
       VoidCallback? dataUpdated) async {
     return BackendSender.getRechargeTransferList(
       payName: 'WavePay',
