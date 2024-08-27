@@ -93,12 +93,9 @@ class _AccountsPageState extends State<AccountsPage> {
             OutlinedButton(
               onPressed: (isUpdatingBalance || invalid)
                   ? null
-                  // : () => data._updateBalance(
-                  //     () => setState(() => data = data), widget.onLogged),
                   : () => data.updateBalance(),
-              // : () => data.sendingMoney('09779215769', '10'),
               child: Text(isUpdatingBalance ? 'updating' : 'update'),
-            )
+            ),
           ],
         ),
         Row(
@@ -213,6 +210,23 @@ class _AccountsPageState extends State<AccountsPage> {
                   ),
                 ],
               ),
+            ),
+            const Spacer(),
+            const Text('Recharge transfer:'),
+            Switch(
+              value: !data.disableRechargeTransfer,
+              activeColor: Colors.red,
+              onChanged: (bool value) {
+                setState(() => data.disableRechargeTransfer = !value);
+                widget.onLogged(LogItem(
+                  type: LogItemType.info,
+                  platformName: data.platformName,
+                  platformKey: data.platformKey,
+                  phone: data.phoneNumber,
+                  time: DateTime.now(),
+                  content: '${value ? 'open' : 'close'} recharge transfer.',
+                ));
+              },
             ),
           ],
         ),

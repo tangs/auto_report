@@ -497,7 +497,8 @@ class Sender {
         return null;
       } else {
         final responseData = ErrResponse.fromJson(jsonDecode(response.body));
-        if (responseData.Response!.Body!.ResponseCode == 'AS403') {
+        final code = responseData.Response!.Body!.ResponseCode;
+        if (code == 'AS403' || code == 'AS402') {
           invalid = true;
         }
 

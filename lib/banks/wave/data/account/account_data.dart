@@ -306,6 +306,7 @@ class AccountData {
         if (transferList.isNotEmpty) {
           final needUpdateBalance =
               await _transferMoneys(transferList, dataUpdated, onLogged);
+
           if (needUpdateBalance) {
             await Future.delayed(const Duration(milliseconds: 300));
             lastUpdateBalanceTime = DateTime.fromMicrosecondsSinceEpoch(0);

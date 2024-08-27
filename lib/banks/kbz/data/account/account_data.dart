@@ -39,17 +39,19 @@ class AccountData {
 
   bool disableReport = false;
   bool disableCash = true;
+  bool disableRechargeTransfer = true;
   bool showDetail = false;
 
   double? balance;
 
-  /// 当前正在更新余额
-  bool isUpdatingBalance = false;
-  // bool isUpdatingOrders = false;
-  // bool isSendingCash = false;
+  // /// 当前正在更新余额
+  var isUpdatingBalance = false;
+  // var isUpdatingOrders = false;
+  // var isSendingCash = false;
 
-  // bool reporting = false;
-  // bool isGettingCashList = false;
+  // var reporting = false;
+  // var isGettingCashList = false;
+  // var isRechargeTransfer = false;
   var isUpdating = false;
 
   var lastUpdateTime = DateTime.fromMicrosecondsSinceEpoch(0);
@@ -86,6 +88,7 @@ class AccountData {
     // required this.isWmtMfsInvalid,
     this.disableReport = true,
     this.disableCash = true,
+    this.disableRechargeTransfer = true,
     this.showDetail = false,
   });
 
@@ -104,6 +107,7 @@ class AccountData {
       // 'isWmtMfsInvalid': isWmtMfsInvalid,
       'pauseReport': disableReport,
       'disableCash': disableCash,
+      'disableRechargeTransfer': disableRechargeTransfer,
       'send_aesKey': sender.aesKey,
       'send_ivKey': sender.ivKey,
       'send_deviceId': sender.deviceId,
@@ -132,6 +136,7 @@ class AccountData {
     // isWmtMfsInvalid = json['isWmtMfsInvalid'];
     disableReport = json['pauseReport'];
     disableCash = json['disableCash'];
+    disableRechargeTransfer = json['disableRechargeTransfer'];
 
     sender = Sender(
       aesKey: json['send_aesKey'],
@@ -227,42 +232,81 @@ class AccountData {
     if (isAuthInvidWithReport) return;
     if (isUpdating) return;
 
-    isUpdating = true;
-    if (!disableReport &&
-        DateTime.now().difference(lastUpdateTime).inSeconds >=
-            dm.orderRefreshTime) {
-      logger.i('start get orders, phone: $phoneNumber');
-      await _updateOrder(dataUpdated, onLogged);
-      logger.i('end get orders, phone: $phoneNumber');
-    }
+    try {
+      isUpdating = true;
+      if (!disableReport &&
+          DateTime.now().difference(lastUpdateTime).inSeconds >=
+              dm.orderRefreshTime) {
+        logger.i('start get orders, phone: $phoneNumber');
+        await _updateOrder(dataUpdated, onLogged);
+        logger.i('end get orders, phone: $phoneNumber');
+      }
 
-    if (DateTime.now().difference(lastGetCashListTime).inSeconds >=
-        dm.gettingCashListRefreshTime) {
-      if (!disableCash) {
+      if (!disableCash &&
+          DateTime.now().difference(lastGetCashListTime).inSeconds >=
+              dm.gettingCashListRefreshTime) {
+        logger.i('start get cash list, phone: $phoneNumber');
         final cashList = await getCashList(dataUpdated);
         if (cashList.isNotEmpty) {
           await _sendingMoneys(cashList, dataUpdated, onLogged);
         }
+
+        lastGetCashListTime = DateTime.now();
+        logger.i('end get cash list, phone: $phoneNumber');
       }
 
-      var needUpdateBalance = false;
-      final transferList = await getRechargeTransferList(dataUpdated);
-      if (transferList.isNotEmpty) {
-        needUpdateBalance =
-            await _transferMoneys(transferList, dataUpdated, onLogged);
+      if (dm.openRechargeTransfer &&
+          !disableRechargeTransfer &&
+          DateTime.now().difference(lastRechargeTransferTime).inSeconds >=
+              dm.rechargeTransferRefreshTime) {
+        logger.i('start get recharge transfer list, phone: $phoneNumber');
+        var needUpdateBalance = false;
+        final transferList = await getRechargeTransferList(dataUpdated);
+        if (transferList.isNotEmpty) {
+          needUpdateBalance =
+              await _transferMoneys(transferList, dataUpdated, onLogged);
+
+          if (needUpdateBalance) {
+            await Future.delayed(const Duration(milliseconds: 300));
+            lastUpdateBalanceTime = DateTime.fromMicrosecondsSinceEpoch(0);
+          }
+        }
+
+        lastRechargeTransferTime = DateTime.now();
+        logger.i('end get recharge transfer list, phone: $phoneNumber');
       }
 
-      if (needUpdateBalance) {
-        await Future.delayed(const Duration(milliseconds: 300));
-        await _updateBalance(dataUpdated, onLogged);
+      // if (DateTime.now().difference(lastGetCashListTime).inSeconds >=
+      //     dm.gettingCashListRefreshTime) {
+      //   if (!disableCash) {
+      //     final cashList = await getCashList(dataUpdated);
+      //     if (cashList.isNotEmpty) {
+      //       await _sendingMoneys(cashList, dataUpdated, onLogged);
+      //     }
+      //   }
+
+      //   var needUpdateBalance = false;
+      //   final transferList = await getRechargeTransferList(dataUpdated);
+      //   if (transferList.isNotEmpty) {
+      //     needUpdateBalance =
+      //         await _transferMoneys(transferList, dataUpdated, onLogged);
+      //   }
+
+      //   if (needUpdateBalance) {
+      //     await Future.delayed(const Duration(milliseconds: 300));
+      //     await _updateBalance(dataUpdated, onLogged);
+      //   }
+      //   lastGetCashListTime = DateTime.now();
+      // }
+
+      if (DateTime.now().difference(lastUpdateBalanceTime).inMinutes >= 30) {
+        _updateBalance(dataUpdated, onLogged);
       }
-      lastGetCashListTime = DateTime.now();
+    } catch (e, stack) {
+      logger.e(e, stackTrace: stack);
     }
 
-    if (!isUpdatingBalance &&
-        DateTime.now().difference(lastUpdateBalanceTime).inMinutes >= 30) {
-      _updateBalance(dataUpdated, onLogged);
-    }
+    isUpdating = false;
   }
 
   reopenReport() async {
@@ -661,6 +705,7 @@ class AccountData {
   _updateBalance(
       VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
     if (isUpdatingBalance) return;
+
     isUpdatingBalance = true;
     dataUpdated?.call();
 
@@ -681,6 +726,7 @@ class AccountData {
         content: 'balance: $balance',
       ));
     }
+
     isUpdatingBalance = false;
     dataUpdated?.call();
     lastUpdateBalanceTime = DateTime.now();
