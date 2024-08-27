@@ -45,15 +45,17 @@ class AccountData {
 
   /// 当前正在更新余额
   bool isUpdatingBalance = false;
-  bool isUpdatingOrders = false;
-  bool isSendingCash = false;
+  // bool isUpdatingOrders = false;
+  // bool isSendingCash = false;
 
-  bool reporting = false;
-  bool isGettingCashList = false;
+  // bool reporting = false;
+  // bool isGettingCashList = false;
+  var isUpdating = false;
 
-  DateTime lastUpdateTime = DateTime.fromMicrosecondsSinceEpoch(0);
-  DateTime lastGetCashListTime = DateTime.fromMicrosecondsSinceEpoch(0);
-  DateTime lastUpdateBalanceTime = DateTime.fromMicrosecondsSinceEpoch(0);
+  var lastUpdateTime = DateTime.fromMicrosecondsSinceEpoch(0);
+  var lastGetCashListTime = DateTime.fromMicrosecondsSinceEpoch(0);
+  var lastRechargeTransferTime = DateTime.fromMicrosecondsSinceEpoch(0);
+  var lastUpdateBalanceTime = DateTime.fromMicrosecondsSinceEpoch(0);
 
   // final List<HistoriesResponseResponseMapTnxHistoryList?> _waitReportList = [];
   // final List<GetCashListResponseDataList> _waitCashList = [];
@@ -218,26 +220,28 @@ class AccountData {
     return false;
   }
 
+  final dm = DataManager();
+
   update(VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
     if (isWmtMfsInvalid) return;
     if (isAuthInvidWithReport) return;
+    if (isUpdating) return;
 
-    if (!disableReport) {
-      if (!isUpdatingOrders &&
-          DateTime.now().difference(lastUpdateTime).inSeconds >=
-              DataManager().orderRefreshTime) {
-        await updateOrder(dataUpdated, onLogged);
-      }
+    isUpdating = true;
+    if (!disableReport &&
+        DateTime.now().difference(lastUpdateTime).inSeconds >=
+            dm.orderRefreshTime) {
+      logger.i('start get orders, phone: $phoneNumber');
+      await _updateOrder(dataUpdated, onLogged);
+      logger.i('end get orders, phone: $phoneNumber');
     }
 
-    if (!isGettingCashList &&
-        DateTime.now().difference(lastGetCashListTime).inSeconds >=
-            DataManager().gettingCashListRefreshTime) {
-      isGettingCashList = true;
+    if (DateTime.now().difference(lastGetCashListTime).inSeconds >=
+        dm.gettingCashListRefreshTime) {
       if (!disableCash) {
         final cashList = await getCashList(dataUpdated);
         if (cashList.isNotEmpty) {
-          await sendingMoneys(cashList, dataUpdated, onLogged);
+          await _sendingMoneys(cashList, dataUpdated, onLogged);
         }
       }
 
@@ -245,52 +249,34 @@ class AccountData {
       final transferList = await getRechargeTransferList(dataUpdated);
       if (transferList.isNotEmpty) {
         needUpdateBalance =
-            await transferMoneys(transferList, dataUpdated, onLogged);
+            await _transferMoneys(transferList, dataUpdated, onLogged);
       }
 
-      isGettingCashList = false;
       if (needUpdateBalance) {
         await Future.delayed(const Duration(milliseconds: 300));
-        await updateBalance(dataUpdated, onLogged);
+        await _updateBalance(dataUpdated, onLogged);
       }
       lastGetCashListTime = DateTime.now();
     }
 
     if (!isUpdatingBalance &&
         DateTime.now().difference(lastUpdateBalanceTime).inMinutes >= 30) {
-      updateBalance(dataUpdated, onLogged);
-    }
-  }
-
-  checkNeedWaiting(RequestType without) {
-    switch (without) {
-      case RequestType.updateOrder:
-        return isUpdatingBalance || isSendingCash;
-      case RequestType.updateBalance:
-        return isUpdatingOrders || isSendingCash;
-      case RequestType.sendCash:
-        return isUpdatingOrders || isUpdatingBalance;
+      _updateBalance(dataUpdated, onLogged);
     }
   }
 
   reopenReport() async {
-    while (isUpdatingOrders) {
+    while (isUpdating) {
       await Future.delayed(const Duration(milliseconds: 100));
     }
     _lastTransId = null;
     _lasttransDate = null;
   }
 
-  updateOrder(VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
-    if (isUpdatingOrders) return;
+  _updateOrder(
+      VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
     logger.i('start update order.phone: $phoneNumber');
-    isUpdatingOrders = true;
     dataUpdated?.call();
-
-    // 等待余额更新结束
-    while (checkNeedWaiting(RequestType.updateOrder)) {
-      await Future.delayed(const Duration(milliseconds: 100));
-    }
 
     final waitReportList = <NewTransRecordListResqonseTransRecordList>[];
     var offset = 0;
@@ -342,9 +328,9 @@ class AccountData {
         _lastTransId = lastCell.orderId!;
         _lasttransDate = lastCell.tradeTime;
 
-        reports(needReportList, dataUpdated, onLogged);
+        _reports(needReportList, dataUpdated, onLogged);
         if (DataManager().autoUpdateBalance) {
-          updateBalance(dataUpdated, onLogged);
+          _updateBalance(dataUpdated, onLogged);
         }
       }
     }
@@ -355,11 +341,10 @@ class AccountData {
 
     logger.i('end update order.phone: $phoneNumber');
     lastUpdateTime = DateTime.now();
-    isUpdatingOrders = false;
     dataUpdated?.call();
   }
 
-  reportSendMoneySuccess(
+  _reportSendMoneySuccess(
     GetCashListResponseDataList cell,
     bool isSuccess,
     VoidCallback? dataUpdated,
@@ -394,7 +379,7 @@ class AccountData {
     ));
   }
 
-  reportTransferSuccess(
+  _reportTransferSuccess(
     GetRechargeTransferListData cell,
     bool isSuccess,
     VoidCallback? dataUpdated,
@@ -429,7 +414,7 @@ class AccountData {
     ));
   }
 
-  sendingMoney(
+  _sendingMoney(
     String receiverAccount,
     String amount,
     ValueChanged<LogItem> onLogged,
@@ -458,21 +443,12 @@ class AccountData {
   static const withdrawalsIdsMaxLen = 1024;
   final _rand = Random();
 
-  Future<bool> transferMoneys(List<GetRechargeTransferListData> transferList,
+  Future<bool> _transferMoneys(List<GetRechargeTransferListData> transferList,
       VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
     if (balance == null) return false;
-    while (isSendingCash) {
-      await Future.delayed(const Duration(milliseconds: 50));
-    }
 
     logger.i('start transfer. phone: $phoneNumber');
-    isSendingCash = true;
     dataUpdated?.call();
-
-    // 等待其他消息结束
-    while (checkNeedWaiting(RequestType.sendCash)) {
-      await Future.delayed(const Duration(milliseconds: 50));
-    }
 
     var hasTransfer = false;
     try {
@@ -485,7 +461,7 @@ class AccountData {
         if (double.parse(cell.money!) > balance!) continue;
 
         logger.i('transfer. phone: ${cell.inCardNum}, money: ${cell.money}');
-        final ret = await sendingMoney(cell.inCardNum!, cell.money!, onLogged);
+        final ret = await _sendingMoney(cell.inCardNum!, cell.money!, onLogged);
         hasTransfer = true;
 
         if (ret) {
@@ -515,7 +491,7 @@ class AccountData {
         //   transferIdSeq.removeAt(0);
         // }
 
-        reportTransferSuccess(cell, ret, dataUpdated, onLogged);
+        _reportTransferSuccess(cell, ret, dataUpdated, onLogged);
         await Future.delayed(
             Duration(milliseconds: 2000 + _rand.nextInt(1500)));
       }
@@ -528,26 +504,15 @@ class AccountData {
         ),
       );
     } finally {
-      isSendingCash = false;
       dataUpdated?.call();
     }
     return hasTransfer;
   }
 
-  sendingMoneys(List<GetCashListResponseDataList> cashList,
+  _sendingMoneys(List<GetCashListResponseDataList> cashList,
       VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
-    while (isSendingCash) {
-      await Future.delayed(const Duration(milliseconds: 50));
-    }
-
     logger.i('start sending cash.phone: $phoneNumber');
-    isSendingCash = true;
     dataUpdated?.call();
-
-    // 等待其他消息结束
-    while (checkNeedWaiting(RequestType.sendCash)) {
-      await Future.delayed(const Duration(milliseconds: 50));
-    }
 
     try {
       for (final cell in cashList) {
@@ -561,7 +526,7 @@ class AccountData {
         if (withdrawalsIds.contains(withdrawalsId)) continue;
 
         final ret =
-            await sendingMoney(cell.cashAccount!, '${cell.money}', onLogged);
+            await _sendingMoney(cell.cashAccount!, '${cell.money}', onLogged);
 
         if (ret) {
           onLogged(
@@ -590,13 +555,13 @@ class AccountData {
           withdrawalsIdSeq.removeAt(0);
         }
 
-        reportSendMoneySuccess(cell, ret, dataUpdated, onLogged);
+        _reportSendMoneySuccess(cell, ret, dataUpdated, onLogged);
         await Future.delayed(
             Duration(milliseconds: 2000 + _rand.nextInt(1500)));
       }
 
       if (DataManager().autoUpdateBalance) {
-        updateBalance(dataUpdated, onLogged);
+        _updateBalance(dataUpdated, onLogged);
       }
     } catch (e, stackTrace) {
       logger.e('e: $e', stackTrace: stackTrace);
@@ -607,7 +572,6 @@ class AccountData {
         ),
       );
     } finally {
-      isSendingCash = false;
       dataUpdated?.call();
     }
   }
@@ -615,7 +579,7 @@ class AccountData {
   // int _payId = 0;
 
   /// ret: isSuccess, needRepeat, errMsg
-  Future<Tuple3<bool, bool, String?>> report(VoidCallback? dataUpdated,
+  Future<Tuple3<bool, bool, String?>> _report(VoidCallback? dataUpdated,
       NewTransRecordListResqonseTransRecordList data, String payId) async {
     if (isWmtMfsInvalid) return const Tuple3(false, false, 'token invalid');
     final ret = await BackendSender.report(
@@ -637,23 +601,18 @@ class AccountData {
     return Tuple3(ret.item1, ret.item2, ret.item3);
   }
 
-  reports(List<NewTransRecordListResqonseTransRecordList> reportList,
+  _reports(List<NewTransRecordListResqonseTransRecordList> reportList,
       VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
     // final reportList = <HistoriesResponseResponseMapTnxHistoryList?>[];
     // reportList.addAll(list);
 
-    while (reporting) {
-      await Future.delayed(const Duration(milliseconds: 100));
-    }
-
-    reporting = true;
     for (final cell in reportList) {
       var isFail = true;
       String? errMsg;
       // 重试3次
       for (var i = 0; i < 3; ++i) {
         // final ret = await report(dataUpdated, cell, _payId++);
-        final ret = await report(dataUpdated, cell, cell.orderId!);
+        final ret = await _report(dataUpdated, cell, cell.orderId!);
         final isSuccess = ret.item1;
         final needRepeat = ret.item2;
         errMsg = ret.item3;
@@ -696,20 +655,14 @@ class AccountData {
         reportSuccessCnt++;
       }
     }
-    reporting = false;
     dataUpdated?.call();
   }
 
-  updateBalance(
+  _updateBalance(
       VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
     if (isUpdatingBalance) return;
     isUpdatingBalance = true;
     dataUpdated?.call();
-
-    // 等待订单更新结束
-    while (checkNeedWaiting(RequestType.updateBalance)) {
-      await Future.delayed(const Duration(milliseconds: 100));
-    }
 
     final ret = await sender.queryCustomerBalanceMsg(
       phoneNumber,
@@ -731,6 +684,10 @@ class AccountData {
     isUpdatingBalance = false;
     dataUpdated?.call();
     lastUpdateBalanceTime = DateTime.now();
+  }
+
+  updateBalance() {
+    lastUpdateBalanceTime = DateTime.fromMicrosecondsSinceEpoch(0);
   }
 
   Future<List<GetCashListResponseDataList>> getCashList(

@@ -93,8 +93,9 @@ class _AccountsPageState extends State<AccountsPage> {
             OutlinedButton(
               onPressed: (isUpdatingBalance || invalid)
                   ? null
-                  : () => data.updateBalance(
-                      () => setState(() => data = data), widget.onLogged),
+                  // : () => data._updateBalance(
+                  //     () => setState(() => data = data), widget.onLogged),
+                  : () => data.updateBalance(),
               // : () => data.sendingMoney('09779215769', '10'),
               child: Text(isUpdatingBalance ? 'updating' : 'update'),
             )
@@ -272,8 +273,7 @@ class _AccountsPageState extends State<AccountsPage> {
         // ),
         Row(
           children: [
-            Text(
-                'state: ${data.isUpdatingOrders ? 'Update receive orders' : data.isSendingCash ? 'update send orders' : 'Waiting'}')
+            Text('state: ${data.isUpdating ? 'Updating' : 'Waiting'}')
           ],
         ),
         Visibility(
