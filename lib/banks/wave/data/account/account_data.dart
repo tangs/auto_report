@@ -265,6 +265,8 @@ class AccountData {
     }
   }
 
+  final dm = DataManager();
+
   update(VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
     if (isWmtMfsInvalid) return;
     if (isAuthInvidWithReport) return;
@@ -273,7 +275,6 @@ class AccountData {
     isUpdating = true;
 
     try {
-      final dm = DataManager();
       if (!disableReport &&
           DateTime.now().difference(lastUpdateTime).inSeconds >=
               dm.orderRefreshTime) {
