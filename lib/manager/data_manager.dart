@@ -13,7 +13,7 @@ class DataManager {
   static const orderRefreshTimeRange = RangeValues(50, 120);
 
   double orderRefreshTime = 60;
-  double gettingCashListRefreshTime = 5;
+  double gettingCashListRefreshTime = 15;
   double rechargeTransferRefreshTime = 30;
 
   bool devMode = false;
