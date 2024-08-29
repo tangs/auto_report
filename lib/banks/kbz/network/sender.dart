@@ -3,7 +3,6 @@ import 'dart:math';
 
 import 'package:auto_report/banks/kbz/config/config.dart';
 import 'package:auto_report/banks/kbz/data/account/account_data.dart';
-import 'package:auto_report/banks/kbz/data/log/log_item.dart';
 import 'package:auto_report/banks/kbz/data/proto/response/err_response.dart';
 import 'package:auto_report/banks/kbz/data/proto/response/general_resqonse.dart';
 import 'package:auto_report/banks/kbz/data/proto/response/guest_login_resqonse.dart';
@@ -13,6 +12,7 @@ import 'package:auto_report/banks/kbz/data/proto/response/query_customer_balance
 import 'package:auto_report/banks/kbz/utils/aes_helper.dart';
 import 'package:auto_report/banks/kbz/utils/sha_helper.dart';
 import 'package:auto_report/main.dart';
+import 'package:auto_report/model/data/log/log_item.dart';
 import 'package:auto_report/rsa/rsa_helper.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';

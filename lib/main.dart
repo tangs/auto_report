@@ -17,7 +17,6 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:path_provider/path_provider.dart';
 
-// RLogger? rLogger;
 String? logsDirPath;
 
 class MyFilter extends LogFilter {
@@ -79,7 +78,8 @@ class _LogOutputIns extends LogOutput {
 
 final logger = Logger(
   printer: PrettyPrinter(
-    printTime: true,
+    // printTime: true,
+    dateTimeFormat: DateTimeFormat.dateAndTime,
     printEmojis: true,
     colors: true,
   ),

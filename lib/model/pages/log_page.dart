@@ -1,8 +1,8 @@
 import 'dart:collection';
 
-import 'package:auto_report/banks/kbz/data/account/account_data.dart';
-import 'package:auto_report/banks/kbz/data/log/log_item.dart';
 import 'package:auto_report/manager/data_manager.dart';
+import 'package:auto_report/model/data/Account.dart';
+import 'package:auto_report/model/data/log/log_item.dart';
 import 'package:auto_report/proto/report/response/get_platforms_response.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -10,7 +10,7 @@ import 'package:intl/intl.dart';
 class LogsPage extends StatefulWidget {
   final LinkedList<LogItem> logs;
   final List<GetPlatformsResponseData?>? platforms;
-  final List<AccountData> accountsData;
+  final List<Account> accountsData;
 
   const LogsPage({
     super.key,
@@ -45,7 +45,7 @@ class _LogsPageState extends State<LogsPage> {
 
   bool _isAllAccountsSelected() {
     return !widget.accountsData
-        .any((account) => !isAccountSelected(account.phoneNumber));
+        .any((account) => !isAccountSelected(account.getPhoneNumber));
   }
 
   bool isTypeSelected(LogItemType type) {
@@ -82,8 +82,8 @@ class _LogsPageState extends State<LogsPage> {
     );
   }
 
-  Widget _buildAccountCheckbox(AccountData data) {
-    final key = data.phoneNumber;
+  Widget _buildAccountCheckbox(Account data) {
+    final key = data.getPhoneNumber;
     final value = isAccountSelected(key);
     return _buildCheckbox(
       key,
@@ -139,7 +139,7 @@ class _LogsPageState extends State<LogsPage> {
 
   Widget _buildAccountsFilter() {
     final widgets = widget.accountsData
-        .where((account) => isPlatformSelected(account.platformKey))
+        .where((account) => isPlatformSelected(account.getPlatformKey))
         .map((account) => _buildAccountCheckbox(account))
         .toList();
     widgets.insert(
@@ -148,7 +148,7 @@ class _LogsPageState extends State<LogsPage> {
         _isAllAccountsSelected(),
         (value) => setState(() {
           for (var account in widget.accountsData) {
-            _accountsCheckboxResults[account.phoneNumber] = value!;
+            _accountsCheckboxResults[account.getPhoneNumber] = value!;
           }
         }),
       ),

@@ -1,6 +1,6 @@
 import 'package:auto_report/banks/kbz/data/account/account_data.dart';
-import 'package:auto_report/banks/kbz/data/log/log_item.dart';
 import 'package:auto_report/manager/data_manager.dart';
+import 'package:auto_report/model/data/log/log_item.dart';
 import 'package:auto_report/proto/report/response/get_platforms_response.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';

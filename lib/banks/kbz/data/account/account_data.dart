@@ -2,7 +2,8 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:auto_report/banks/kbz/config/config.dart';
-import 'package:auto_report/banks/kbz/data/log/log_item.dart';
+import 'package:auto_report/model/data/log/log_item.dart';
+import 'package:auto_report/model/data/Account.dart';
 import 'package:auto_report/network/proto/get_cash_list_response.dart';
 import 'package:auto_report/network/proto/get_recharge_transfer_list.dart';
 import 'package:auto_report/banks/kbz/data/proto/response/new_trans_record_list_resqonse.dart';
@@ -16,7 +17,7 @@ import 'package:tuple/tuple.dart';
 
 enum RequestType { updateOrder, updateBalance, sendCash }
 
-class AccountData {
+class AccountData implements Account {
   late Sender sender;
   late String token;
   late String remark;
@@ -755,4 +756,10 @@ class AccountData {
       httpRequestTimeoutSeconds: Config.httpRequestTimeoutSeconds,
     );
   }
+
+  @override
+  String get getPhoneNumber => phoneNumber;
+
+  @override
+  String get getPlatformKey => platformKey;
 }

@@ -4,13 +4,13 @@ import 'dart:collection';
 import 'package:auto_report/banks/kbz/config/config.dart';
 import 'package:auto_report/banks/kbz/data/account/account_data.dart';
 import 'package:auto_report/banks/kbz/data/account/accounts.dart';
-import 'package:auto_report/banks/kbz/data/log/log_item.dart';
 import 'package:auto_report/manager/data_manager.dart';
+import 'package:auto_report/model/data/log/log_item.dart';
+import 'package:auto_report/model/pages/log_page.dart';
 import 'package:auto_report/pages/file_page.dart';
 import 'package:auto_report/proto/report/response/get_platforms_response.dart';
 import 'package:auto_report/main.dart';
 import 'package:auto_report/banks/kbz/pages/accounts_page.dart';
-import 'package:auto_report/banks/kbz/pages/log_page.dart';
 import 'package:auto_report/pages/setting_page.dart';
 import 'package:flutter/material.dart';
 
