@@ -3,7 +3,7 @@ import 'dart:math';
 
 import 'package:auto_report/banks/kbz/config/config.dart';
 import 'package:auto_report/model/data/log/log_item.dart';
-import 'package:auto_report/model/data/Account.dart';
+import 'package:auto_report/model/data/account.dart';
 import 'package:auto_report/network/proto/get_cash_list_response.dart';
 import 'package:auto_report/network/proto/get_recharge_transfer_list.dart';
 import 'package:auto_report/banks/kbz/data/proto/response/new_trans_record_list_resqonse.dart';

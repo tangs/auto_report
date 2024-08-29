@@ -4,11 +4,12 @@ import 'dart:math';
 
 import 'package:auto_report/banks/wave/config/config.dart';
 import 'package:auto_report/banks/wave/data/account/histories_response.dart';
-import 'package:auto_report/banks/wave/data/log/log_item.dart';
 import 'package:auto_report/container/limit_set.dart';
 import 'package:auto_report/manager/data_manager.dart';
 import 'package:auto_report/banks/wave/data/proto/response/cash/send_money_response.dart';
 import 'package:auto_report/banks/wave/data/proto/response/generate_otp_response.dart';
+import 'package:auto_report/model/data/account.dart';
+import 'package:auto_report/model/data/log/log_item.dart';
 import 'package:auto_report/network/backend_sender.dart';
 import 'package:auto_report/network/proto/get_cash_list_response.dart';
 import 'package:auto_report/banks/wave/data/proto/response/wallet_balance_response.dart';
@@ -22,7 +23,7 @@ import 'package:tuple/tuple.dart';
 
 enum RequestType { updateOrder, updateBalance, sendCash }
 
-class AccountData {
+class AccountData implements Account {
   late String token;
   late String remark;
 
@@ -945,4 +946,10 @@ class AccountData {
       httpRequestTimeoutSeconds: Config.httpRequestTimeoutSeconds,
     );
   }
+
+  @override
+  String get getPhoneNumber => phoneNumber;
+
+  @override
+  String get getPlatformKey => platformKey;
 }
