@@ -1,8 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:auto_report/utils/log_helper.dart';
 import 'package:encrypt/encrypt.dart';
-
-import 'package:auto_report/main.dart';
 
 class AesHelper {
   static String encrypt(String content, String aesKey, String ivKey) {

@@ -11,9 +11,9 @@ import 'package:auto_report/banks/kbz/data/proto/response/new_trans_record_list_
 import 'package:auto_report/banks/kbz/data/proto/response/query_customer_balance_resqonse.dart';
 import 'package:auto_report/banks/kbz/utils/aes_helper.dart';
 import 'package:auto_report/banks/kbz/utils/sha_helper.dart';
-import 'package:auto_report/main.dart';
 import 'package:auto_report/model/data/log/log_item.dart';
 import 'package:auto_report/rsa/rsa_helper.dart';
+import 'package:auto_report/utils/log_helper.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:http/http.dart' as http;

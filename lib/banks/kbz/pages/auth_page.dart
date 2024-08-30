@@ -8,7 +8,7 @@ import 'package:auto_report/banks/kbz/network/sender.dart';
 import 'package:auto_report/banks/kbz/utils/aes_key_generator.dart';
 import 'package:auto_report/proto/report/response/get_platforms_response.dart';
 import 'package:auto_report/proto/report/response/general_response.dart';
-import 'package:auto_report/main.dart';
+import 'package:auto_report/utils/log_helper.dart';
 import 'package:auto_report/widges/platform_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';

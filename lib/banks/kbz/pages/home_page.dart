@@ -9,9 +9,9 @@ import 'package:auto_report/model/data/log/log_item.dart';
 import 'package:auto_report/model/pages/log_page.dart';
 import 'package:auto_report/pages/file_page.dart';
 import 'package:auto_report/proto/report/response/get_platforms_response.dart';
-import 'package:auto_report/main.dart';
 import 'package:auto_report/banks/kbz/pages/accounts_page.dart';
 import 'package:auto_report/pages/setting_page.dart';
+import 'package:auto_report/utils/log_helper.dart';
 import 'package:flutter/material.dart';
 
 typedef OnLogCallback = void Function(LogItem item);

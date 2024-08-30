@@ -1,9 +1,9 @@
 import 'dart:convert';
 
-import 'package:auto_report/main.dart';
 import 'package:auto_report/network/proto/get_cash_list_response.dart';
 import 'package:auto_report/network/proto/get_recharge_transfer_list.dart';
 import 'package:auto_report/proto/report/response/general_response.dart';
+import 'package:auto_report/utils/log_helper.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:http/http.dart' as http;

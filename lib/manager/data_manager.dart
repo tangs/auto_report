@@ -1,7 +1,7 @@
 import 'dart:math';
 
 import 'package:auto_report/config/global_config.dart';
-import 'package:auto_report/main.dart';
+import 'package:auto_report/utils/log_helper.dart';
 import 'package:auto_report/widges/bank_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:localstorage/localstorage.dart';

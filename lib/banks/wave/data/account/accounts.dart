@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:auto_report/banks/wave/data/account/account_data.dart';
-import 'package:auto_report/main.dart';
+import 'package:auto_report/utils/log_helper.dart';
 import 'package:localstorage/localstorage.dart';
 
 class Accounts {
