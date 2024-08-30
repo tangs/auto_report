@@ -34,6 +34,50 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  needLogin() {
+    switch (GlobalConfig.bankType) {
+      case BankType.wave:
+      case BankType.kbz:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  Future<GetPlatformsResponse?> getPlatformUrl() async {
+    final url = Uri.http('www.diyibuyu.com', 'api/getPlatformUrl');
+
+    final response = await Future.any([
+      http.post(url, body: {
+        'platform': '$_platform',
+      }),
+      Future.delayed(const Duration(seconds: Config.httpRequestTimeoutSeconds)),
+    ]);
+
+    if (response is! http.Response) {
+      EasyLoading.showError('timeout');
+      logger.i('timeout');
+      return null;
+    }
+
+    final body = response.body.replaceAll(RegExp('[\\\\"]'), '');
+    logger.i('res body: $body');
+
+    final decodeStr = RSAHelper.decrypt(body, Config.rsaPrivateKeyReport);
+    logger.i('decode str: $decodeStr');
+    final json = jsonDecode(decodeStr);
+    logger.i('data: $json');
+
+    final resData = GetPlatformsResponse.fromJson(json);
+    if (resData.status != true || resData.msg != 'success') {
+      EasyLoading.showToast(
+          'login err. status: ${resData.status}, msg: ${resData.msg}');
+      return null;
+    }
+
+    return resData;
+  }
+
   void login() async {
     if (_platform?.isEmpty ?? true) {
       EasyLoading.showToast('platform must not empty.');
@@ -42,38 +86,9 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => _logging = true);
 
     try {
-      final url = Uri.http('www.diyibuyu.com', 'api/getPlatformUrl');
-      // final response = await http.post(url, body: {
-      //   'platform': '$_platform',
-      // });
-
-      final response = await Future.any([
-        http.post(url, body: {
-          'platform': '$_platform',
-        }),
-        Future.delayed(
-            const Duration(seconds: Config.httpRequestTimeoutSeconds)),
-      ]);
-
-      if (response is! http.Response) {
-        EasyLoading.showError('timeout');
-        logger.i('timeout');
-        return;
-      }
-
-      final body = response.body.replaceAll(RegExp('[\\\\"]'), '');
-      logger.i('res body: $body');
-
-      final decodeStr = RSAHelper.decrypt(body, Config.rsaPrivateKeyReport);
-      logger.i('decode str: $decodeStr');
-      final json = jsonDecode(decodeStr);
-      logger.i('data: $json');
-
-      final resData = GetPlatformsResponse.fromJson(json);
-      if (resData.status != true || resData.msg != 'success') {
-        EasyLoading.showToast(
-            'login err. status: ${resData.status}, msg: ${resData.msg}');
-        return;
+      GetPlatformsResponse? resData;
+      if (needLogin()) {
+        resData = await getPlatformUrl();
       }
 
       // for (var cell in resData.data!) {
@@ -82,7 +97,7 @@ class _LoginPageState extends State<LoginPage> {
 
       if (!mounted) return;
 
-      var path = '/wave/home';
+      var path = '';
       switch (GlobalConfig.bankType) {
         case BankType.wave:
           path = '/wave/home';
@@ -90,10 +105,13 @@ class _LoginPageState extends State<LoginPage> {
         case BankType.kbz:
           path = '/kbz/home';
           break;
+        case BankType.kbiz:
+          path = '/kbiz/home';
+          break;
       }
       Navigator.of(context).pushReplacementNamed(
         path,
-        arguments: resData.data,
+        arguments: resData?.data,
       );
     } catch (e, stackTrace) {
       logger.e('e: $e', stackTrace: stackTrace);
