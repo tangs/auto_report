@@ -2,7 +2,13 @@ import 'package:flutter/material.dart';
 
 typedef OnBankSelectorValueChangedCallback = void Function(BankType bank);
 
-enum BankType { wave, kbz, kbiz }
+enum BankType {
+  wave,
+  kbz,
+  kbiz;
+
+  String get value => toString().split(".").last;
+}
 
 class BankSelector extends StatefulWidget {
   BankSelector({

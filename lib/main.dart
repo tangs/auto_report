@@ -27,7 +27,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final title = GlobalConfig.bankType == BankType.kbz ? 'KBZ' : 'Wave';
+    final title = GlobalConfig.bankType.value;
     return MaterialApp(
       title: title,
       routes: {
@@ -66,7 +66,7 @@ class MyApp extends StatelessWidget {
           final data = ModalRoute.of(context)?.settings.arguments
               as List<GetPlatformsResponseData?>?;
           return kbz_home.HomePage(
-            title: GlobalConfig.bankType == BankType.kbz ? 'KBZ' : 'Wave',
+            title: GlobalConfig.bankType.value,
             platforms: data,
           );
         },
