@@ -4,9 +4,9 @@ import 'package:auto_report/banks/wave/pages/auth_page.dart' as wave_auth;
 import 'package:auto_report/banks/wave/pages/home_page.dart' as wave_home;
 import 'package:auto_report/banks/kbz/pages/auth_page.dart' as kbz_auth;
 import 'package:auto_report/banks/kbz/pages/home_page.dart' as kbz_home;
+import 'package:auto_report/banks/kbiz/pages/home_page.dart' as kbiz_home;
 import 'package:auto_report/pages/login_page.dart';
 import 'package:auto_report/utils/log_helper.dart';
-import 'package:auto_report/widges/bank_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:localstorage/localstorage.dart';
@@ -46,7 +46,7 @@ class MyApp extends StatelessWidget {
           final data = ModalRoute.of(context)?.settings.arguments
               as List<GetPlatformsResponseData?>?;
           return wave_home.HomePage(
-            title: GlobalConfig.bankType == BankType.kbz ? 'KBZ' : 'Wave',
+            title: GlobalConfig.bankType.value,
             platforms: data,
           );
         },
@@ -68,6 +68,12 @@ class MyApp extends StatelessWidget {
           return kbz_home.HomePage(
             title: GlobalConfig.bankType.value,
             platforms: data,
+          );
+        },
+        '/kbiz/home': (context) {
+          return kbiz_home.HomePage(
+            title: GlobalConfig.bankType.value,
+            // platforms: data,
           );
         },
       },
