@@ -1,12 +1,15 @@
 import 'dart:math';
 
 import 'package:auto_report/banks/kbiz/data/bank/get_account_summary_list_response.dart';
+import 'package:auto_report/banks/kbiz/data/bank/get_blacklist_flag.dart';
+import 'package:auto_report/banks/kbiz/data/bank/recent_transaction_response.dart';
 import 'package:auto_report/banks/kbiz/data/bank/validate_session_response.dart';
 import 'package:auto_report/utils/log_helper.dart';
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:dio/dio.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:intl/intl.dart';
 
 class Sender {
   final dio = Dio();
@@ -18,27 +21,14 @@ class Sender {
   String? _password;
 
   ValidateSessionResponse? _validateSessionResponse;
+  GetAccountSummaryListResponse? _accountSummaryListResponse;
 
   Sender() {
     final cookieJar = CookieJar();
     dio.interceptors.add(CookieManager(cookieJar));
   }
 
-  init() async {
-    final res =
-        await dio.get('https://kbiz.kasikornbank.com/authen/login.jsp?lang=en');
-    final body = res.data.toString();
-
-    // logger.i('res: $body');
-
-    final tokenRe = RegExp(r'id="tokenId"\svalue="([^"]*)"');
-    final ret = tokenRe.firstMatch(body);
-    assert(ret != null);
-    final token = ret!.group(1);
-    _token = token;
-
-    logger.i('token: $token');
-
+  Future<bool> getIcon() async {
     await dio.get(
       'https://kbiz.kasikornbank.com/android-icon-144x144.png',
       options: Options(headers: {
@@ -48,36 +38,7 @@ class Sender {
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)',
       }),
     );
-
-    // logger.i('res1: $res1');
-
-    // final res2 = await dio.post(
-    //   'https://kbiz.kasikornbank.com/authen/login.do',
-    //   data: FormData.fromMap({
-    //     'userName': 'Suminta41',
-    //     'password': 'May88990#',
-    //     'tokenId': token!,
-    //     'cmd': 'authenticate',
-    //     'locale': 'en',
-    //     'custType': '',
-    //     'captcha': '',
-    //     'app': '0',
-    //   }),
-    //   options: Options(headers: {
-    //     'Content-Type': 'application/x-www-form-urlencoded',
-    //     'Accept': '*/*',
-    //     'User-Agent':
-    //         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)',
-    //   }),
-    // );
-
-    // logger.i('res2: $res2');
-
-    // final loginResult =
-    //     res2.data.toString().contains('authen/ib/redirectToIB.jsp');
-    // logger.i('login result: $loginResult');
-
-    // final a = 3;
+    return true;
   }
 
   String _genRequestId() {
@@ -108,6 +69,54 @@ class Sender {
     // 最终结果
     final result = timeStr + randomNumber.toString().padLeft(3, '0');
     return result;
+  }
+
+  ValidateSessionResponseDataUserProfiles? _getUserProfile() {
+    final userProfile = _validateSessionResponse?.data?.userProfiles?.first;
+    if (userProfile == null) {
+      logger.e('user profile is null, accout: $_account');
+      return null;
+    }
+    return userProfile;
+  }
+
+  Map<String, dynamic>? _getHeader({
+    required String referer,
+    required String url,
+  }) {
+    final userProfile = _getUserProfile()!;
+
+    final ibId = userProfile.ibId!;
+    final requestId = _genRequestId();
+
+    return {
+      'x-session-ibid': ibId,
+      'x-ib-id': ibId,
+      'x-url': url,
+      'x-request-id': requestId,
+      'x-re-fresh': 'N',
+      'x-verify': 'Y',
+      'Accept': 'application/json, text/plain, */*',
+      'Content-Type': 'application/json',
+      'Referer': referer,
+      'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)',
+      'authorization': _sessionToken,
+    };
+  }
+
+  Future<bool> getToken() async {
+    final res =
+        await dio.get('https://kbiz.kasikornbank.com/authen/login.jsp?lang=en');
+    final body = res.data.toString();
+    final tokenRe = RegExp(r'id="tokenId"\svalue="([^"]*)"');
+    final ret = tokenRe.firstMatch(body);
+    assert(ret != null);
+    final token = ret!.group(1);
+    _token = token;
+
+    logger.i('token: $token');
+    return true;
   }
 
   Future<bool> login(String account, String password) async {
@@ -215,14 +224,11 @@ class Sender {
     return true;
   }
 
-  Future<bool> getAccountSummaryList() async {
-    final userProfile = _validateSessionResponse?.data?.userProfiles?.first;
-    if (userProfile == null) {
-      logger.e('user profile is null, accout: $_account');
-      return false;
-    }
+  /// return: 余额
+  Future<double?> getBalance() async {
+    final userProfile = _getUserProfile()!;
+    const url = 'https://kbiz.kasikornbank.com/menu/account/account-summary';
 
-    final requestId = _genRequestId();
     final res = await dio.post(
       'https://kbiz.kasikornbank.com/services/api/accountsummary/getAccountSummaryList',
       data: {
@@ -234,57 +240,133 @@ class Sender {
         'ownerType': 'Company',
         'pageAmount': '6',
       },
-      options: Options(headers: {
-        'x-session-ibid': userProfile.ibId!,
-        'x-ib-id': userProfile.ibId!,
-        'x-url': 'https://kbiz.kasikornbank.com/menu/account/account-summary',
-        'x-request-id': requestId,
-        'x-re-fresh': 'N',
-        'x-verify': 'Y',
-        'Accept': 'application/json, text/plain, */*',
-        'Content-Type': 'application/json',
-        'Referer': 'https://kbiz.kasikornbank.com/menu/account/account-summary',
-        'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)',
-        'authorization': _sessionToken,
-      }),
+      options: Options(headers: _getHeader(referer: url, url: url)),
     );
 
     final resData = res.data;
-
     final summaryResponse = GetAccountSummaryListResponse.fromJson(resData);
+    assert(summaryResponse.data?.accountSummaryList?.isNotEmpty ?? false);
+    _accountSummaryListResponse = summaryResponse;
+
+    final balance = summaryResponse.data!.availableBalanceSum;
 
     logger.i('get account summary list res: ${res.toString()}');
+    logger.i('balance: $balance');
 
-    logger.i('balance: ${summaryResponse.data!.availableBalanceSum}');
+    if (balance?.isEmpty ?? true) return null;
+    return double.parse(balance!);
+  }
 
+  /// return: 是否成功
+  Future<bool> getBlackListFlag() async {
+    const url =
+        'https://kbiz.kasikornbank.com/menu/account/account/recent-transaction';
+
+    final res = await dio.post(
+      'https://kbiz.kasikornbank.com/services/api/configuration/getBlacklistFlag',
+      options: Options(headers: _getHeader(referer: url, url: url)),
+      data: {},
+    );
+
+    logger.i('get black list flag: ${res.toString()}');
+
+    final resData = res.data;
+    final getBlacklistFlag = GetBlacklistFlag.fromJson(resData);
+
+    return getBlacklistFlag.status?.contains('S') ?? false;
+  }
+
+  Future<bool> getRecentTransactionList() async {
+    final acountSummary =
+        _accountSummaryListResponse!.data!.accountSummaryList!.first!;
+    final userProfile = _getUserProfile()!;
+    const url =
+        'https://kbiz.kasikornbank.com/menu/account/account/recent-transaction';
+
+    final formatter = DateFormat('dd/MM/yyyy');
+    final nowDate =
+        formatter.format(DateTime.now().subtract(const Duration(hours: 1)));
+    final endDate = formatter.format(DateTime.now());
+
+    final res = await dio.post(
+      'https://kbiz.kasikornbank.com/services/api/accountsummary/getRecentTransactionList',
+      options: Options(headers: _getHeader(referer: url, url: url)),
+      data: {
+        'acctNo': acountSummary.accountNo!,
+        'acctType': acountSummary.accountType!,
+        'custType': userProfile.custType!,
+        'ownerId': userProfile.companyId!,
+        'ownerType': 'Company',
+        'pageNo': '1',
+        'refKey': '',
+        'rowPerPage': '20',
+        'startDate': nowDate,
+        'endDate': endDate,
+      },
+    );
+
+    logger.i('get recent transations: ${res.toString()}');
+
+    final resData = res.data;
+    final recentTransactionResponse =
+        RecentTransactionResponse.fromJson(resData);
+
+    // return getBlacklistFlag.status?.contains('S') ?? false;
     return true;
   }
 
-  static void test() async {
+  static Future<bool> test() async {
     try {
       EasyLoading.show();
       final sender = Sender();
-      await sender.init();
-      final ret = await sender.login('Suminta41', 'May88990#');
-      logger.i('loggin ret: $ret');
-      if (!ret) return;
 
-      final redirectToIBRet = await sender.redirectToIB();
-      logger.i('redirect to ib ret: $redirectToIBRet');
-      if (!redirectToIBRet) return;
+      {
+        final ret = await sender.getToken();
+        logger.i('get token ret: $ret');
+        if (!ret) return false;
+      }
 
-      final validateSessionRet = await sender.validateSession();
-      logger.i('validate session ret: $validateSessionRet');
-      if (!validateSessionRet) return;
+      {
+        final ret = await sender.login('Suminta41', 'May88990#');
+        logger.i('loggin ret: $ret');
+        if (!ret) return false;
+      }
 
-      final accountSummaryListRet = await sender.getAccountSummaryList();
-      logger.i('account summary list ret: $accountSummaryListRet');
-      if (!accountSummaryListRet) return;
+      {
+        final ret = await sender.redirectToIB();
+        logger.i('redirect to ib ret: $ret');
+        if (!ret) return false;
+      }
+
+      {
+        final ret = await sender.validateSession();
+        logger.i('validate session ret: $ret');
+        if (!ret) return false;
+      }
+
+      {
+        final ret = await sender.getBalance();
+        logger.i('get balance: $ret');
+        if (ret == null) return false;
+      }
+
+      {
+        final ret = await sender.getBlackListFlag();
+        logger.i('get black list ret: $ret');
+        if (!ret) return false;
+      }
+
+      {
+        final ret = await sender.getRecentTransactionList();
+        logger.i('get recent transactions ret: $ret');
+        if (!ret) return false;
+      }
     } catch (e, stack) {
       logger.e(e, stackTrace: stack);
     } finally {
       EasyLoading.dismiss();
     }
+
+    return true;
   }
 }

@@ -41,7 +41,7 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
 
-    Sender.test();
+    // Sender.test();
 
     _pageViewController = PageController();
     logger.i('initState');
@@ -75,33 +75,34 @@ class _HomePageState extends State<HomePage> {
     String? token,
     String? remark,
   }) async {
-    final result =
-        await Navigator.of(context).pushNamed("/kbz/auth", arguments: {
-      'phoneNumber': phoneNumber ?? '',
-      'pin': pin ?? '',
-      'id': id ?? '',
-      'token': token ?? '',
-      'remark': remark ?? '',
-      // 'platforms': widget.platforms,
-    });
-    if (result == null) {
-      logger.i('cancel login.');
-      return;
-    }
-    if (result is AccountData) {
-      logger.i('add accout $result');
-      // setState(() => accounts.add(result, true));
-      addLog(
-        LogItem(
-          type: LogItemType.newAccount,
-          platformName: result.platformName,
-          platformKey: result.platformKey,
-          phone: result.phoneNumber,
-          time: DateTime.now(),
-          content: 'add account.',
-        ),
-      );
-    }
+    Sender.test();
+    // final result =
+    //     await Navigator.of(context).pushNamed("/kbz/auth", arguments: {
+    //   'phoneNumber': phoneNumber ?? '',
+    //   'pin': pin ?? '',
+    //   'id': id ?? '',
+    //   'token': token ?? '',
+    //   'remark': remark ?? '',
+    //   // 'platforms': widget.platforms,
+    // });
+    // if (result == null) {
+    //   logger.i('cancel login.');
+    //   return;
+    // }
+    // if (result is AccountData) {
+    //   logger.i('add accout $result');
+    //   // setState(() => accounts.add(result, true));
+    //   addLog(
+    //     LogItem(
+    //       type: LogItemType.newAccount,
+    //       platformName: result.platformName,
+    //       platformKey: result.platformKey,
+    //       phone: result.phoneNumber,
+    //       time: DateTime.now(),
+    //       content: 'add account.',
+    //     ),
+    //   );
+    // }
   }
 
   void addLog(LogItem item) {

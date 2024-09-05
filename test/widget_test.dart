@@ -11,7 +11,10 @@ import 'package:flutter_test/flutter_test.dart';
 // import 'package:auto_report/main.dart';
 
 void main() {
+  testWidgets('kbiz sender test', (WidgetTester tester) async {});
+
   testWidgets('Counter increments smoke test', (WidgetTester tester) async {
+    // Sender.test();
     // Build our app and trigger a frame.
     // await tester.pumpWidget(const MyApp());
 
