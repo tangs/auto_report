@@ -210,9 +210,9 @@ class RecentTransactionResponseData {
     if (recentTransactionList != null) {
       final v = recentTransactionList;
       final arr0 = [];
-      v!.forEach((v) {
+      for (var v in v!) {
         arr0.add(v!.toJson());
-      });
+      }
       data['recentTransactionList'] = arr0;
     }
     return data;

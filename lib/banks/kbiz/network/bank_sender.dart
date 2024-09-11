@@ -11,22 +11,31 @@ import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:intl/intl.dart';
 
-class Sender {
+class BankSender {
   final dio = Dio();
+
+  String? _account;
+  String? _password;
 
   String? _token;
   String? _sessionToken;
   String? _dataRsso;
-  String? _account;
-  String? _password;
+
+  // todo
+  bool _isInvalid = false;
 
   ValidateSessionResponse? _validateSessionResponse;
   GetAccountSummaryListResponse? _accountSummaryListResponse;
 
-  Sender() {
+  BankSender({String? account, String? password}) {
+    _account = account;
+    _password = _password;
+
     final cookieJar = CookieJar();
     dio.interceptors.add(CookieManager(cookieJar));
   }
+
+  get isInvalid => _isInvalid;
 
   Future<bool> getIcon() async {
     await dio.get(
@@ -312,13 +321,53 @@ class Sender {
         RecentTransactionResponse.fromJson(resData);
 
     // return getBlacklistFlag.status?.contains('S') ?? false;
+    return recentTransactionResponse.status == 'S';
+  }
+
+  Future<bool> fullLogin(String account, String password) async {
+    {
+      final ret = await getToken();
+      logger.i('get token ret: $ret');
+      if (!ret) return false;
+    }
+
+    {
+      final ret = await login(account, password);
+      logger.i('loggin ret: $ret');
+      if (!ret) return false;
+    }
+
+    {
+      final ret = await redirectToIB();
+      logger.i('redirect to ib ret: $ret');
+      if (!ret) return false;
+    }
+
+    {
+      final ret = await validateSession();
+      logger.i('validate session ret: $ret');
+      if (!ret) return false;
+    }
+
+    {
+      final ret = await getBalance();
+      logger.i('get balance: $ret');
+      if (ret == null) return false;
+    }
+
+    {
+      final ret = await getBlackListFlag();
+      logger.i('get black list ret: $ret');
+      if (!ret) return false;
+    }
+
     return true;
   }
 
   static Future<bool> test() async {
     try {
       EasyLoading.show();
-      final sender = Sender();
+      final sender = BankSender();
 
       {
         final ret = await sender.getToken();

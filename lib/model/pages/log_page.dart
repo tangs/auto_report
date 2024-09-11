@@ -237,7 +237,10 @@ class _LogsPageState extends State<LogsPage> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(child: _buildPlatformFilter()),
+          Visibility(
+            visible: widget.platforms?.isNotEmpty ?? false,
+            child: SizedBox(child: _buildPlatformFilter()),
+          ),
           SizedBox(child: _buildAccountsFilter()),
           SizedBox(child: _buildTypesFilter()),
           Flexible(

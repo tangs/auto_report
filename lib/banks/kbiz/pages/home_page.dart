@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:collection';
 
-import 'package:auto_report/banks/kbiz/network/sender.dart';
-import 'package:auto_report/banks/kbz/config/config.dart';
-import 'package:auto_report/banks/kbz/data/account/account_data.dart';
+import 'package:auto_report/banks/kbiz/data/account/account_data.dart';
+import 'package:auto_report/banks/kbiz/data/account/accounts.dart';
+import 'package:auto_report/banks/kbiz/pages/accounts_page.dart';
+import 'package:auto_report/config/global_config.dart';
 import 'package:auto_report/manager/data_manager.dart';
 import 'package:auto_report/model/data/log/log_item.dart';
+import 'package:auto_report/model/pages/log_page.dart';
 import 'package:auto_report/pages/file_page.dart';
 import 'package:auto_report/pages/setting_page.dart';
 import 'package:auto_report/utils/log_helper.dart';
@@ -30,7 +32,7 @@ class _HomePageState extends State<HomePage> {
   int _navIndex = 0;
 
   // List<AccountData> accountsData = [];
-  // final accounts = Accounts();
+  final accounts = Accounts();
   final _logs = LinkedList<LogItem>();
 
   late PageController _pageViewController;
@@ -68,47 +70,42 @@ class _HomePageState extends State<HomePage> {
     logger.i('dispose');
   }
 
+  // todo
   void newAccount({
-    String? phoneNumber = '',
-    String? pin = '',
-    String? id = '',
-    String? token,
-    String? remark,
+    String? account = 'Suminta41',
+    String? password = 'May88990#',
   }) async {
-    Sender.test();
-    // final result =
-    //     await Navigator.of(context).pushNamed("/kbz/auth", arguments: {
-    //   'phoneNumber': phoneNumber ?? '',
-    //   'pin': pin ?? '',
-    //   'id': id ?? '',
-    //   'token': token ?? '',
-    //   'remark': remark ?? '',
-    //   // 'platforms': widget.platforms,
-    // });
-    // if (result == null) {
-    //   logger.i('cancel login.');
-    //   return;
-    // }
-    // if (result is AccountData) {
-    //   logger.i('add accout $result');
-    //   // setState(() => accounts.add(result, true));
-    //   addLog(
-    //     LogItem(
-    //       type: LogItemType.newAccount,
-    //       platformName: result.platformName,
-    //       platformKey: result.platformKey,
-    //       phone: result.phoneNumber,
-    //       time: DateTime.now(),
-    //       content: 'add account.',
-    //     ),
-    //   );
-    // }
+    // BackendCenterSender.test();
+    // BankSender.test();
+    final result =
+        await Navigator.of(context).pushNamed("/kbiz/auth", arguments: {
+      'account': account ?? '',
+      'password': password ?? '',
+    });
+    if (result == null) {
+      logger.i('cancel login.');
+      return;
+    }
+    if (result is AccountData) {
+      logger.i('add accout $result');
+      setState(() => accounts.add(result, true));
+      addLog(
+        LogItem(
+          type: LogItemType.newAccount,
+          platformName: '',
+          platformKey: '',
+          phone: result.account,
+          time: DateTime.now(),
+          content: 'add account.',
+        ),
+      );
+    }
   }
 
   void addLog(LogItem item) {
     if (!mounted) return;
 
-    if (_logs.length > Config.logCountMax) {
+    if (_logs.length > GlobalConfig.logCountMax) {
       _logs.remove(_logs.first);
     }
     if (DataManager().autoRefreshLog) {
@@ -139,43 +136,33 @@ class _HomePageState extends State<HomePage> {
               controller: _pageViewController,
               onPageChanged: (index) => setState(() => _navIndex = index),
               children: <Widget>[
-                // AccountsPage(
-                //   accountsData: accounts.accountsData,
-                //   platforms: widget.platforms,
-                //   onRemoved: (account) {
-                //     setState(() => accounts.update());
-                //     addLog(
-                //       LogItem(
-                //         type: LogItemType.deleteAccount,
-                //         platformName: account.platformName,
-                //         platformKey: account.platformKey,
-                //         phone: account.phoneNumber,
-                //         time: DateTime.now(),
-                //         content: 'delete account.',
-                //       ),
-                //     );
-                //   },
-                //   onReLogin: ({
-                //     String? phoneNumber,
-                //     String? pin,
-                //     String? id,
-                //     String? token,
-                //     String? remark,
-                //   }) =>
-                //       newAccount(
-                //     phoneNumber: phoneNumber,
-                //     pin: pin,
-                //     id: id,
-                //     token: token,
-                //     remark: remark,
-                //   ),
-                //   onLogged: addLog,
-                // ),
-                // LogsPage(
-                //   logs: _logs,
-                //   platforms: widget.platforms,
-                //   accountsData: accounts.accountsData,
-                // ),
+                AccountsPage(
+                  accountsData: accounts.accountsData,
+                  onRemoved: (account) {
+                    setState(() => accounts.update());
+                    addLog(
+                      LogItem(
+                        type: LogItemType.deleteAccount,
+                        platformName: '',
+                        platformKey: '',
+                        phone: account.account,
+                        time: DateTime.now(),
+                        content: 'delete account.',
+                      ),
+                    );
+                  },
+                  onReLogin: ({
+                    String? account,
+                    String? password,
+                  }) =>
+                      newAccount(account: account, password: password),
+                  onLogged: addLog,
+                ),
+                LogsPage(
+                  logs: _logs,
+                  platforms: const [],
+                  accountsData: accounts.accountsData,
+                ),
                 const FilesPage(),
                 SettingsPage(
                   onThemeInvalid: () => setState(
