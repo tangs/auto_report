@@ -53,12 +53,12 @@ class _HomePageState extends State<HomePage> {
         timer.cancel();
         return;
       }
-      // for (final info in accounts.accountsData) {
-      //   info.update(() {
-      //     if (!mounted) return;
-      //     setState(() => accounts.accountsData = accounts.accountsData);
-      //   }, addLog);
-      // }
+      for (final info in accounts.accountsData) {
+        info.update(() {
+          if (!mounted) return;
+          setState(() => accounts.accountsData = accounts.accountsData);
+        }, addLog);
+      }
       // logger.i('update');
     });
   }

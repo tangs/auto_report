@@ -172,81 +172,86 @@ class AccountData implements Account {
     // if (isAuthInvidWithReport) return;
     if (isUpdating) return;
 
-    // try {
-    //   isUpdating = true;
-    //   if (!disableReport &&
-    //       DateTime.now().difference(lastUpdateTime).inSeconds >=
-    //           dm.orderRefreshTime) {
-    //     logger.i('start get orders, phone: $phoneNumber');
-    //     await _updateOrder(dataUpdated, onLogged);
-    //     logger.i('end get orders, phone: $phoneNumber');
-    //   }
+    try {
+      isUpdating = true;
 
-    //   if (!disableCash &&
-    //       DateTime.now().difference(lastGetCashListTime).inSeconds >=
-    //           dm.gettingCashListRefreshTime) {
-    //     logger.i('start get cash list, phone: $phoneNumber');
-    //     final cashList = await getCashList(dataUpdated);
-    //     if (cashList.isNotEmpty) {
-    //       await _sendingMoneys(cashList, dataUpdated, onLogged);
-    //     }
+      if (!sender.isNormalState) {
+        final ret = await sender.fullLogin(account, password);
+        if (!ret) return;
+      }
+      //   if (!disableReport &&
+      //       DateTime.now().difference(lastUpdateTime).inSeconds >=
+      //           dm.orderRefreshTime) {
+      //     logger.i('start get orders, phone: $phoneNumber');
+      //     await _updateOrder(dataUpdated, onLogged);
+      //     logger.i('end get orders, phone: $phoneNumber');
+      //   }
 
-    //     lastGetCashListTime = DateTime.now();
-    //     logger.i('end get cash list, phone: $phoneNumber');
-    //   }
+      //   if (!disableCash &&
+      //       DateTime.now().difference(lastGetCashListTime).inSeconds >=
+      //           dm.gettingCashListRefreshTime) {
+      //     logger.i('start get cash list, phone: $phoneNumber');
+      //     final cashList = await getCashList(dataUpdated);
+      //     if (cashList.isNotEmpty) {
+      //       await _sendingMoneys(cashList, dataUpdated, onLogged);
+      //     }
 
-    //   if (dm.openRechargeTransfer &&
-    //       !disableRechargeTransfer &&
-    //       DateTime.now().difference(lastRechargeTransferTime).inSeconds >=
-    //           dm.rechargeTransferRefreshTime) {
-    //     logger.i('start get recharge transfer list, phone: $phoneNumber');
-    //     var needUpdateBalance = false;
-    //     final transferList = await getRechargeTransferList(dataUpdated);
-    //     if (transferList.isNotEmpty) {
-    //       needUpdateBalance =
-    //           await _transferMoneys(transferList, dataUpdated, onLogged);
+      //     lastGetCashListTime = DateTime.now();
+      //     logger.i('end get cash list, phone: $phoneNumber');
+      //   }
 
-    //       if (needUpdateBalance) {
-    //         await Future.delayed(const Duration(milliseconds: 300));
-    //         lastUpdateBalanceTime = DateTime.fromMicrosecondsSinceEpoch(0);
-    //       }
-    //     }
+      //   if (dm.openRechargeTransfer &&
+      //       !disableRechargeTransfer &&
+      //       DateTime.now().difference(lastRechargeTransferTime).inSeconds >=
+      //           dm.rechargeTransferRefreshTime) {
+      //     logger.i('start get recharge transfer list, phone: $phoneNumber');
+      //     var needUpdateBalance = false;
+      //     final transferList = await getRechargeTransferList(dataUpdated);
+      //     if (transferList.isNotEmpty) {
+      //       needUpdateBalance =
+      //           await _transferMoneys(transferList, dataUpdated, onLogged);
 
-    //     lastRechargeTransferTime = DateTime.now();
-    //     logger.i('end get recharge transfer list, phone: $phoneNumber');
-    //   }
+      //       if (needUpdateBalance) {
+      //         await Future.delayed(const Duration(milliseconds: 300));
+      //         lastUpdateBalanceTime = DateTime.fromMicrosecondsSinceEpoch(0);
+      //       }
+      //     }
 
-    //   // if (DateTime.now().difference(lastGetCashListTime).inSeconds >=
-    //   //     dm.gettingCashListRefreshTime) {
-    //   //   if (!disableCash) {
-    //   //     final cashList = await getCashList(dataUpdated);
-    //   //     if (cashList.isNotEmpty) {
-    //   //       await _sendingMoneys(cashList, dataUpdated, onLogged);
-    //   //     }
-    //   //   }
+      //     lastRechargeTransferTime = DateTime.now();
+      //     logger.i('end get recharge transfer list, phone: $phoneNumber');
+      //   }
 
-    //   //   var needUpdateBalance = false;
-    //   //   final transferList = await getRechargeTransferList(dataUpdated);
-    //   //   if (transferList.isNotEmpty) {
-    //   //     needUpdateBalance =
-    //   //         await _transferMoneys(transferList, dataUpdated, onLogged);
-    //   //   }
+      //   // if (DateTime.now().difference(lastGetCashListTime).inSeconds >=
+      //   //     dm.gettingCashListRefreshTime) {
+      //   //   if (!disableCash) {
+      //   //     final cashList = await getCashList(dataUpdated);
+      //   //     if (cashList.isNotEmpty) {
+      //   //       await _sendingMoneys(cashList, dataUpdated, onLogged);
+      //   //     }
+      //   //   }
 
-    //   //   if (needUpdateBalance) {
-    //   //     await Future.delayed(const Duration(milliseconds: 300));
-    //   //     await _updateBalance(dataUpdated, onLogged);
-    //   //   }
-    //   //   lastGetCashListTime = DateTime.now();
-    //   // }
+      //   //   var needUpdateBalance = false;
+      //   //   final transferList = await getRechargeTransferList(dataUpdated);
+      //   //   if (transferList.isNotEmpty) {
+      //   //     needUpdateBalance =
+      //   //         await _transferMoneys(transferList, dataUpdated, onLogged);
+      //   //   }
 
-    //   if (DateTime.now().difference(lastUpdateBalanceTime).inMinutes >= 30) {
-    //     _updateBalance(dataUpdated, onLogged);
-    //   }
-    // } catch (e, stack) {
-    //   logger.e(e, stackTrace: stack);
-    // }
+      // if (needUpdateBalance) {
+      //   await Future.delayed(const Duration(milliseconds: 300));
+      //   await _updateBalance(dataUpdated, onLogged);
+      // }
+      //   lastGetCashListTime = DateTime.now();
+      // }
 
-    isUpdating = false;
+      if (DateTime.now().difference(lastUpdateBalanceTime).inMinutes >= 30) {
+        _updateBalance(dataUpdated, onLogged);
+      }
+    } catch (e, stack) {
+      logger.e(e, stackTrace: stack);
+    } finally {
+      isUpdating = false;
+    }
   }
 
   reopenReport() async {
@@ -649,8 +654,8 @@ class AccountData implements Account {
       VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
     if (isUpdatingBalance) return;
 
-    // isUpdatingBalance = true;
-    // dataUpdated?.call();
+    isUpdatingBalance = true;
+    dataUpdated?.call();
 
     // final ret = await sender.queryCustomerBalanceMsg(
     //   phoneNumber,
@@ -669,6 +674,11 @@ class AccountData implements Account {
     //     content: 'balance: $balance',
     //   ));
     // }
+
+    final ret = await sender.getBalance();
+    if (ret != null) {
+      balance = ret;
+    }
 
     isUpdatingBalance = false;
     dataUpdated?.call();

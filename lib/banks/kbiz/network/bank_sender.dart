@@ -23,6 +23,7 @@ class BankSender {
 
   // todo
   bool _isInvalid = false;
+  bool _isLogin = false;
 
   ValidateSessionResponse? _validateSessionResponse;
   GetAccountSummaryListResponse? _accountSummaryListResponse;
@@ -36,6 +37,8 @@ class BankSender {
   }
 
   get isInvalid => _isInvalid;
+  get isLogin => _isLogin;
+  get isNormalState => !_isInvalid && isLogin;
 
   Future<bool> getIcon() async {
     await dio.get(
@@ -114,7 +117,7 @@ class BankSender {
     };
   }
 
-  Future<bool> getToken() async {
+  Future<bool> _getToken() async {
     final res =
         await dio.get('https://kbiz.kasikornbank.com/authen/login.jsp?lang=en');
     final body = res.data.toString();
@@ -128,7 +131,7 @@ class BankSender {
     return true;
   }
 
-  Future<bool> login(String account, String password) async {
+  Future<bool> _login(String account, String password) async {
     final res = await dio.post(
       'https://kbiz.kasikornbank.com/authen/login.do',
       data: FormData.fromMap({
@@ -158,7 +161,7 @@ class BankSender {
     return loginResult;
   }
 
-  Future<bool> redirectToIB() async {
+  Future<bool> _redirectToIB() async {
     final res = await dio.get(
       'https://kbiz.kasikornbank.com/authen/ib/redirectToIB.jsp',
       options: Options(headers: {
@@ -202,7 +205,7 @@ class BankSender {
     return true;
   }
 
-  Future<bool> validateSession() async {
+  Future<bool> _validateSession() async {
     final requestId = _genRequestId();
     final res = await dio.post(
       'https://kbiz.kasikornbank.com/services/api/authentication/validateSession',
@@ -326,25 +329,25 @@ class BankSender {
 
   Future<bool> fullLogin(String account, String password) async {
     {
-      final ret = await getToken();
+      final ret = await _getToken();
       logger.i('get token ret: $ret');
       if (!ret) return false;
     }
 
     {
-      final ret = await login(account, password);
+      final ret = await _login(account, password);
       logger.i('loggin ret: $ret');
       if (!ret) return false;
     }
 
     {
-      final ret = await redirectToIB();
+      final ret = await _redirectToIB();
       logger.i('redirect to ib ret: $ret');
       if (!ret) return false;
     }
 
     {
-      final ret = await validateSession();
+      final ret = await _validateSession();
       logger.i('validate session ret: $ret');
       if (!ret) return false;
     }
@@ -361,6 +364,9 @@ class BankSender {
       if (!ret) return false;
     }
 
+    _isLogin = true;
+    _isInvalid = false;
+
     return true;
   }
 
@@ -370,25 +376,25 @@ class BankSender {
       final sender = BankSender();
 
       {
-        final ret = await sender.getToken();
+        final ret = await sender._getToken();
         logger.i('get token ret: $ret');
         if (!ret) return false;
       }
 
       {
-        final ret = await sender.login('Suminta41', 'May88990#');
+        final ret = await sender._login('Suminta41', 'May88990#');
         logger.i('loggin ret: $ret');
         if (!ret) return false;
       }
 
       {
-        final ret = await sender.redirectToIB();
+        final ret = await sender._redirectToIB();
         logger.i('redirect to ib ret: $ret');
         if (!ret) return false;
       }
 
       {
-        final ret = await sender.validateSession();
+        final ret = await sender._validateSession();
         logger.i('validate session ret: $ret');
         if (!ret) return false;
       }

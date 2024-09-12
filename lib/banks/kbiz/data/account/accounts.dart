@@ -5,9 +5,10 @@ import 'package:auto_report/utils/log_helper.dart';
 import 'package:localstorage/localstorage.dart';
 
 class Accounts {
-  List<AccountData> accountsData = [];
+  static const _localStorageKey = 'kbiz_accounts';
 
-  String _lastRestoreStr = '';
+  var accountsData = <AccountData>[];
+  var _lastRestoreStr = '';
 
   Accounts() {
     restore();
@@ -44,12 +45,12 @@ class Accounts {
 
     logger.i('restore accounts data.');
     // logger.i('restore: $str');
-    localStorage.setItem('kbiz_accounts', str);
+    localStorage.setItem(_localStorageKey, str);
     _lastRestoreStr = str;
   }
 
   void restore() {
-    var str = localStorage.getItem('kbiz_accounts');
+    var str = localStorage.getItem(_localStorageKey);
     if (str == null) return;
 
     try {
