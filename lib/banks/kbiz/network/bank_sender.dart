@@ -318,43 +318,82 @@ class BankSender {
     return getBlacklistFlag.status?.contains('S') ?? false;
   }
 
-  Future<bool> getRecentTransactionList() async {
-    final acountSummary =
-        _accountSummaryListResponse!.data!.accountSummaryList!.first!;
-    final userProfile = _getUserProfile()!;
-    const url =
-        'https://kbiz.kasikornbank.com/menu/account/account/recent-transaction';
+  Future<List<RecentTransactionResponseDataRecentTransactionList>?>
+      _getRecentTransactionList({
+    required int pageNo,
+    required int rowPerPage,
+  }) async {
+    if (!isNormalState) {
+      final ret = await fullLogin(_account!, _password!);
+      if (!ret) return null;
+    }
 
-    final formatter = DateFormat('dd/MM/yyyy');
-    final nowDate =
-        formatter.format(DateTime.now().subtract(const Duration(hours: 1)));
-    final endDate = formatter.format(DateTime.now());
+    try {
+      final acountSummary =
+          _accountSummaryListResponse!.data!.accountSummaryList!.first!;
+      final userProfile = _getUserProfile()!;
+      const url =
+          'https://kbiz.kasikornbank.com/menu/account/account/recent-transaction';
 
-    final res = await dio.post(
-      'https://kbiz.kasikornbank.com/services/api/accountsummary/getRecentTransactionList',
-      options: Options(headers: _getHeader(referer: url, url: url)),
-      data: {
-        'acctNo': acountSummary.accountNo!,
-        'acctType': acountSummary.accountType!,
-        'custType': userProfile.custType!,
-        'ownerId': userProfile.companyId!,
-        'ownerType': 'Company',
-        'pageNo': '1',
-        'refKey': '',
-        'rowPerPage': '20',
-        'startDate': nowDate,
-        'endDate': endDate,
-      },
-    );
+      final formatter = DateFormat('dd/MM/yyyy');
+      final nowDate =
+          formatter.format(DateTime.now().subtract(const Duration(hours: 1)));
+      final endDate = formatter.format(DateTime.now());
 
-    logger.i('get recent transations: ${res.toString()}');
+      final res = await dio.post(
+        'https://kbiz.kasikornbank.com/services/api/accountsummary/getRecentTransactionList',
+        options: Options(headers: _getHeader(referer: url, url: url)),
+        data: {
+          'acctNo': acountSummary.accountNo!,
+          'acctType': acountSummary.accountType!,
+          'custType': userProfile.custType!,
+          'ownerId': userProfile.companyId!,
+          'ownerType': 'Company',
+          'pageNo': '$pageNo',
+          'refKey': '',
+          'rowPerPage': '$rowPerPage',
+          'startDate': nowDate,
+          'endDate': endDate,
+        },
+      );
 
-    final resData = res.data;
-    final recentTransactionResponse =
-        RecentTransactionResponse.fromJson(resData);
+      logger.i('get recent transations: ${res.toString()}');
 
-    // return getBlacklistFlag.status?.contains('S') ?? false;
-    return recentTransactionResponse.status == 'S';
+      final resData = res.data;
+      final recentTransactionResponse =
+          RecentTransactionResponse.fromJson(resData);
+
+      // return getBlacklistFlag.status?.contains('S') ?? false;
+      final recentTransactionList =
+          recentTransactionResponse.data?.recentTransactionList;
+      if (recentTransactionResponse.status != 'S' ||
+          recentTransactionList == null) {
+        return null;
+      }
+
+      return recentTransactionList
+          .where((cell) => cell != null)
+          .cast<RecentTransactionResponseDataRecentTransactionList>()
+          .toList();
+    } catch (e, stackTrace) {
+      Logger().e('err: $e', stackTrace: stackTrace);
+      if (e is DioException) {
+        if (e.response?.statusCode == 401) {
+          _isInvalid = true;
+        }
+      }
+    }
+    return null;
+  }
+
+  Future<List<RecentTransactionResponseDataRecentTransactionList>?>
+      getRecentTransactionList({
+    int pageNo = 1,
+    int rowPerPage = 20,
+  }) async {
+    return await _getRecentTransactionList(
+            pageNo: pageNo, rowPerPage: rowPerPage) ??
+        await _getRecentTransactionList(pageNo: pageNo, rowPerPage: rowPerPage);
   }
 
   Future<bool> fullLogin(String account, String password) async {
@@ -443,7 +482,8 @@ class BankSender {
       }
 
       {
-        final ret = await sender.getRecentTransactionList();
+        final recents = await sender.getRecentTransactionList();
+        final ret = recents != null;
         logger.i('get recent transactions ret: $ret');
         if (!ret) return false;
       }

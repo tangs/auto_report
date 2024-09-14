@@ -5,5 +5,5 @@ class GlobalConfig {
 
   static const logCountMax = 1024;
 
-  static const httpRequestTimeoutSeconds = 35;
+  static const httpRequestTimeoutSeconds = 50;
 }

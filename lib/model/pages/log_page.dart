@@ -31,6 +31,7 @@ class _LogsPageState extends State<LogsPage> {
   bool _autoRefresh = DataManager().autoRefreshLog;
 
   bool isPlatformSelected(String platformKey) {
+    if (_platformsCheckboxResults.isEmpty) return true;
     return _platformsCheckboxResults[platformKey] ?? true;
   }
 

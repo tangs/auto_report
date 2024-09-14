@@ -12,7 +12,6 @@ import 'package:auto_report/utils/log_helper.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:logger/logger.dart';
-import 'package:tuple/tuple.dart';
 
 enum RequestType { updateOrder, updateBalance, sendCash }
 
@@ -679,6 +678,14 @@ class AccountData implements Account {
       final ret = await sender.getBalance();
       if (ret != null) {
         balance = ret;
+        onLogged(LogItem(
+          type: LogItemType.updateBalance,
+          platformName: '',
+          platformKey: '',
+          phone: account,
+          time: DateTime.now(),
+          content: 'balance: $balance',
+        ));
       }
     } catch (e, stackTrace) {
       Logger().e('err: $e', stackTrace: stackTrace);
