@@ -4,15 +4,26 @@ import 'package:auto_report/banks/kbiz/data/bank/get_account_summary_list_respon
 import 'package:auto_report/banks/kbiz/data/bank/get_blacklist_flag.dart';
 import 'package:auto_report/banks/kbiz/data/bank/recent_transaction_response.dart';
 import 'package:auto_report/banks/kbiz/data/bank/validate_session_response.dart';
+import 'package:auto_report/config/global_config.dart';
 import 'package:auto_report/utils/log_helper.dart';
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:dio/dio.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:intl/intl.dart';
+import 'package:logger/logger.dart';
 
 class BankSender {
-  final dio = Dio();
+  final dio = Dio(
+    BaseOptions(
+      connectTimeout:
+          const Duration(seconds: GlobalConfig.httpRequestTimeoutSeconds),
+      sendTimeout:
+          const Duration(seconds: GlobalConfig.httpRequestTimeoutSeconds),
+      receiveTimeout:
+          const Duration(seconds: GlobalConfig.httpRequestTimeoutSeconds),
+    ),
+  );
 
   String? _account;
   String? _password;
@@ -237,36 +248,55 @@ class BankSender {
   }
 
   /// return: 余额
+  Future<double?> _getBalance() async {
+    if (!isNormalState) {
+      final ret = await fullLogin(_account!, _password!);
+      if (!ret) return null;
+    }
+
+    try {
+      final userProfile = _getUserProfile()!;
+      const url = 'https://kbiz.kasikornbank.com/menu/account/account-summary';
+
+      final res = await dio.post(
+        'https://kbiz.kasikornbank.com/services/api/accountsummary/getAccountSummaryList',
+        data: {
+          'custType': userProfile.custType!,
+          'isReload': 'N',
+          'lang': 'en',
+          'nicknameType': 'OWNAC',
+          'ownerId': userProfile.companyId!,
+          'ownerType': 'Company',
+          'pageAmount': '6',
+        },
+        options: Options(headers: _getHeader(referer: url, url: url)),
+      );
+
+      final resData = res.data;
+      final summaryResponse = GetAccountSummaryListResponse.fromJson(resData);
+      assert(summaryResponse.data?.accountSummaryList?.isNotEmpty ?? false);
+      _accountSummaryListResponse = summaryResponse;
+
+      final balance = summaryResponse.data!.availableBalanceSum;
+
+      logger.i('get account summary list res: ${res.toString()}');
+      logger.i('balance: $balance');
+
+      if (balance?.isEmpty ?? true) return null;
+      return double.parse(balance!);
+    } catch (e, stackTrace) {
+      Logger().e('err: $e', stackTrace: stackTrace);
+      if (e is DioException) {
+        if (e.response?.statusCode == 401) {
+          _isInvalid = true;
+        }
+      }
+    }
+    return null;
+  }
+
   Future<double?> getBalance() async {
-    final userProfile = _getUserProfile()!;
-    const url = 'https://kbiz.kasikornbank.com/menu/account/account-summary';
-
-    final res = await dio.post(
-      'https://kbiz.kasikornbank.com/services/api/accountsummary/getAccountSummaryList',
-      data: {
-        'custType': userProfile.custType!,
-        'isReload': 'N',
-        'lang': 'en',
-        'nicknameType': 'OWNAC',
-        'ownerId': userProfile.companyId!,
-        'ownerType': 'Company',
-        'pageAmount': '6',
-      },
-      options: Options(headers: _getHeader(referer: url, url: url)),
-    );
-
-    final resData = res.data;
-    final summaryResponse = GetAccountSummaryListResponse.fromJson(resData);
-    assert(summaryResponse.data?.accountSummaryList?.isNotEmpty ?? false);
-    _accountSummaryListResponse = summaryResponse;
-
-    final balance = summaryResponse.data!.availableBalanceSum;
-
-    logger.i('get account summary list res: ${res.toString()}');
-    logger.i('balance: $balance');
-
-    if (balance?.isEmpty ?? true) return null;
-    return double.parse(balance!);
+    return await _getBalance() ?? await _getBalance();
   }
 
   /// return: 是否成功
@@ -328,6 +358,7 @@ class BankSender {
   }
 
   Future<bool> fullLogin(String account, String password) async {
+    Logger().i('start full login.');
     {
       final ret = await _getToken();
       logger.i('get token ret: $ret');
@@ -352,17 +383,17 @@ class BankSender {
       if (!ret) return false;
     }
 
-    {
-      final ret = await getBalance();
-      logger.i('get balance: $ret');
-      if (ret == null) return false;
-    }
+    // {
+    //   final ret = await getBalance();
+    //   logger.i('get balance: $ret');
+    //   if (ret == null) return false;
+    // }
 
-    {
-      final ret = await getBlackListFlag();
-      logger.i('get black list ret: $ret');
-      if (!ret) return false;
-    }
+    // {
+    //   final ret = await getBlackListFlag();
+    //   logger.i('get black list ret: $ret');
+    //   if (!ret) return false;
+    // }
 
     _isLogin = true;
     _isInvalid = false;

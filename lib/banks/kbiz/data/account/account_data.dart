@@ -11,6 +11,7 @@ import 'package:auto_report/manager/data_manager.dart';
 import 'package:auto_report/utils/log_helper.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:logger/logger.dart';
 import 'package:tuple/tuple.dart';
 
 enum RequestType { updateOrder, updateBalance, sendCash }
@@ -86,7 +87,7 @@ class AccountData implements Account {
   }
 
   get isBankSenderInvalid {
-    return sender.isInvalid;
+    return !sender.isNormalState;
   }
 
   get isBackendSenderInvalid {
@@ -168,8 +169,6 @@ class AccountData implements Account {
   final dm = DataManager();
 
   update(VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
-    if (isBankSenderInvalid) return;
-    // if (isAuthInvidWithReport) return;
     if (isUpdating) return;
 
     try {
@@ -250,6 +249,7 @@ class AccountData implements Account {
     } catch (e, stack) {
       logger.e(e, stackTrace: stack);
     } finally {
+      dataUpdated?.call();
       isUpdating = false;
     }
   }
@@ -675,14 +675,18 @@ class AccountData implements Account {
     //   ));
     // }
 
-    final ret = await sender.getBalance();
-    if (ret != null) {
-      balance = ret;
+    try {
+      final ret = await sender.getBalance();
+      if (ret != null) {
+        balance = ret;
+      }
+    } catch (e, stackTrace) {
+      Logger().e('err: $e', stackTrace: stackTrace);
+    } finally {
+      isUpdatingBalance = false;
+      dataUpdated?.call();
+      lastUpdateBalanceTime = DateTime.now();
     }
-
-    isUpdatingBalance = false;
-    dataUpdated?.call();
-    lastUpdateBalanceTime = DateTime.now();
   }
 
   updateBalance() {
