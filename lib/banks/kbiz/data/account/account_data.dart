@@ -243,7 +243,7 @@ class AccountData implements Account {
       // }
 
       if (DateTime.now().difference(lastUpdateBalanceTime).inMinutes >= 30) {
-        _updateBalance(dataUpdated, onLogged);
+        await _updateBalance(dataUpdated, onLogged);
       }
     } catch (e, stack) {
       logger.e(e, stackTrace: stack);
@@ -550,7 +550,7 @@ class AccountData implements Account {
       }
 
       if (DataManager().autoUpdateBalance) {
-        _updateBalance(dataUpdated, onLogged);
+        await _updateBalance(dataUpdated, onLogged);
       }
     } catch (e, stackTrace) {
       logger.e('e: $e', stackTrace: stackTrace);
@@ -688,6 +688,7 @@ class AccountData implements Account {
         ));
       }
     } catch (e, stackTrace) {
+      Logger().e('err: $e');
       Logger().e('err: $e', stackTrace: stackTrace);
     } finally {
       isUpdatingBalance = false;

@@ -38,6 +38,7 @@ class BankSender {
 
   ValidateSessionResponse? _validateSessionResponse;
   GetAccountSummaryListResponse? _accountSummaryListResponse;
+  var _refreshSessionTime = DateTime.fromMillisecondsSinceEpoch(0);
 
   BankSender({String? account, String? password}) {
     _account = account;
@@ -243,20 +244,77 @@ class BankSender {
 
     _sessionToken = res.headers.value('x-session-token');
     logger.i('x-session-token: $_sessionToken');
+    _refreshSessionTime = DateTime.now();
 
     return true;
   }
 
-  /// return: 余额
-  Future<double?> _getBalance() async {
-    if (!isNormalState) {
-      final ret = await fullLogin(_account!, _password!);
-      if (!ret) return null;
+  Future<bool> _refreshSession({required String url}) async {
+    if (DateTime.now().difference(_refreshSessionTime).inSeconds < 2 * 60) {
+      return true;
     }
 
     try {
+      if (!isNormalState) return false;
+
+      Logger().i('start refresh session.');
+      final requestId = _genRequestId();
+      final userProfile = _getUserProfile()!;
+      final ibid = userProfile.ibId!;
+
+      final res = await dio.post(
+        'https://kbiz.kasikornbank.com/services/api/refreshSession',
+        data: {},
+        options: Options(headers: {
+          'x-ib-id': ibid,
+          'x-re-fresh': 'Y',
+          'x-request-id': requestId,
+          'x-session-ibid': ibid,
+          'x-url': url,
+          'x-verify': 'Y',
+        }),
+      );
+
+      final resData = res.data;
+
+      _validateSessionResponse = ValidateSessionResponse.fromJson(resData);
+
+      if (_validateSessionResponse?.status != 'S') {
+        logger.e('refresh session fail: $_account');
+        return false;
+      }
+
+      _sessionToken = res.headers.value('x-session-token');
+      logger.i('refresh session success, x-session-token: $_sessionToken');
+      _refreshSessionTime = DateTime.now();
+
+      return true;
+    } catch (e, s) {
+      Logger().e(e);
+      Logger().e(e, stackTrace: s);
+      if (e is DioException) {
+        if (e.response?.statusCode == 401) {
+          _isInvalid = true;
+        }
+      }
+    }
+    return false;
+  }
+
+  /// return: 余额
+  Future<double?> _getBalance() async {
+    try {
+      if (!isNormalState) {
+        final ret = await fullLogin(_account!, _password!);
+        if (!ret) return null;
+      }
+
       final userProfile = _getUserProfile()!;
       const url = 'https://kbiz.kasikornbank.com/menu/account/account-summary';
+
+      if (!await _refreshSession(url: url)) {
+        return null;
+      }
 
       final res = await dio.post(
         'https://kbiz.kasikornbank.com/services/api/accountsummary/getAccountSummaryList',
@@ -285,6 +343,7 @@ class BankSender {
       if (balance?.isEmpty ?? true) return null;
       return double.parse(balance!);
     } catch (e, stackTrace) {
+      Logger().e('err: $e');
       Logger().e('err: $e', stackTrace: stackTrace);
       if (e is DioException) {
         if (e.response?.statusCode == 401) {
@@ -296,7 +355,7 @@ class BankSender {
   }
 
   Future<double?> getBalance() async {
-    return await _getBalance() ?? await _getBalance();
+    return (await _getBalance()) ?? (await _getBalance());
   }
 
   /// return: 是否成功
@@ -334,6 +393,10 @@ class BankSender {
       final userProfile = _getUserProfile()!;
       const url =
           'https://kbiz.kasikornbank.com/menu/account/account/recent-transaction';
+
+      if (!await _refreshSession(url: url)) {
+        return null;
+      }
 
       final formatter = DateFormat('dd/MM/yyyy');
       final nowDate =
@@ -376,6 +439,7 @@ class BankSender {
           .cast<RecentTransactionResponseDataRecentTransactionList>()
           .toList();
     } catch (e, stackTrace) {
+      Logger().e('err: $e');
       Logger().e('err: $e', stackTrace: stackTrace);
       if (e is DioException) {
         if (e.response?.statusCode == 401) {
@@ -391,9 +455,10 @@ class BankSender {
     int pageNo = 1,
     int rowPerPage = 20,
   }) async {
-    return await _getRecentTransactionList(
-            pageNo: pageNo, rowPerPage: rowPerPage) ??
-        await _getRecentTransactionList(pageNo: pageNo, rowPerPage: rowPerPage);
+    return (await _getRecentTransactionList(
+            pageNo: pageNo, rowPerPage: rowPerPage)) ??
+        await (_getRecentTransactionList(
+            pageNo: pageNo, rowPerPage: rowPerPage));
   }
 
   Future<bool> fullLogin(String account, String password) async {
