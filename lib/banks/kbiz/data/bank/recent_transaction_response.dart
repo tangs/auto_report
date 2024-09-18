@@ -137,6 +137,14 @@ class RecentTransactionResponseDataRecentTransactionList {
     data['descEn'] = descEn;
     return data;
   }
+
+  bool isDeposit() {
+    return transNameEn == 'Transfer Deposit';
+  }
+
+  String getDate() {
+    return transDate!.split(' ').first;
+  }
 }
 
 class RecentTransactionResponseData {

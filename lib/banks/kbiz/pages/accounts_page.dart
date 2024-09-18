@@ -44,13 +44,9 @@ class _AccountsPageState extends State<AccountsPage> {
   Widget _buildAccountItem(AccountData data) {
     final dateFormat = DateFormat('yyyy-MM-dd HH:mm:ss');
     final isUpdatingBalance = data.isUpdatingBalance;
-    final invalid = data.isBankSenderInvalid || data.isBackendSenderInvalid;
+    final invalid = data.invalid();
     final showDetail = data.showDetail;
-    final state = !invalid
-        ? 'normal'
-        : data.isBankSenderInvalid
-            ? 'Bank invalid'
-            : 'Report invalid';
+    final state = data.state();
     return ExpansionTile(
       title: Row(
         children: [
@@ -131,92 +127,92 @@ class _AccountsPageState extends State<AccountsPage> {
             ),
           ],
         ),
-        Row(
-          children: [
-            RichText(
-              text: TextSpan(
-                text: 'Cash',
-                style: DefaultTextStyle.of(context).style,
-                children: [
-                  TextSpan(
-                    text: '    succ: ${data.cashSuccessCnt}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue,
-                    ),
-                  ),
-                  TextSpan(
-                    text: '    fail: ${data.cashFailCnt}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.red,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Spacer(),
-            const Text('Send money:'),
-            Switch(
-              value: !data.disableCash,
-              activeColor: Colors.red,
-              onChanged: (bool value) {
-                setState(() => data.disableCash = !value);
-                widget.onLogged(LogItem(
-                  type: LogItemType.info,
-                  platformName: '',
-                  platformKey: '',
-                  phone: data.account,
-                  time: DateTime.now(),
-                  content: '${value ? 'open' : 'close'} send money.',
-                ));
-              },
-            ),
-          ],
-        ),
-        Row(
-          children: [
-            RichText(
-              text: TextSpan(
-                text: 'Transfer',
-                style: DefaultTextStyle.of(context).style,
-                children: [
-                  TextSpan(
-                    text: '    succ: ${data.transferSuccessCnt}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue,
-                    ),
-                  ),
-                  TextSpan(
-                    text: '    fail: ${data.transferFailCnt}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.red,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Spacer(),
-            const Text('Recharge transfer:'),
-            Switch(
-              value: !data.disableRechargeTransfer,
-              activeColor: Colors.red,
-              onChanged: (bool value) {
-                setState(() => data.disableRechargeTransfer = !value);
-                widget.onLogged(LogItem(
-                  type: LogItemType.info,
-                  platformName: '',
-                  platformKey: '',
-                  phone: data.account,
-                  time: DateTime.now(),
-                  content: '${value ? 'open' : 'close'} recharge transfer.',
-                ));
-              },
-            ),
-          ],
-        ),
+        // Row(
+        //   children: [
+        //     RichText(
+        //       text: TextSpan(
+        //         text: 'Cash',
+        //         style: DefaultTextStyle.of(context).style,
+        //         children: [
+        //           TextSpan(
+        //             text: '    succ: ${data.cashSuccessCnt}',
+        //             style: const TextStyle(
+        //               fontWeight: FontWeight.bold,
+        //               color: Colors.blue,
+        //             ),
+        //           ),
+        //           TextSpan(
+        //             text: '    fail: ${data.cashFailCnt}',
+        //             style: const TextStyle(
+        //               fontWeight: FontWeight.bold,
+        //               color: Colors.red,
+        //             ),
+        //           ),
+        //         ],
+        //       ),
+        //     ),
+        //     const Spacer(),
+        //     const Text('Send money:'),
+        //     Switch(
+        //       value: !data.disableCash,
+        //       activeColor: Colors.red,
+        //       onChanged: (bool value) {
+        //         setState(() => data.disableCash = !value);
+        //         widget.onLogged(LogItem(
+        //           type: LogItemType.info,
+        //           platformName: '',
+        //           platformKey: '',
+        //           phone: data.account,
+        //           time: DateTime.now(),
+        //           content: '${value ? 'open' : 'close'} send money.',
+        //         ));
+        //       },
+        //     ),
+        //   ],
+        // ),
+        // Row(
+        //   children: [
+        //     RichText(
+        //       text: TextSpan(
+        //         text: 'Transfer',
+        //         style: DefaultTextStyle.of(context).style,
+        //         children: [
+        //           TextSpan(
+        //             text: '    succ: ${data.transferSuccessCnt}',
+        //             style: const TextStyle(
+        //               fontWeight: FontWeight.bold,
+        //               color: Colors.blue,
+        //             ),
+        //           ),
+        //           TextSpan(
+        //             text: '    fail: ${data.transferFailCnt}',
+        //             style: const TextStyle(
+        //               fontWeight: FontWeight.bold,
+        //               color: Colors.red,
+        //             ),
+        //           ),
+        //         ],
+        //       ),
+        //     ),
+        //     const Spacer(),
+        //     const Text('Recharge transfer:'),
+        //     Switch(
+        //       value: !data.disableRechargeTransfer,
+        //       activeColor: Colors.red,
+        //       onChanged: (bool value) {
+        //         setState(() => data.disableRechargeTransfer = !value);
+        //         widget.onLogged(LogItem(
+        //           type: LogItemType.info,
+        //           platformName: '',
+        //           platformKey: '',
+        //           phone: data.account,
+        //           time: DateTime.now(),
+        //           content: '${value ? 'open' : 'close'} recharge transfer.',
+        //         ));
+        //       },
+        //     ),
+        //   ],
+        // ),
         Visibility(
           visible: DataManager().devMode,
           child: Row(

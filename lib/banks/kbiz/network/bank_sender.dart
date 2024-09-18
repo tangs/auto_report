@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:auto_report/banks/kbiz/data/bank/get_account_summary_list_response.dart';
 import 'package:auto_report/banks/kbiz/data/bank/get_blacklist_flag.dart';
 import 'package:auto_report/banks/kbiz/data/bank/recent_transaction_response.dart';
+import 'package:auto_report/banks/kbiz/data/bank/transaction_detail_response.dart';
 import 'package:auto_report/banks/kbiz/data/bank/validate_session_response.dart';
 import 'package:auto_report/config/global_config.dart';
 import 'package:auto_report/utils/log_helper.dart';
@@ -382,12 +383,12 @@ class BankSender {
     required int pageNo,
     required int rowPerPage,
   }) async {
-    if (!isNormalState) {
-      final ret = await fullLogin(_account!, _password!);
-      if (!ret) return null;
-    }
-
     try {
+      if (!isNormalState) {
+        final ret = await fullLogin(_account!, _password!);
+        if (!ret) return null;
+      }
+
       final acountSummary =
           _accountSummaryListResponse!.data!.accountSummaryList!.first!;
       final userProfile = _getUserProfile()!;
@@ -446,8 +447,73 @@ class BankSender {
           _isInvalid = true;
         }
       }
+      return null;
     }
-    return null;
+  }
+
+  Future<TransactionDetailResponse?> getTransactionDetail({
+    required String origRqUid,
+    required String debitCreditIndicator,
+    required String transCode,
+    required String transDate,
+    required String transType,
+  }) async {
+    Logger().i('get transation detail, origRqUid: $origRqUid.');
+
+    try {
+      if (!isNormalState) {
+        final ret = await fullLogin(_account!, _password!);
+        if (!ret) return null;
+      }
+
+      final acountSummary =
+          _accountSummaryListResponse!.data!.accountSummaryList!.first!;
+      final userProfile = _getUserProfile()!;
+      const url =
+          'https://kbiz.kasikornbank.com/menu/account/account/recent-transaction';
+
+      if (!await _refreshSession(url: url)) {
+        return null;
+      }
+
+      final res = await dio.post(
+        'https://kbiz.kasikornbank.com/services/api/accountsummary/getRecentTransactionDetail',
+        options: Options(headers: _getHeader(referer: url, url: url)),
+        data: {
+          'acctNo': acountSummary.accountNo!,
+          'custType': userProfile.custType!,
+          'debitCreditIndicator': debitCreditIndicator,
+          'origRqUid': origRqUid,
+          'originalSourceId': '1',
+          'ownerId': userProfile.companyId!,
+          'ownerType': 'Company',
+          'transCode': transCode,
+          'transDate': transDate,
+          'transType': transType,
+        },
+      );
+
+      logger.i('get transation detail: ${res.toString()}');
+
+      final resData = res.data;
+      final recentTransactionResponse =
+          TransactionDetailResponse.fromJson(resData);
+
+      if (recentTransactionResponse.status != 'S') {
+        return null;
+      }
+
+      return recentTransactionResponse;
+    } catch (e, stackTrace) {
+      Logger().e('err: $e');
+      Logger().e('err: $e', stackTrace: stackTrace);
+      if (e is DioException) {
+        if (e.response?.statusCode == 401) {
+          _isInvalid = true;
+        }
+      }
+      return null;
+    }
   }
 
   Future<List<RecentTransactionResponseDataRecentTransactionList>?>

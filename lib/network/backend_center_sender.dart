@@ -132,6 +132,47 @@ class BackendCenterSender {
     return false;
   }
 
+  Future<bool> depositSubmit({
+    required String type,
+    required String account,
+    required String payId,
+    required String payOrder,
+    required String payCard,
+    required String payMoney,
+    String? payName,
+    String? bankTime,
+  }) async {
+    try {
+      final response = await _post(
+        path: 'tool_submit',
+        body: {
+          'device_id': _deviceId,
+          'account': account,
+          'pay_id': payId,
+          'pay_order': payOrder,
+          'pay_card': payCard,
+          'pay_money': payMoney,
+          'pay_name': payName,
+          'bank_time': bankTime,
+        }..removeWhere((k, v) => v == null),
+      );
+
+      if (response == null) return false;
+
+      final body = response.body;
+      logger.i('res body: $body');
+
+      final res = ReportGeneralResponse.fromJson(jsonDecode(body));
+      if (res.status == 'T' && res.message == 'success') {
+        return true;
+      }
+    } catch (e, stackTrace) {
+      logger.e('e: $e', stackTrace: stackTrace);
+    }
+
+    return false;
+  }
+
   static test() async {
     EasyLoading.show();
 

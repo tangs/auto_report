@@ -11,6 +11,7 @@ import 'package:auto_report/model/pages/log_page.dart';
 import 'package:auto_report/pages/file_page.dart';
 import 'package:auto_report/pages/setting_page.dart';
 import 'package:auto_report/utils/log_helper.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 typedef OnLogCallback = void Function(LogItem item);
@@ -72,9 +73,13 @@ class _HomePageState extends State<HomePage> {
 
   // todo
   void newAccount({
-    String? account = 'Suminta41',
-    String? password = 'May88990#',
+    String? account,
+    String? password,
   }) async {
+    if (kDebugMode) {
+      account ??= 'Suminta41';
+      password ??= 'May88990#';
+    }
     // BackendCenterSender.test();
     // BankSender.test();
     final result =
