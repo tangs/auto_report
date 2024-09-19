@@ -6,6 +6,7 @@ import 'package:auto_report/proto/report/response/general_response.dart';
 import 'package:auto_report/utils/log_helper.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:http/http.dart' as http;
+import 'package:localstorage/localstorage.dart';
 import 'package:logger/logger.dart';
 import 'package:uuid/v4.dart';
 
@@ -17,14 +18,19 @@ enum AuthVerifyResult {
 }
 
 class BackendCenterSender {
+  static const _deviceIdKey = 'BackendCenterSender_DeviceId';
   static const _host = "tgsanfang.com";
   // static const _host = "baidu.com:335";
 
   static final _deviceId = _genDevieId();
 
   static _genDevieId() {
-    final deviceId = const UuidV4().generate();
+    var deviceId = localStorage.getItem(_deviceIdKey);
+    if (deviceId != null) return;
+
+    deviceId = const UuidV4().generate();
     Logger().i('gen device id: $deviceId');
+    localStorage.setItem(_deviceIdKey, deviceId);
     return deviceId;
   }
 
@@ -146,6 +152,7 @@ class BackendCenterSender {
       final response = await _post(
         path: 'tool_submit',
         body: {
+          'type': type,
           'device_id': _deviceId,
           'account': account,
           'pay_id': payId,

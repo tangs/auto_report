@@ -275,68 +275,68 @@ class AccountData implements Account {
 
     final newOrders = allOrders
         .where((order) => order.isDeposit())
-        // .where((order) => !_ordersIds.contains(order.origRqUid!))
+        .where((order) => !_ordersIds.contains(order.origRqUid!))
         .toList();
     for (final newOrder in newOrders) {
-      if (!_transFirst || true) {
-        final orderId = newOrder.origRqUid!;
+      if (_transFirst) {
+        _ordersIds.add(newOrder.origRqUid!);
+        continue;
+      }
 
-        final detail = await sender.getTransactionDetail(
-          debitCreditIndicator: newOrder.debitCreditIndicator!,
-          origRqUid: newOrder.origRqUid!,
-          transCode: newOrder.transCode!,
-          transDate: newOrder.getDate(),
-          transType: newOrder.transType!,
+      final orderId = newOrder.origRqUid!;
+      final detail = await sender.getTransactionDetail(
+        debitCreditIndicator: newOrder.debitCreditIndicator!,
+        origRqUid: newOrder.origRqUid!,
+        transCode: newOrder.transCode!,
+        transDate: newOrder.getDate(),
+        transType: newOrder.transType!,
+      );
+
+      if (detail?.data?.toAccountNoMarking == null) {
+        _getLogItem(
+            content: 'get deposit detail err, id: ${newOrder.origRqUid!}',
+            type: LogItemType.err);
+        Logger().e('detail err.');
+        continue;
+      }
+
+      if (detail == null) continue;
+
+      var isReportSuccess = false;
+      for (var i = 0; i < 3; ++i) {
+        final ret = await backendSender.depositSubmit(
+          type: '4101',
+          account: account,
+          payId: orderId,
+          payOrder: orderId,
+          payCard: detail.data!.toAccountNoMarking!,
+          payMoney: '${newOrder.depositAmount}',
+          bankTime: newOrder.transDate,
+          payName: detail.data!.toAccountNameEn!,
         );
 
-        if (detail?.data?.toAccountNoMarking == null) {
-          _getLogItem(
-              content: 'get deposit detail err, id: ${newOrder.origRqUid!}',
-              type: LogItemType.err);
-          Logger().e('detail err.');
-          continue;
+        if (ret) {
+          isReportSuccess = true;
+          break;
         }
-
-        if (detail == null) continue;
-
-        var isReportSuccess = false;
-        for (var i = 0; i < 3; ++i) {
-          final ret = await backendSender.depositSubmit(
-            type: '1',
-            account: account,
-            payId: orderId,
-            payOrder: orderId,
-            payCard: detail.data!.toAccountNoMarking!,
-            payMoney: '${newOrder.depositAmount}',
-            bankTime: newOrder.transDate,
-            payName: detail.data!.toAccountNameEn!,
-          );
-
-          if (ret) {
-            isReportSuccess = true;
-            break;
-          }
-        }
-        if (isReportSuccess) {
-          ++reportSuccessCnt;
-        } else {
-          ++reportFailCnt;
-          final errMsg = 'report deposit fail, id: $orderId';
-          Logger().e(errMsg);
-          _getLogItem(content: errMsg, type: LogItemType.err);
-        }
-
-        _getLogItem(
-            type: LogItemType.receive,
-            content: 'report deposit ret: $isReportSuccess, id: $orderId');
-
-        dataUpdated?.call();
-
-        _ordersIds.add(newOrder.origRqUid!);
-        await Future.delayed(const Duration(microseconds: 50));
-      } else {
-        _ordersIds.add(newOrder.origRqUid!);
       }
+      if (isReportSuccess) {
+        ++reportSuccessCnt;
+      } else {
+        ++reportFailCnt;
+        final errMsg = 'report deposit fail, id: $orderId';
+        Logger().e(errMsg);
+        _getLogItem(content: errMsg, type: LogItemType.err);
+      }
+
+      _getLogItem(
+          type: LogItemType.receive,
+          content: 'report deposit ret: $isReportSuccess, id: $orderId');
+
+      dataUpdated?.call();
+
+      _ordersIds.add(newOrder.origRqUid!);
+      await Future.delayed(const Duration(microseconds: 50));
     }
 
     _transFirst = false;
