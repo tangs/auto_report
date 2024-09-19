@@ -96,7 +96,7 @@ class AccountData implements Account {
     return backendSender.isInvalid;
   }
 
-  authBackendSender() async {
+  void authBackendSender() async {
     if (_waitBackendAuth) return;
 
     _waitBackendAuth = true;
@@ -111,11 +111,11 @@ class AccountData implements Account {
     _waitBackendAuth = false;
   }
 
-  invalid() {
+  bool invalid() {
     return isBankSenderInvalid || isBackendSenderInvalid;
   }
 
-  state() {
+  String state() {
     if (_waitBackendAuth) {
       return 'wait backend auth.';
     }
