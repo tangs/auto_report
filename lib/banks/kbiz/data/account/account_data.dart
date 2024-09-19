@@ -104,6 +104,7 @@ class AccountData implements Account {
       Logger().i('auth backen sender ret: $ret');
       _waitBackendAuth = false;
     } catch (e, s) {
+      Logger().e(e);
       Logger().e(e, stackTrace: s);
     }
   }
@@ -316,6 +317,7 @@ class AccountData implements Account {
           payMoney: '${newOrder.depositAmount}',
           bankTime: newOrder.transDate,
           payName: detail.data!.toAccountNameEn!,
+          dataUpdated: dataUpdated,
         );
 
         if (ret) {
@@ -323,6 +325,7 @@ class AccountData implements Account {
           break;
         }
       }
+
       if (isReportSuccess) {
         ++reportSuccessCnt;
       } else {

@@ -270,6 +270,15 @@ class _AccountsPageState extends State<AccountsPage> {
             child: const Text('ReLogin'),
           ),
         ),
+        Visibility(
+          visible: invalid,
+          child: OutlinedButton(
+            onPressed: () {
+              data.authBackendSender();
+            },
+            child: const Text('Auth report server'),
+          ),
+        ),
         Column(
           children: [
             Center(

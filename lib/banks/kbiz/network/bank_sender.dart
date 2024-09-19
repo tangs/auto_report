@@ -402,7 +402,7 @@ class BankSender {
 
       final formatter = DateFormat('dd/MM/yyyy');
       final nowDate =
-          formatter.format(DateTime.now().subtract(const Duration(hours: 40)));
+          formatter.format(DateTime.now().subtract(const Duration(hours: 30)));
       final endDate = formatter.format(DateTime.now());
 
       final res = await dio.post(

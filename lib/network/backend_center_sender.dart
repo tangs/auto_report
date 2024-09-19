@@ -24,9 +24,14 @@ class BackendCenterSender {
 
   static final _deviceId = _genDevieId();
 
+  var _isAuthorized = false;
+
   static _genDevieId() {
     var deviceId = localStorage.getItem(_deviceIdKey);
-    if (deviceId != null) return;
+    if (deviceId != null) {
+      Logger().i('device id: $deviceId');
+      return deviceId;
+    }
 
     deviceId = const UuidV4().generate();
     Logger().i('gen device id: $deviceId');
@@ -35,7 +40,7 @@ class BackendCenterSender {
   }
 
   // todo
-  get isInvalid => false;
+  get isInvalid => !_isAuthorized;
 
   Future<http.Response?> _post({
     required String path,
@@ -79,7 +84,8 @@ class BackendCenterSender {
         return true;
       }
     } catch (e, stackTrace) {
-      logger.e('e: $e', stackTrace: stackTrace);
+      logger.e('e1: $e');
+      logger.e('e2: $e', stackTrace: stackTrace);
     }
     return false;
   }
@@ -101,6 +107,7 @@ class BackendCenterSender {
 
       final res = ReportGeneralResponse.fromJson(jsonDecode(body));
       if (res.status == 'T' && res.message == 'success') {
+        _isAuthorized = true;
         dataUpdated?.call();
         return AuthVerifyResult.success;
       }
@@ -147,6 +154,7 @@ class BackendCenterSender {
     required String payMoney,
     String? payName,
     String? bankTime,
+    VoidCallback? dataUpdated,
   }) async {
     try {
       final response = await _post(
@@ -172,6 +180,9 @@ class BackendCenterSender {
       final res = ReportGeneralResponse.fromJson(jsonDecode(body));
       if (res.status == 'T' && res.message == 'success') {
         return true;
+      } else if (res.status == 'F' && res.message == 'not authorized') {
+        _isAuthorized = false;
+        dataUpdated?.call();
       }
     } catch (e, stackTrace) {
       logger.e('e: $e', stackTrace: stackTrace);
