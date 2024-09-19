@@ -127,7 +127,6 @@ class AccountData implements Account {
   }
 
   _getLogItem({required LogItemType type, required String content}) {
-    // todo
     return LogItem(
       type: type,
       platformName: '',
@@ -295,9 +294,9 @@ class AccountData implements Account {
       );
 
       if (detail?.data?.toAccountNoMarking == null) {
-        _getLogItem(
+        onLogged(_getLogItem(
             content: 'get deposit detail err, id: ${newOrder.origRqUid!}',
-            type: LogItemType.err);
+            type: LogItemType.err));
         Logger().e('detail err.');
         continue;
       }
@@ -332,12 +331,12 @@ class AccountData implements Account {
         ++reportFailCnt;
         final errMsg = 'report deposit fail, id: $orderId';
         Logger().e(errMsg);
-        _getLogItem(content: errMsg, type: LogItemType.err);
+        onLogged(_getLogItem(content: errMsg, type: LogItemType.err));
       }
 
-      _getLogItem(
+      onLogged(_getLogItem(
           type: LogItemType.receive,
-          content: 'report deposit ret: $isReportSuccess, id: $orderId');
+          content: 'report deposit ret: $isReportSuccess, id: $orderId'));
 
       dataUpdated?.call();
 
