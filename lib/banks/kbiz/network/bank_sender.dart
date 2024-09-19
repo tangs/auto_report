@@ -251,7 +251,8 @@ class BankSender {
   }
 
   Future<bool> _refreshSession({required String url}) async {
-    if (DateTime.now().difference(_refreshSessionTime).inSeconds < 2 * 60) {
+    if (DateTime.now().difference(_refreshSessionTime).inSeconds <
+        40000000 * 60) {
       return true;
     }
 
