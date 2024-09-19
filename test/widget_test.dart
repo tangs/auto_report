@@ -6,28 +6,19 @@
 // tree, read text, and verify that the values of widget properties are correct.
 
 // import 'package:flutter/material.dart';
+import 'package:auto_report/banks/kbiz/utils/string_helper.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 // import 'package:auto_report/main.dart';
 
 void main() {
-  testWidgets('kbiz sender test', (WidgetTester tester) async {});
-
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Sender.test();
-    // Build our app and trigger a frame.
-    // await tester.pumpWidget(const MyApp());
-
-    // // Verify that our counter starts at 0.
-    // expect(find.text('0'), findsOneWidget);
-    // expect(find.text('1'), findsNothing);
-
-    // // Tap the '+' icon and trigger a frame.
-    // await tester.tap(find.byIcon(Icons.add));
-    // await tester.pump();
-
-    // // Verify that our counter has incremented.
-    // expect(find.text('0'), findsNothing);
-    // expect(find.text('1'), findsOneWidget);
+  testWidgets('kbiz test', (WidgetTester tester) async {
+    expect(StringHelper.transferorConvert('xxx-x-x5305-x'), '5305x');
+    expect(StringHelper.transferorConvert('xxx-x-x5305-xx'), '5305xx');
+    expect(StringHelper.transferorConvert('xxx-x-x5305x-x'), '5305xx');
+    expect(StringHelper.transferorConvert('xxx-x-x5305xx-x'), '5305xxx');
+    expect(StringHelper.transferorConvert('xxx-x-x5305xx-xx'), '5305xxxx');
+    expect(StringHelper.transferorConvert('xxx-x-x5305x'), '5305x');
+    expect(StringHelper.transferorConvert('xx---xxx-xxx-xxxx5305-x'), '5305x');
   });
 }

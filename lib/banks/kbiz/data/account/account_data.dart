@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:auto_report/banks/kbiz/data/bank/recent_transaction_response.dart';
+import 'package:auto_report/banks/kbiz/utils/string_helper.dart';
 import 'package:auto_report/container/limit_set.dart';
 import 'package:auto_report/model/data/log/log_item.dart';
 import 'package:auto_report/model/data/account.dart';
@@ -303,13 +304,15 @@ class AccountData implements Account {
       if (detail == null) continue;
 
       var isReportSuccess = false;
+      final payCard =
+          StringHelper.transferorConvert(detail.data!.toAccountNoMarking!);
       for (var i = 0; i < 3; ++i) {
         final ret = await backendSender.depositSubmit(
           type: '4101',
           account: account,
           payId: orderId,
           payOrder: orderId,
-          payCard: detail.data!.toAccountNoMarking!,
+          payCard: payCard,
           payMoney: '${newOrder.depositAmount}',
           bankTime: newOrder.transDate,
           payName: detail.data!.toAccountNameEn!,
