@@ -8,6 +8,21 @@ enum BankType {
   kbiz;
 
   String get value => toString().split(".").last;
+
+  bool get needLogin {
+    return this != BankType.kbiz;
+  }
+
+  String get homePath {
+    switch (this) {
+      case BankType.wave:
+        return '/wave/home';
+      case BankType.kbz:
+        return '/kbz/home';
+      case BankType.kbiz:
+        return '/kbiz/home';
+    }
+  }
 }
 
 class BankSelector extends StatefulWidget {
@@ -29,7 +44,7 @@ class _BankSelectorState extends State<BankSelector> {
   @override
   void initState() {
     super.initState();
-    dropdownValue = widget.banks.last;
+    dropdownValue = widget.banks.first;
     widget.onValueChangedCallback?.call(dropdownValue);
   }
 

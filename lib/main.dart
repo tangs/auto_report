@@ -77,12 +77,6 @@ class MyApp extends StatelessWidget {
           return kbiz_auth.AuthPage(
             account: data['account'],
             password: data['password'],
-            // platforms: data['platforms'],
-            // phoneNumber: data['phoneNumber'],
-            // id: data['id'],
-            // pin: data['pin'],
-            // token: data['token'],
-            // remark: data['remark'],
           );
         },
         '/kbiz/home': (context) {

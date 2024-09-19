@@ -32,15 +32,17 @@ class _LoginPageState extends State<LoginPage> {
     if (kDebugMode) {
       setState(() => _platform = '4e70ffa82fbe886e3c4ac00ac374c29b');
     }
+
+    autoJumpPage();
   }
 
-  needLogin() {
-    switch (GlobalConfig.bankType) {
-      case BankType.wave:
-      case BankType.kbz:
-        return true;
-      default:
-        return false;
+  void autoJumpPage() async {
+    await Future.delayed(const Duration(microseconds: 10));
+
+    if (!mounted) return;
+    if (!GlobalConfig.bankType.needLogin) {
+      final homePath = GlobalConfig.bankType.homePath;
+      Navigator.of(context).pushReplacementNamed(homePath);
     }
   }
 
@@ -87,30 +89,15 @@ class _LoginPageState extends State<LoginPage> {
 
     try {
       GetPlatformsResponse? resData;
-      if (needLogin()) {
+      if (GlobalConfig.bankType.needLogin) {
         resData = await getPlatformUrl();
       }
 
-      // for (var cell in resData.data!) {
-      //   logger.i('cell: ${cell!.key}, ${cell.name}, ${cell.url}, ${cell.mark}');
-      // }
-
       if (!mounted) return;
 
-      var path = '';
-      switch (GlobalConfig.bankType) {
-        case BankType.wave:
-          path = '/wave/home';
-          break;
-        case BankType.kbz:
-          path = '/kbz/home';
-          break;
-        case BankType.kbiz:
-          path = '/kbiz/home';
-          break;
-      }
+      final homePath = GlobalConfig.bankType.homePath;
       Navigator.of(context).pushReplacementNamed(
-        path,
+        homePath,
         arguments: resData?.data,
       );
     } catch (e, stackTrace) {
