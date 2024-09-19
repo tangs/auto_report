@@ -97,16 +97,18 @@ class AccountData implements Account {
   }
 
   authBackendSender() async {
+    if (_waitBackendAuth) return;
+
+    _waitBackendAuth = true;
     try {
-      _waitBackendAuth = true;
       final ret = await backendSender.authAndVerify(
           account: account, verfyWaitSeconds: 3, queryVerifyTimes: 100);
       Logger().i('auth backen sender ret: $ret');
-      _waitBackendAuth = false;
     } catch (e, s) {
       Logger().e(e);
       Logger().e(e, stackTrace: s);
     }
+    _waitBackendAuth = false;
   }
 
   invalid() {
