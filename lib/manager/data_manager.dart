@@ -11,6 +11,8 @@ class DataManager {
   static final DataManager _singleton = DataManager._internal();
 
   static const orderRefreshTimeRange = RangeValues(50, 120);
+  static const gettingCashListRefreshTimeRange = RangeValues(10, 60);
+  static const rechargeTransferRefreshTimeRange = RangeValues(10, 60);
 
   double orderRefreshTime = 60;
   double gettingCashListRefreshTime = 15;
@@ -66,6 +68,14 @@ class DataManager {
 
       orderRefreshTime = min(orderRefreshTimeRange.end,
           max(orderRefreshTimeRange.start, orderRefreshTime));
+      gettingCashListRefreshTime = min(
+          gettingCashListRefreshTimeRange.end,
+          max(gettingCashListRefreshTimeRange.start,
+              gettingCashListRefreshTime));
+      rechargeTransferRefreshTime = min(
+          rechargeTransferRefreshTimeRange.end,
+          max(rechargeTransferRefreshTimeRange.start,
+              rechargeTransferRefreshTime));
 
       isDark = bool.parse(localStorage.getItem('isDark') ?? 'false');
       openRechargeTransfer =

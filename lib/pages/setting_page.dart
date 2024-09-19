@@ -95,8 +95,8 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                     Slider(
                       value: _orderRefreshTime,
-                      min: 50,
-                      max: 120,
+                      min: DataManager.orderRefreshTimeRange.start,
+                      max: DataManager.orderRefreshTimeRange.end,
                       divisions: 7,
                       label: '${_orderRefreshTime.toInt()}',
                       onChanged: (double value) {
@@ -116,9 +116,9 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                     Slider(
                       value: _sendMoneyRefreshTime,
-                      min: 1,
-                      max: 20,
-                      divisions: 19,
+                      min: DataManager.gettingCashListRefreshTimeRange.start,
+                      max: DataManager.gettingCashListRefreshTimeRange.end,
+                      divisions: 10,
                       label: '${_sendMoneyRefreshTime.toInt()}',
                       onChanged: (double value) {
                         setState(() {
@@ -139,8 +139,8 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                     Slider(
                       value: _rechargeTransferRefreshTime,
-                      min: 5,
-                      max: 65,
+                      min: DataManager.rechargeTransferRefreshTimeRange.start,
+                      max: DataManager.rechargeTransferRefreshTimeRange.end,
                       divisions: 12,
                       label: '${_rechargeTransferRefreshTime.toInt()}',
                       onChanged: (double value) {
