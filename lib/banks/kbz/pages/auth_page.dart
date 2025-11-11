@@ -293,7 +293,8 @@ class _AuthPageState extends State<AuthPage> {
       EasyLoading.show(status: 'loading...');
       {
         final host = _platformsResponseData!.url!.replaceAll('http://', '');
-        const path = 'api/pay/payinfo_apply';
+        // const path = 'api/pay/payinfo_apply';
+        const path = 'api/pay/tool_apply';
         final url = Uri.http(host, path, {
           'token': _token,
           'phone': _phoneNumber,

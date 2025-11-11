@@ -48,7 +48,8 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<GetPlatformsResponse?> getPlatformUrl() async {
-    final url = Uri.http('www.diyibuyu.com', 'api/getPlatformUrl');
+    // final url = Uri.http('www.diyibuyu.com', 'api/getPlatformUrl');
+    final url = Uri.http('www.diyibuyu.com', 'api/getAllPlatformUrl');
 
     final response = await Future.any([
       http.post(url, body: {
