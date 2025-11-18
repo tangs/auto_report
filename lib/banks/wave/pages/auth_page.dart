@@ -410,7 +410,8 @@ class _AuthPageState extends State<AuthPage> {
       EasyLoading.show(status: 'wait server auth');
       for (var i = 0; i < 30; ++i) {
         final host = _platformsResponseData!.url!.replaceAll('http://', '');
-        const path = 'api/pay/payinfo_verify';
+        // const path = 'api/pay/payinfo_verify';
+        const path = 'api/pay/tool_verify';
         final url = Uri.http(host, path, {
           'token': _token,
           'phone': _phoneNumber,
