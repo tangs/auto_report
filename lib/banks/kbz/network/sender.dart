@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:ffi';
 import 'dart:math';
 
 import 'package:auto_report/banks/kbz/config/config.dart';
@@ -140,6 +139,24 @@ class Sender {
     ]);
   }
 
+  Map<String, String> getTemplateHeader(bool needNew) {
+    var headers = ({
+      // 'MessageType': 'NEW',
+      'Content-Type': 'application/json; charset=utf-8',
+      'KBZPay-App-Type' : 'customer',
+      'KBZPay-Device-Type' : 'Android',
+      'KBZPay-Version': Config.appversion,
+      'KBZPay-Command-Id': 'GuestLogin',
+      'User-Agent': 'okhttp/4.12.0',
+      });
+
+    if (needNew) {
+      headers['MessageType'] = 'NEW';
+    }
+    return headers;
+  }
+
+
   Map<String, dynamic> getBodyTemplate() {
     return getBodyTemplate1()
       ..addAll({
@@ -172,7 +189,7 @@ class Sender {
   }
 
   Map<String, dynamic> getBodyTemplateContainsHeaders({
-    required String commondid,
+    required String commondId,
     required Map<dynamic, dynamic> body,
   }) {
     final timestamp =
@@ -180,7 +197,7 @@ class Sender {
     return {
       'Request': {
         'Header': {
-          "CommandID": commondid,
+          "CommandID": commondId,
           "ClientType": Config.osType,
           "Language": Config.language,
           "Version": Config.appversion,
@@ -220,16 +237,9 @@ class Sender {
           'token': '',
           'version': Config.appversion,
         },
-        header: {
-          // 'Timestamp': timestamp,
-          'MessageType': 'NEW',
-          'Content-Type': 'application/json; charset=utf-8',
-          'KBZPay-App-Type' : 'customer',
-          'KBZPay-Device-Type' : 'Android',
-          'KBZPay-Version': Config.appversion,
+        header: getTemplateHeader(true)..addAll({
           'KBZPay-Command-Id': 'GuestLogin',
-          'User-Agent': 'okhttp/4.12.0',
-        },
+        }),
       );
 
       if (response is! http.Response) {
@@ -273,7 +283,7 @@ class Sender {
 
       final response = await post(
         body: getBodyTemplateContainsHeaders(
-          commondid: 'SMSVerificationCode',
+          commondId: 'SMSVerificationCode',
           body: {
             'Identity': {
               'Initiator': {
@@ -287,9 +297,12 @@ class Sender {
             }
           },
         ),
-        header: {
-          'User-Agent': 'okhttp/4.10.0',
-        },
+        // header: {
+        //   'User-Agent': 'okhttp/4.12.0',
+        // },
+        header: getTemplateHeader(false)..addAll({
+          'KBZPay-Command-Id': 'SMSVerificationCode',
+        }),
       );
 
       if (response is! http.Response) {
@@ -349,10 +362,13 @@ class Sender {
 
       final response = await post(
         body: body,
-        header: {
-          'User-Agent': 'okhttp/4.10.0',
-          'Messagetype': 'NEW',
-        },
+        header: getTemplateHeader(true)..addAll({
+          'KBZPay-Command-Id': 'LoginForSmsCode',
+        }),
+        // header: {
+        //   'User-Agent': 'okhttp/4.10.0',
+        //   'Messagetype': 'NEW',
+        // },
       );
 
       if (response is! http.Response) {
@@ -423,10 +439,13 @@ class Sender {
             'initiatorMSISDN': phoneNumber,
             'initiatorPin': encryptPin,
           }),
-        header: {
-          'User-Agent': 'okhttp/4.10.0',
-          'Messagetype': 'NEW',
-        },
+        header: getTemplateHeader(true)..addAll({
+          'KBZPay-Command-Id': 'RiskControlCheckVerifyPin',
+        }),
+        // header: {
+        //   'User-Agent': 'okhttp/4.10.0',
+        //   'Messagetype': 'NEW',
+        // },
       );
 
       if (response is! http.Response) {
@@ -474,10 +493,13 @@ class Sender {
             'initiatorMSISDN': phoneNumber,
             'initiatorPin': encryptPin,
           }),
-        header: {
-          'User-Agent': 'okhttp/4.10.0',
-          'Messagetype': 'NEW',
-        },
+        header: getTemplateHeader(true)..addAll({
+          'KBZPay-Command-Id': 'HistoryPinCheckIdentity',
+        }),
+        // header: {
+        //   'User-Agent': 'okhttp/4.10.0',
+        //   'Messagetype': 'NEW',
+        // },
       );
 
       if (response is! http.Response) {
@@ -523,10 +545,13 @@ class Sender {
             'initiatorMSISDN': phoneNumber,
             'serialNo': serialNo,
           }),
-        header: {
-          'User-Agent': 'okhttp/4.10.0',
-          'Messagetype': 'NEW',
-        },
+        header: getTemplateHeader(true)..addAll({
+          'KBZPay-Command-Id': 'RiskGetVerifyQRCodes',
+        }),
+        // header: {
+        //   'User-Agent': 'okhttp/4.10.0',
+        //   'Messagetype': 'NEW',
+        // },
       );
 
       if (response is! http.Response) {
@@ -571,10 +596,13 @@ class Sender {
             'initiatorMSISDN': phoneNumber,
             'serialNo': serialNo,
           }),
-        header: {
-          'User-Agent': 'okhttp/4.10.0',
-          'Messagetype': 'NEW',
-        },
+        header: getTemplateHeader(true)..addAll({
+          'KBZPay-Command-Id': 'RiskFinishVerifyQRCode',
+        }),
+        // header: {
+        //   'User-Agent': 'okhttp/4.10.0',
+        //   'Messagetype': 'NEW',
+        // },
       );
 
       if (response is! http.Response) {
@@ -621,10 +649,13 @@ class Sender {
             // 'idType': 'Nrc',
             'idType': '01',
           }),
-        header: {
-          'User-Agent': 'okhttp/4.10.0',
-          'Messagetype': 'NEW',
-        },
+        header: getTemplateHeader(true)..addAll({
+          'KBZPay-Command-Id': 'RiskControlCheckVerifyNrc',
+        }),
+        // header: {
+        //   'User-Agent': 'okhttp/4.10.0',
+        //   'Messagetype': 'NEW',
+        // },
       );
 
       if (response is! http.Response) {
@@ -667,10 +698,9 @@ class Sender {
 
       final response = await post(
         body: body,
-        header: {
-          'User-Agent': 'okhttp/4.10.0',
-          'Messagetype': 'NEW',
-        },
+        header: getTemplateHeader(true)..addAll({
+          'KBZPay-Command-Id': 'QueryLoginMode',
+        }),
       );
 
       if (response is! http.Response) {
@@ -717,10 +747,13 @@ class Sender {
 
       final response = await post(
         body: body,
-        header: {
-          'User-Agent': 'okhttp/4.10.0',
-          'Messagetype': 'NEW',
-        },
+        header: getTemplateHeader(true)..addAll({
+          'KBZPay-Command-Id': 'LoginForSmsCode',
+        }),
+        // header: {
+        //   'User-Agent': 'okhttp/4.10.0',
+        //   'Messagetype': 'NEW',
+        // },
       );
 
       if (response is! http.Response) {
@@ -818,7 +851,7 @@ class Sender {
 
       final response = await post(
         body: getBodyTemplateContainsHeaders(
-          commondid: 'IdentityVerification',
+          commondId: 'IdentityVerification',
           body: {
             'RequestDetail': {
               'Encoding': 'unicode',
@@ -838,9 +871,12 @@ class Sender {
             }
           },
         ),
-        header: {
-          'User-Agent': 'okhttp/4.10.0',
-        },
+        header: getTemplateHeader(false)..addAll({
+          'KBZPay-Command-Id': 'IdentityVerification',
+        }),
+        // header: {
+        //   'User-Agent': 'okhttp/4.10.0',
+        // },
       );
 
       if (response is! http.Response) {
@@ -879,7 +915,7 @@ class Sender {
 
       final response = await post(
         body: getBodyTemplateContainsHeaders(
-          commondid: 'QueryCustomerBalance',
+          commondId: 'QueryCustomerBalance',
           body: {
             'RequestDetail': {
               'Encoding': 'unicode',
@@ -898,9 +934,12 @@ class Sender {
             }
           },
         ),
-        header: {
-          'User-Agent': 'okhttp/4.10.0',
-        },
+        header: getTemplateHeader(false)..addAll({
+          'KBZPay-Command-Id': 'QueryCustomerBalance',
+        }),
+        // header: {
+        //   'User-Agent': 'okhttp/4.10.0',
+        // },
       );
 
       if (response is! http.Response) {
@@ -985,7 +1024,7 @@ class Sender {
 
       final response = await post(
         body: getBodyTemplateContainsHeaders(
-          commondid: 'PGWGetAccessToken',
+          commondId: 'PGWGetAccessToken',
           body: {
             'RequestDetail': {
               'Encoding': 'unicode',
@@ -1004,9 +1043,12 @@ class Sender {
             }
           },
         ),
-        header: {
-          'User-Agent': 'okhttp/4.10.0',
-        },
+        header: getTemplateHeader(false)..addAll({
+          'KBZPay-Command-Id': 'PGWGetAccessToken',
+        }),
+        // header: {
+        //   'User-Agent': 'okhttp/4.10.0',
+        // },
       );
 
       if (response is! http.Response) {
@@ -1091,7 +1133,7 @@ class Sender {
 
       final response = await post(
         body: getBodyTemplateContainsHeaders(
-          commondid: 'PGWGetAccessToken',
+          commondId: 'PGWGetAccessToken',
           body: {
             'RequestDetail': {
               'Merch_APPID': 'kpbe8dec8eb6e04bc19fbb5974fb32c0',
@@ -1109,9 +1151,12 @@ class Sender {
             }
           },
         ),
-        header: {
-          'User-Agent': 'okhttp/4.10.0',
-        },
+        header: getTemplateHeader(false)..addAll({
+          'KBZPay-Command-Id': 'PGWGetAccessToken',
+        }),
+        // header: {
+        //   'User-Agent': 'okhttp/4.10.0',
+        // },
       );
 
       if (response is! http.Response) {
@@ -1221,10 +1266,14 @@ class Sender {
       logger.i(
           'start new trans record list msg.phone number: $phoneNumber, s: $startNumber, cnt: $count');
 
-      final header = {
-        'User-Agent': 'okhttp-okgo/jeasonlzy',
-        'Messagetype': 'NEW',
-      };
+      // final header = {
+      //   'User-Agent': 'okhttp-okgo/jeasonlzy',
+      //   'Messagetype': 'NEW',
+      // };
+
+      final header = getTemplateHeader(true)..addAll({
+        'KBZPay-Command-Id': 'NewTransRecordList',
+      });
 
       final response = await post(
         body: getBodyTemplate1()
@@ -1347,7 +1396,7 @@ class Sender {
       logger.i('check account: $phoneNumber, r: $receiverAccount');
       final response = await post(
         body: getBodyTemplateContainsHeaders(
-          commondid: 'GetUserInfo',
+          commondId: 'GetUserInfo',
           body: {
             'RequestDetail': {
               'Encoding': 'unicode',
@@ -1366,9 +1415,12 @@ class Sender {
             }
           },
         ),
-        header: {
-          'User-Agent': 'okhttp/4.10.0',
-        },
+        header: getTemplateHeader(false)..addAll({
+          'KBZPay-Command-Id': 'GetUserInfo',
+        }),
+        // header: {
+        //   'User-Agent': 'okhttp/4.10.0',
+        // },
       );
 
       if (response is! http.Response) {
@@ -1470,7 +1522,7 @@ class Sender {
       final encryptPin = RSAHelper.encrypt(pin, Config.pinPublicKey);
       final response = await post(
         body: getBodyTemplateContainsHeaders(
-          commondid: 'TransferToAccount',
+          commondId: 'TransferToAccount',
           body: {
             'RequestDetail': {
               'Amount': amount,
@@ -1493,9 +1545,12 @@ class Sender {
             }
           },
         ),
-        header: {
-          'User-Agent': 'okhttp/4.10.0',
-        },
+        header: getTemplateHeader(false)..addAll({
+          'KBZPay-Command-Id': 'TransferToAccount',
+        }),
+        // header: {
+        //   'User-Agent': 'okhttp/4.10.0',
+        // },
       );
 
       if (response is! http.Response) {

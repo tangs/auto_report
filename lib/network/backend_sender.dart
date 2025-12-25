@@ -116,6 +116,7 @@ class BackendSender {
       }
 
       final body = response.body;
+      logger.i('get cash list response body: $body');
 
       final jsonData = jsonDecode(body);
       if (jsonData['success'] == false) {
@@ -172,8 +173,8 @@ class BackendSender {
       }
 
       final body = response.body;
-
       logger.i('get_recharge_transfer_list response: $body');
+
       final jsonData = jsonDecode(body);
       if (jsonData['success'] == false) {
         // 当前没有需要转账的数据

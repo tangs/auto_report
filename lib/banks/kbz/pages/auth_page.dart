@@ -7,7 +7,6 @@ import 'package:auto_report/banks/kbz/config/config.dart';
 import 'package:auto_report/banks/kbz/data/account/account_data.dart';
 import 'package:auto_report/banks/kbz/network/sender.dart';
 import 'package:auto_report/banks/kbz/pages/qr_data.dart';
-import 'package:auto_report/banks/kbz/utils/aes_key_generator.dart';
 import 'package:auto_report/proto/report/response/get_platforms_response.dart';
 import 'package:auto_report/proto/report/response/general_response.dart';
 import 'package:auto_report/utils/log_helper.dart';
@@ -155,9 +154,9 @@ class _AuthPageState extends State<AuthPage> {
           return;
         }
       }
-      // {
-      //   await _sender.queryLoginMode(phoneNumber);
-      // }
+      {
+        await _sender.queryLoginMode(phoneNumber);
+      }
       {
         final ret = await _sender.requestOtpMsg(phoneNumber);
 
@@ -231,7 +230,7 @@ class _AuthPageState extends State<AuthPage> {
     EasyLoading.show(status: 'loading...');
     try {
       {
-        await _sender.queryLoginMode(phoneNumber);
+        // await _sender.queryLoginMode(phoneNumber);
 
         final ret = await _sender.loginMsg(phoneNumber, otpCode, null);
         if (!ret.item1) {
