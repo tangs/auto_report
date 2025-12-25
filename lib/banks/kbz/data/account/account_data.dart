@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:auto_report/banks/kbz/config/aeskey_getter.dart';
 import 'package:auto_report/banks/kbz/config/config.dart';
 import 'package:auto_report/model/data/log/log_item.dart';
 import 'package:auto_report/model/data/account.dart';
@@ -140,9 +141,17 @@ class AccountData implements Account {
     disableCash = json['disableCash'];
     disableRechargeTransfer = json['disableRechargeTransfer'];
 
+    
+    final keys = AeskeyGetter.getRandomKeys();
+    final ivs = AeskeyGetter.getRandomIvs();
+
     sender = Sender(
-      aesKey: json['send_aesKey'],
-      ivKey: json['send_ivKey'],
+      // aesKey: json['send_aesKey'],
+      // ivKey: json['send_ivKey'],
+      aesKey: keys[0],
+      aesKeyRSA: keys[1],
+      ivKey: ivs[0],
+      ivKeyRSA: ivs[1],
       deviceId: json['send_deviceId'],
       uuid: json['send_uuid'],
       model: json['send_model'],

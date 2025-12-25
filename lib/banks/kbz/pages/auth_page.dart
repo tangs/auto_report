@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:auto_report/banks/kbz/config/aeskey_getter.dart';
 import 'package:auto_report/banks/kbz/config/config.dart';
 import 'package:auto_report/banks/kbz/data/account/account_data.dart';
 import 'package:auto_report/banks/kbz/network/sender.dart';
@@ -116,17 +117,21 @@ class _AuthPageState extends State<AuthPage> {
     logger.i('device id: $deviceId, model: $model, uuid: $uuid');
     logger.i('time: ${DateTime.now().toUtc().millisecondsSinceEpoch}');
 
-    final aesKey = AesKeyGenerator.generateRandomKey();
-    final ivKey = AesKeyGenerator.getRandom(16);
+    // final aesKey = AesKeyGenerator.generateRandomKey();
+    // final ivKey = AesKeyGenerator.getRandomIv(64);
+    final keys = AeskeyGetter.getRandomKeys();
+    final ivs = AeskeyGetter.getRandomIvs();
 
     _sender = Sender(
-        aesKey: aesKey,
-        ivKey: ivKey,
+        aesKey: keys[0],
+        aesKeyRSA: keys[1],
+        ivKey: ivs[0],
+        ivKeyRSA: ivs[1],
         deviceId: deviceId,
         uuid: uuid,
         model: model);
 
-    logger.i('aes key: $aesKey, iv: $ivKey');
+    logger.i('aes key: ${keys[0]}, iv: ${ivs[0]}');
   }
 
   void _requestOtp() async {
@@ -150,6 +155,9 @@ class _AuthPageState extends State<AuthPage> {
           return;
         }
       }
+      // {
+      //   await _sender.queryLoginMode(phoneNumber);
+      // }
       {
         final ret = await _sender.requestOtpMsg(phoneNumber);
 
