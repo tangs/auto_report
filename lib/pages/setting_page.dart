@@ -1,4 +1,8 @@
+import 'package:auto_report/banks/kbz/config/config.dart' as kbz_config;
+import 'package:auto_report/banks/wave/config/config.dart' as wave_config;
+import 'package:auto_report/config/global_config.dart';
 import 'package:auto_report/manager/data_manager.dart';
+import 'package:auto_report/widges/bank_selector.dart';
 import 'package:flutter/material.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -164,6 +168,28 @@ class _SettingsPageState extends State<SettingsPage> {
                           setState(() => _devModeSwich = true);
                         }
                       },
+                    ),
+                    Visibility(
+                      visible: GlobalConfig.bankType == BankType.kbz,
+                      child: const _CustomListTile(
+                        title: 'kbz app version',
+                        icon: Icons.code,
+                        trailing: Text(
+                          kbz_config.Config.appversion,
+                          style: TextStyle(fontSize: 14),
+                        ),
+                      ),
+                    ),
+                    Visibility(
+                      visible: GlobalConfig.bankType == BankType.wave,
+                      child: const _CustomListTile(
+                        title: 'wave app version',
+                        icon: Icons.code,
+                        trailing: Text(
+                          wave_config.Config.appversion,
+                          style: TextStyle(fontSize: 14),
+                        ),
+                      ),
                     ),
                   ],
                 ),
