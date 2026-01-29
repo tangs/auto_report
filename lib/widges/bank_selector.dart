@@ -5,7 +5,8 @@ typedef OnBankSelectorValueChangedCallback = void Function(BankType bank);
 enum BankType {
   wave,
   kbz,
-  kbiz;
+  kbiz,
+  aya;
 
   String get value => toString().split(".").last;
 
@@ -21,6 +22,8 @@ enum BankType {
         return '/kbz/home';
       case BankType.kbiz:
         return '/kbiz/home';
+      case BankType.aya:
+        return '/aya/home';
     }
   }
 }

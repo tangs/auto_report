@@ -31,7 +31,7 @@ class _LoginPageState extends State<LoginPage> {
   void initState() {
     super.initState();
     if (kDebugMode) {
-      setState(() => _platform = '4e70ffa82fbe886e3c4ac00ac374c29b');
+      setState(() => _platform = '528c87bb4063166c1e2eee978f044dd1');
     }
 
     autoJumpPage();

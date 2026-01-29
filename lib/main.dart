@@ -6,6 +6,8 @@ import 'package:auto_report/banks/kbz/pages/auth_page.dart' as kbz_auth;
 import 'package:auto_report/banks/kbz/pages/home_page.dart' as kbz_home;
 import 'package:auto_report/banks/kbiz/pages/home_page.dart' as kbiz_home;
 import 'package:auto_report/banks/kbiz/pages/auth_page.dart' as kbiz_auth;
+import 'package:auto_report/banks/aya/pages/auth_page.dart' as aya_auth;
+import 'package:auto_report/banks/aya/pages/home_page.dart' as aya_home;
 import 'package:auto_report/pages/login_page.dart';
 import 'package:auto_report/utils/log_helper.dart';
 import 'package:flutter/material.dart';
@@ -83,6 +85,26 @@ class MyApp extends StatelessWidget {
           return kbiz_home.HomePage(
             title: GlobalConfig.bankType.value,
             // platforms: data,
+          );
+        },
+        '/aya/auth': (context) {
+          final data = ModalRoute.of(context)?.settings.arguments
+              as Map<String, dynamic>;
+          return aya_auth.AuthPage(
+            platforms: data['platforms'],
+            phoneNumber: data['phoneNumber'],
+            id: data['id'],
+            pin: data['pin'],
+            token: data['token'],
+            remark: data['remark'],
+          );
+        },
+        '/aya/home': (context) {
+          final data = ModalRoute.of(context)?.settings.arguments
+              as List<GetPlatformsResponseData?>?;
+          return aya_home.HomePage(
+            title: GlobalConfig.bankType.value,
+            platforms: data,
           );
         },
       },
