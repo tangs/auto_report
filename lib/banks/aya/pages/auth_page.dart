@@ -2,11 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
-import 'package:auto_report/banks/kbz/config/aeskey_getter.dart';
-import 'package:auto_report/banks/kbz/config/config.dart';
-import 'package:auto_report/banks/kbz/data/account/account_data.dart';
-import 'package:auto_report/banks/kbz/network/sender.dart';
-import 'package:auto_report/banks/kbz/pages/qr_data.dart';
+import 'package:auto_report/banks/aya/config/aeskey_getter.dart';
+import 'package:auto_report/banks/aya/config/config.dart';
+import 'package:auto_report/banks/aya/data/account/account_data.dart';
+import 'package:auto_report/banks/aya/network/sender.dart';
+import 'package:auto_report/banks/aya/pages/qr_data.dart';
+import 'package:auto_report/banks/aya/utils/sentry_header_generator.dart';
 import 'package:auto_report/proto/report/response/get_platforms_response.dart';
 import 'package:auto_report/proto/report/response/general_response.dart';
 import 'package:auto_report/utils/log_helper.dart';
@@ -14,8 +15,6 @@ import 'package:auto_report/widges/platform_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:http/http.dart' as http;
-import 'package:intl/intl.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 class AuthPage extends StatefulWidget {
@@ -49,27 +48,11 @@ class _AuthPageState extends State<AuthPage> {
   String? _token;
   String? _remark;
 
-  List<QrData> qrData = [
-    // QrData(
-    //   qrCode:
-    //       'KBZPayRQR01GTE5wZTRFeVVuTFpaeUpWX0dYV3Y2NHJzZDVTX1B5UWFoaXp2MUtIekNp',
-    //   validateTime: 1745671774150,
-    //   expiredTime: 1745671834150,
-    // ),
-    // QrData(
-    //   qrCode:
-    //       'KBZPayRQR01ETE5wZTRFeVVuTFpaeUpWX0dYV3Y2NHJzZDVTX1B5UWFoaTRqWGlJVnZY',
-    //   validateTime: 1745671834150,
-    //   expiredTime: 1745671894150,
-    // ),
-  ];
-  int qrIndex = 0;
-
   GetPlatformsResponseData? _platformsResponseData;
 
   late Sender _sender;
 
-  final _models = ['Pixel 5', 'Pixel 6', 'Pixel 5 pro'];
+  // final _models = ['Pixel 5', 'Pixel 6', 'Pixel 5 pro'];
   // final _osVersions = ['12', '13', '14'];
 
   bool _hasLogin = false;
@@ -87,51 +70,51 @@ class _AuthPageState extends State<AuthPage> {
     _token = '';
     _remark = widget.remark ?? '';
 
-    if (_token!.isEmpty) {
-      final sb = StringBuffer();
-      final rand = Random();
-      for (var i = 0; i < 32; ++i) {
-        if (rand.nextBool()) {
-          sb.write(String.fromCharCode(0x61 + rand.nextInt(26)));
-        } else {
-          sb.write(String.fromCharCode(0x30 + rand.nextInt(10)));
-        }
-      }
-      _token = sb.toString();
-    }
+    final headers = SentryHeaderGenerator.generateSentryHeaders();
+  
+    // logger.i("Generated Headers:");
+    // headers.forEach((key, value) {
+    //   logger.i("$key: $value");
+    // });
 
-    // generate device id
-    var deviceId = '';
-    final ran = Random.secure();
-    for (var i = 0; i < 16; ++i) {
-      final num = ran.nextInt(16);
-      deviceId += num.toRadixString(16);
-    }
+    final firebaseToken = generateFirebaseTokenLikeExample();
 
-    final model = _models[ran.nextInt(_models.length)];
-    // _osVersion = _osVersions[ran.nextInt(_osVersions.length)];
-    // final deviceId = deviceId;
-    final uuid = const Uuid().v4();
+    logger.i("Sentry-Trace: ${headers['Sentry-Trace']}");
+    logger.i("Baggage: ${headers['Baggage']}");
 
-    logger.i('device id: $deviceId, model: $model, uuid: $uuid');
-    logger.i('time: ${DateTime.now().toUtc().millisecondsSinceEpoch}');
-
-    // final aesKey = AesKeyGenerator.generateRandomKey();
-    // final ivKey = AesKeyGenerator.getRandomIv(64);
-    final keys = AeskeyGetter.getRandomKeys();
-    final ivs = AeskeyGetter.getRandomIvs();
+    logger.i("firebaseToken: $firebaseToken");
 
     _sender = Sender(
-        aesKey: keys[0],
-        aesKeyRSA: keys[1],
-        ivKey: ivs[0],
-        ivKeyRSA: ivs[1],
-        deviceId: deviceId,
-        uuid: uuid,
-        model: model);
-
-    logger.i('aes key: ${keys[0]}, iv: ${ivs[0]}');
+      firebase: firebaseToken,
+    );
   }
+
+
+String generateFirebaseTokenLikeExample() {
+  final Random random = Random();
+  
+  // Firebase Token 标准字符集
+  const String chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_';
+
+  // 内部辅助函数：生成指定长度的随机字符串
+  String getRandomString(int length) {
+    return List.generate(length, (index) => chars[random.nextInt(chars.length)]).join();
+  }
+
+  // 1. 生成第一部分：22位随机字符
+  String part1 = getRandomString(22);
+
+  // 2. 生成第二部分：总长 140 位
+  // 前缀固定为 "APA91b" (6位)
+  String prefix2 = "APA91b";
+  // 剩余需要生成的长度 = 140 - 6 = 134 位
+  String body2 = getRandomString(134);
+  
+  String part2 = "$prefix2$body2";
+
+  // 3. 用冒号拼接
+  return "$part1:$part2";
+}
 
   void _requestOtp() async {
     if (_phoneNumber?.isEmpty ?? true) {
@@ -146,25 +129,25 @@ class _AuthPageState extends State<AuthPage> {
     logger.i('Phone number: $_phoneNumber');
 
     try {
-      {
-        final ret = await _sender.geustLoginMsg();
+      // {
+      //   final ret = await _sender.geustLoginMsg();
 
-        if (!ret) {
-          EasyLoading.showToast('guest login fail.');
-          return;
-        }
-      }
-      {
-        await _sender.queryLoginMode(phoneNumber);
-      }
-      {
-        final ret = await _sender.requestOtpMsg(phoneNumber);
+      //   if (!ret) {
+      //     EasyLoading.showToast('guest login fail.');
+      //     return;
+      //   }
+      // }
+      // {
+      //   await _sender.queryLoginMode(phoneNumber);
+      // }
+      // {
+      //   final ret = await _sender.requestOtpMsg(phoneNumber);
 
-        if (!ret) {
-          EasyLoading.showToast('request opt fail.');
-          return;
-        }
-      }
+      //   if (!ret) {
+      //     EasyLoading.showToast('request opt fail.');
+      //     return;
+      //   }
+      // }
 
       // logger.i('$Config.wmtMfsKey: ${response.headers[Config.wmtMfsKey]}');
 
@@ -220,118 +203,7 @@ class _AuthPageState extends State<AuthPage> {
 
   String qrSerialNo = '';
   String businessUniqueId = '';
-  void _questQrCode() async {
-    if (!_checkInput()) return;
-
-    final phoneNumber = _phoneNumber!;
-    final id = _id!.toUpperCase();
-    final otpCode = _otpCode!;
-
-    EasyLoading.show(status: 'loading...');
-    try {
-      {
-        // await _sender.queryLoginMode(phoneNumber);
-
-        final ret = await _sender.loginMsg(phoneNumber, otpCode, null);
-        if (!ret.item1) {
-          EasyLoading.showToast('login fail.msg: ${ret.item2}');
-          logger.i('login fail.msg: ${ret.item2}');
-          return;
-        }
-        final res = ret.item3;
-
-        if (res != null) {
-          businessUniqueId = res.businessUniqueId!;
-          final ret1 = await _sender.verifyPin(
-              phoneNumber, res.businessUniqueId!, _pin!);
-          logger.i('verify pin ret: ${ret1.item1}');
-          if (!ret1.item1) return;
-
-          var isFinish = ret1.item3?.isFinish == 'true';
-          logger.i('is finish: $isFinish');
-
-          if (ret1.item3?.nextVerifyType == 'NRC') {
-            final ret1 =
-                await _sender.verifyNrc(phoneNumber, businessUniqueId, id);
-            logger.i('verify nrc ret: ${ret1.item1}');
-            if (!ret1.item1) return;
-
-            isFinish = ret1.item3?.isFinish == 'true';
-            logger.i('is finish: $isFinish');
-          }
-
-          if (isFinish) {
-            // pass qr verify.
-            {
-              final ret = await _sender.loginMsg(
-                  phoneNumber, otpCode, businessUniqueId);
-              if (!ret.item1) {
-                EasyLoading.showToast('login fail.msg: ${ret.item2}');
-                logger.i('login fail.msg: ${ret.item2}');
-                return;
-              }
-            }
-
-            // 验证身份证
-            {
-              final ret =
-                  await _sender.identityVerificationMsg(phoneNumber, id);
-              if (!ret) {
-                EasyLoading.showToast('identity verification fail.');
-                logger.i('identity verification fail.');
-                return;
-              }
-            }
-
-            // await _sender.pgWGetAccessToken1(phoneNumber);
-            // await _sender.pgWGetAccessToken1(phoneNumber);
-            // {
-            //   final ret1 =
-            //       await _sender.verifyNrc(phoneNumber, businessUniqueId, id);
-            //   logger.i('verify nrc ret: ${ret1.item1}');
-            //   if (!ret1.item1) return;
-            // }
-
-            setState(() => _hasLogin = true);
-            return;
-          }
-
-          {
-            final ret1 = await _sender.verifyQRCode(
-                phoneNumber, '', res.businessUniqueId!);
-            logger.i('verify qrcode ret: ${ret1.item1}');
-            if (!ret1.item1) return;
-
-            final qrCodes = ret1.item3!.qrCodes;
-            setState(() {
-              List<QrData> qrs = [];
-              for (var qr in qrCodes!) {
-                qrs.add(
-                  QrData(
-                    qrCode: qr!.qrCode!,
-                    validateTime: qr.validateTime!,
-                    expiredTime: qr.expiredTime!,
-                  ),
-                );
-              }
-              qrData = qrs;
-              qrIndex = 0;
-            });
-            qrSerialNo = ret1.item3!.serialNo!;
-          }
-        }
-      }
-      // setState(() => _hasLogin = true);
-    } catch (e, stackTrace) {
-      logger.e('err: $e', stackTrace: stackTrace);
-      EasyLoading.showError('request err, code: $e',
-          dismissOnTap: true, duration: const Duration(seconds: 60));
-      return;
-    } finally {
-      EasyLoading.dismiss();
-    }
-  }
-
+  
   void _login() async {
     if (!_checkInput()) return;
 
@@ -342,33 +214,33 @@ class _AuthPageState extends State<AuthPage> {
     EasyLoading.show(status: 'loading...');
     try {
       {
-        var needVerifyNrc = false;
-        {
-          final ret1 = await _sender.finishQRCode(
-              phoneNumber, qrSerialNo, businessUniqueId);
-          logger.i('finish qrcode ret: ${ret1.item1}');
+        // var needVerifyNrc = false;
+        // {
+        //   final ret1 = await _sender.finishQRCode(
+        //       phoneNumber, qrSerialNo, businessUniqueId);
+        //   logger.i('finish qrcode ret: ${ret1.item1}');
 
-          needVerifyNrc = ret1.item3?.nextVerifyType == 'NRC';
+        //   needVerifyNrc = ret1.item3?.nextVerifyType == 'NRC';
 
-          if (!ret1.item1) return;
-        }
+        //   if (!ret1.item1) return;
+        // }
 
-        if (needVerifyNrc) {
-          final ret1 =
-              await _sender.verifyNrc(phoneNumber, businessUniqueId, id);
-          logger.i('verify nrc ret: ${ret1.item1}');
-          if (!ret1.item1) return;
-        }
+        // if (needVerifyNrc) {
+        //   final ret1 =
+        //       await _sender.verifyNrc(phoneNumber, businessUniqueId, id);
+        //   logger.i('verify nrc ret: ${ret1.item1}');
+        //   if (!ret1.item1) return;
+        // }
 
-        {
-          final ret =
-              await _sender.loginMsg(phoneNumber, otpCode, businessUniqueId);
-          if (!ret.item1) {
-            EasyLoading.showToast('login fail.msg: ${ret.item2}');
-            logger.i('login fail.msg: ${ret.item2}');
-            return;
-          }
-        }
+        // {
+        //   final ret =
+        //       await _sender.loginMsg(phoneNumber, otpCode, businessUniqueId);
+        //   if (!ret.item1) {
+        //     EasyLoading.showToast('login fail.msg: ${ret.item2}');
+        //     logger.i('login fail.msg: ${ret.item2}');
+        //     return;
+        //   }
+        // }
 
         // {
         //   final ret1 =
@@ -567,24 +439,6 @@ class _AuthPageState extends State<AuthPage> {
     );
   }
 
-  getQrTimeInfo() {
-    if (qrData.isEmpty || qrIndex >= qrData.length) return '';
-
-    final data = qrData[qrIndex];
-
-    final utcDateTime1 =
-        DateTime.fromMillisecondsSinceEpoch(data.validateTime, isUtc: true);
-    final localDateTime1 = utcDateTime1.toLocal();
-    final utcDateTime2 =
-        DateTime.fromMillisecondsSinceEpoch(data.expiredTime, isUtc: true);
-    final localDateTime2 = utcDateTime2.toLocal();
-
-    final format = DateFormat('yyyy-MM-dd HH:mm:ss');
-    final formatted1 = format.format(localDateTime1);
-    final formatted2 = format.format(localDateTime2);
-
-    return '$formatted1 - $formatted2';
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -655,40 +509,6 @@ class _AuthPageState extends State<AuthPage> {
                 // validator: _validator,
                 keyboardType: TextInputType.text,
                 decoration: _buildInputDecoration("remark", Icons.tag),
-              ),
-            ),
-            Visibility(
-              visible: qrData.isNotEmpty,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(15, 15, 15, 0),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        OutlinedButton(
-                          onPressed: qrIndex == 0
-                              ? null
-                              : () => setState(() => --qrIndex),
-                          child: const Text('Prev'),
-                        ),
-                        const Spacer(),
-                        QrImageView(
-                          data: qrData.isEmpty ? '' : qrData[qrIndex].qrCode,
-                          version: QrVersions.auto,
-                          size: 200.0,
-                        ),
-                        const Spacer(),
-                        OutlinedButton(
-                          onPressed: qrIndex >= qrData.length - 1
-                              ? null
-                              : () => setState(() => ++qrIndex),
-                          child: const Text('Next'),
-                        ),
-                      ],
-                    ),
-                    Text(getQrTimeInfo()),
-                  ],
-                ),
               ),
             ),
             const Padding(padding: EdgeInsets.only(bottom: 15)),

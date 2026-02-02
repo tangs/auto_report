@@ -1,14 +1,14 @@
 import 'dart:async';
 import 'dart:math';
 
-import 'package:auto_report/banks/kbz/config/aeskey_getter.dart';
-import 'package:auto_report/banks/kbz/config/config.dart';
+import 'package:auto_report/banks/aya/config/aeskey_getter.dart';
+import 'package:auto_report/banks/aya/config/config.dart';
 import 'package:auto_report/model/data/log/log_item.dart';
 import 'package:auto_report/model/data/account.dart';
 import 'package:auto_report/network/proto/get_cash_list_response.dart';
 import 'package:auto_report/network/proto/get_recharge_transfer_list.dart';
-import 'package:auto_report/banks/kbz/data/proto/response/new_trans_record_list_resqonse.dart';
-import 'package:auto_report/banks/kbz/network/sender.dart';
+import 'package:auto_report/banks/aya/data/proto/response/new_trans_record_list_resqonse.dart';
+import 'package:auto_report/banks/aya/network/sender.dart';
 import 'package:auto_report/manager/data_manager.dart';
 import 'package:auto_report/network/backend_sender.dart';
 import 'package:auto_report/network/statistical_sender.dart';
@@ -111,11 +111,11 @@ class AccountData implements Account {
       'pauseReport': disableReport,
       'disableCash': disableCash,
       'disableRechargeTransfer': disableRechargeTransfer,
-      'send_aesKey': sender.aesKey,
-      'send_ivKey': sender.ivKey,
-      'send_deviceId': sender.deviceId,
-      'send_uuid': sender.uuid,
-      'send_model': sender.model,
+      'firebase': sender.firebase,
+      // 'send_ivKey': sender.ivKey,
+      // 'send_deviceId': sender.deviceId,
+      // 'send_uuid': sender.uuid,
+      // 'send_model': sender.model,
       'send_miPush': sender.miPush,
       'send_token': sender.token,
       'send_fullName': sender.fullName,
@@ -146,18 +146,19 @@ class AccountData implements Account {
     final ivs = AeskeyGetter.getRandomIvs();
 
     sender = Sender(
+      firebase: json['firebase'],
       // aesKey: json['send_aesKey'],
       // ivKey: json['send_ivKey'],
-      aesKey: keys[0],
-      aesKeyRSA: keys[1],
-      ivKey: ivs[0],
-      ivKeyRSA: ivs[1],
-      deviceId: json['send_deviceId'],
-      uuid: json['send_uuid'],
-      model: json['send_model'],
-      miPush: json['send_miPush'],
-      token: json['send_token'],
-      fullName: json['send_fullName'],
+      // aesKey: keys[0],
+      // aesKeyRSA: keys[1],
+      // ivKey: ivs[0],
+      // ivKeyRSA: ivs[1],
+      // deviceId: json['send_deviceId'],
+      // uuid: json['send_uuid'],
+      // model: json['send_model'],
+      // miPush: json['send_miPush'],
+      // token: json['send_token'],
+      // fullName: json['send_fullName'],
     );
   }
 
@@ -481,10 +482,10 @@ class AccountData implements Account {
     String amount,
     ValueChanged<LogItem> onLogged,
   ) async {
-    if ((await sender.checkAccount(phoneNumber, receiverAccount)).item2 ==
-        false) {
-      return const Tuple2(false, '');
-    }
+    // if ((await sender.checkAccount(phoneNumber, receiverAccount)).item2 ==
+    //     false) {
+    //   return const Tuple2(false, '');
+    // }
     // final ret = await sender.transferMsg(
     //   pin,
     //   phoneNumber,
