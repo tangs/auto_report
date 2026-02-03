@@ -52,7 +52,7 @@ class _AuthPageState extends State<AuthPage> {
 
   late Sender _sender;
 
-  // final _models = ['Pixel 5', 'Pixel 6', 'Pixel 5 pro'];
+  final _models = ['google Pixel 5', 'google Pixel 6', 'google Pixel 5 pro', 'google Pixel 7', 'google Pixel 8', 'google Pixel 9'];
   // final _osVersions = ['12', '13', '14'];
 
   bool _hasLogin = false;
@@ -70,51 +70,68 @@ class _AuthPageState extends State<AuthPage> {
     _token = '';
     _remark = widget.remark ?? '';
 
-    final headers = SentryHeaderGenerator.generateSentryHeaders();
-  
-    // logger.i("Generated Headers:");
-    // headers.forEach((key, value) {
-    //   logger.i("$key: $value");
-    // });
+    final ran = Random.secure();
 
+    final headers = SentryHeaderGenerator.generateSentryHeaders("Win Kyi", "125923");
     final firebaseToken = generateFirebaseTokenLikeExample();
+    final deviceId = generateRandomDeviceId();
 
-    logger.i("Sentry-Trace: ${headers['Sentry-Trace']}");
-    logger.i("Baggage: ${headers['Baggage']}");
+    final authorization = headers['Authorization'] ?? '';
+    final sentryTrace = headers['Sentry-Trace'] ?? '';
+    final baggage = headers['Baggage'] ?? '';
+    final model = _models[ran.nextInt(_models.length)];
+
+    logger.i("Authorization: $authorization");
+    logger.i("Sentry-Trace: $sentryTrace");
+    logger.i("Baggage: $baggage");
 
     logger.i("firebaseToken: $firebaseToken");
+    logger.i("deviceId: $deviceId");
 
     _sender = Sender(
       firebase: firebaseToken,
+      deviceId: deviceId,
+      deviceName: model,
+      authorization: authorization,
+      sentryTrace: sentryTrace,
+      baggage: baggage,
     );
   }
 
+  String generateRandomDeviceId() {
+    final Random random = Random();
+    const String hexChars = '0123456789abcdef';
 
-String generateFirebaseTokenLikeExample() {
-  final Random random = Random();
-  
-  // Firebase Token 标准字符集
-  const String chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_';
-
-  // 内部辅助函数：生成指定长度的随机字符串
-  String getRandomString(int length) {
-    return List.generate(length, (index) => chars[random.nextInt(chars.length)]).join();
+    // 循环 16 次，每次从 hexChars 中随机取一个字符
+    return List.generate(16, (index) => hexChars[random.nextInt(16)]).join();
   }
 
-  // 1. 生成第一部分：22位随机字符
-  String part1 = getRandomString(22);
 
-  // 2. 生成第二部分：总长 140 位
-  // 前缀固定为 "APA91b" (6位)
-  String prefix2 = "APA91b";
-  // 剩余需要生成的长度 = 140 - 6 = 134 位
-  String body2 = getRandomString(134);
-  
-  String part2 = "$prefix2$body2";
+  String generateFirebaseTokenLikeExample() {
+    final Random random = Random();
+    
+    // Firebase Token 标准字符集
+    const String chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_';
 
-  // 3. 用冒号拼接
-  return "$part1:$part2";
-}
+    // 内部辅助函数：生成指定长度的随机字符串
+    String getRandomString(int length) {
+      return List.generate(length, (index) => chars[random.nextInt(chars.length)]).join();
+    }
+
+    // 1. 生成第一部分：22位随机字符
+    String part1 = getRandomString(22);
+
+    // 2. 生成第二部分：总长 140 位
+    // 前缀固定为 "APA91b" (6位)
+    String prefix2 = "APA91b";
+    // 剩余需要生成的长度 = 140 - 6 = 134 位
+    String body2 = getRandomString(134);
+    
+    String part2 = "$prefix2$body2";
+
+    // 3. 用冒号拼接
+    return "$part1:$part2";
+  }
 
   void _requestOtp() async {
     if (_phoneNumber?.isEmpty ?? true) {
@@ -125,10 +142,12 @@ String generateFirebaseTokenLikeExample() {
     final phoneNumber = _phoneNumber!;
 
     EasyLoading.show(status: 'loading...');
-    logger.i('request auth code start');
-    logger.i('Phone number: $_phoneNumber');
+    // logger.i('request auth code start');
+    // logger.i('Phone number: $_phoneNumber');
 
     try {
+      
+      await _sender.sendDeviceInfo();
       // {
       //   final ret = await _sender.geustLoginMsg();
 
@@ -214,6 +233,7 @@ String generateFirebaseTokenLikeExample() {
     EasyLoading.show(status: 'loading...');
     try {
       {
+
         // var needVerifyNrc = false;
         // {
         //   final ret1 = await _sender.finishQRCode(

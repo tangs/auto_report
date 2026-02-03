@@ -112,6 +112,11 @@ class AccountData implements Account {
       'disableCash': disableCash,
       'disableRechargeTransfer': disableRechargeTransfer,
       'firebase': sender.firebase,
+      'deviceId': sender.deviceId,
+      'deviceName': sender.deviceName,
+      'authorization': sender.authorization,
+      'sentryTrace': sender.sentryTrace,
+      'baggage': sender.baggage,
       // 'send_ivKey': sender.ivKey,
       // 'send_deviceId': sender.deviceId,
       // 'send_uuid': sender.uuid,
@@ -142,11 +147,16 @@ class AccountData implements Account {
     disableRechargeTransfer = json['disableRechargeTransfer'];
 
     
-    final keys = AeskeyGetter.getRandomKeys();
-    final ivs = AeskeyGetter.getRandomIvs();
+    // final keys = AeskeyGetter.getRandomKeys();
+    // final ivs = AeskeyGetter.getRandomIvs();
 
     sender = Sender(
       firebase: json['firebase'],
+      deviceId: json['deviceId'],
+      deviceName: json['deviceName'],
+      authorization: json['authorization'],
+      sentryTrace: json['sentryTrace'],
+      baggage: json['baggage'],
       // aesKey: json['send_aesKey'],
       // ivKey: json['send_ivKey'],
       // aesKey: keys[0],

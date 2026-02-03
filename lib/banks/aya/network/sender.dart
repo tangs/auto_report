@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:auto_report/banks/aya/config/config.dart';
@@ -10,10 +11,14 @@ import 'package:uuid/uuid.dart';
 
 class Sender {
   final String firebase;
+  final String authorization;
+  final String sentryTrace;
+  final String baggage;
   // final String aesKeyRSA;
   // final String ivKey;
   // final String ivKeyRSA;
-  // final String deviceId;
+  final String deviceId;
+  final String deviceName;
   // final String uuid;
   // final String model;
 
@@ -27,6 +32,11 @@ class Sender {
 
   Sender({
     required this.firebase,
+    required this.deviceId,
+    required this.deviceName,
+    required this.authorization,
+    required this.sentryTrace,
+    required this.baggage,
     // required this.aesKeyRSA,
     // required this.ivKey,
     // required this.ivKeyRSA,
@@ -65,11 +75,14 @@ class Sender {
   // String timestamp = '1766640002094';
 
   Future post(
-      {required Map<String, dynamic> body,
-      required Map<String, String> header}) async {
-    final timestamp = '${DateTime.now().toUtc().millisecondsSinceEpoch + timeDiff}';
+      {
+        required String body,
+        required Map<String, String> header,
+        required String address,
+      }) async {
+    // final timestamp = '${DateTime.now().toUtc().millisecondsSinceEpoch + timeDiff}';
 
-    final url = Uri.https(Config.host, 'api/interface/version1.3/customer');
+    final url = Uri.https(Config.host, address);
  
     // logger.i('aesKey base64: $aesKey, iv: $ivKey');
 
@@ -104,62 +117,41 @@ class Sender {
     //     'Timestamp': timestamp,
     //   });
 
-    // logger.i('request headers: $headers');
+    logger.i('request headers: $header');
     // // logger.i('request body: $sortedBody');
-    // logger.i('request body content: $bodyContent');
+    logger.i('request body content: $body');
 
     return await Future.any([
-      // http.post(url, headers: headers, body: encryptBody),
+      http.post(url, headers: header, body: body),
       Future.delayed(const Duration(seconds: Config.httpRequestTimeoutSeconds)),
     ]);
   }
 
-  Map<String, String> getTemplateHeader(bool needNew) {
+  Map<String, String> getTemplateHeader() {
     var headers = ({
-      // 'MessageType': 'NEW',
-      'Content-Type': 'application/json; charset=utf-8',
-      'KBZPay-App-Type' : 'customer',
-      'KBZPay-Device-Type' : 'Android',
-      'KBZPay-Version': Config.appversion,
-      'KBZPay-Command-Id': 'GuestLogin',
-      'User-Agent': 'okhttp/4.12.0',
+        'Content-Type': 'application/json;charset=utf-8',
+        'Version': Config.appVersion,
+        'Accept-Language': Config.language,
+        'Authorization': authorization,
+        'Sentry-Trace': sentryTrace,
+        'Baggage': baggage,
       });
 
-    if (needNew) {
-      headers['MessageType'] = 'NEW';
-    }
+    // if (needNew) {
+    //   headers['MessageType'] = 'NEW';
+    // }
     return headers;
   }
 
 
   Map<String, dynamic> getBodyTemplate() {
-    return getBodyTemplate1()
-      ..addAll({
-        'brand': 'google',
-        // 'deviceModel': model,
-        'deviceToken': '',
-        // 'miPushRegisterId': miPush,
-        'miPushRegisterId': '',
-        'networkMode': 'wifi',
-        'osVersion': 'Android11',
-        'resolution': '2160x1080',
-        'supportGoogleService': 'false',
-      });
-  }
-
-  Map<String, dynamic> getBodyTemplate1() {
-    final timestamp =
-        '${DateTime.now().toUtc().millisecondsSinceEpoch + timeDiff}';
     return {
-      // 'deviceID': deviceId,
-      // 'DeviceToken': '',
-      'encoding': 'unicode',
-      'language': Config.language,
-      'originatorConversationID': const Uuid().v4(),
-      'platform': 'Android',
-      'token': token,
-      'version': Config.appversion,
-      'timestamp': timestamp,
+      'deviceID': deviceId,
+      'deviceName': deviceName,
+      'os': Config.osType,
+      'osVersion': Config.osVersion,
+      'appVersion': Config.appVersion,
+      'firebaseToken': firebase,
     };
   }
 
@@ -193,28 +185,30 @@ class Sender {
     };
   }
 
-  Future<bool> geustLoginMsg() async {
+  Future<bool> sendDeviceInfo() async {
     try {
-      logger.i('start geust login');
+      logger.i('start sendDeviceInfo');
 
-      final timestamp = '${DateTime.now().toUtc().millisecondsSinceEpoch + timeDiff}';
+      // final timestamp = '${DateTime.now().toUtc().millisecondsSinceEpoch + timeDiff}';
       // final timestamp = '1766641597819';
+      final body = {
+        'deviceID': deviceId,
+        'deviceName': deviceName,
+        'os': Config.osType,
+        'osVersion': Config.osVersion,
+        'appVersion': Config.appVersion,
+        'firebaseToken': firebase,
+        'lat': 0,
+        'long': 0,
+      };
+
+      final bodyContent = jsonEncode(body);
+      // logger.i('bodyContent: $bodyContent');
+
       final response = await post(
-        body: {
-          'commandId': 'GuestLogin',
-          // 'deviceID': deviceId,
-          'encoding': 'unicode',
-          // 'initiatorMSISDN': 'Guest_$deviceId',
-          'language': Config.language,
-          // 'originatorConversationID': uuid,
-          'platform': Config.osType,
-          'timestamp': timestamp,
-          'token': '',
-          'version': Config.appversion,
-        },
-        header: getTemplateHeader(true)..addAll({
-          'KBZPay-Command-Id': 'GuestLogin',
-        }),
+        body: bodyContent,
+        header: getTemplateHeader(),
+        address: '/api/user/sendDeviceInfo',
       );
 
       if (response is! http.Response) {
