@@ -1,21 +1,13 @@
-import 'dart:async';
-import 'dart:convert';
 import 'dart:math';
 
-import 'package:auto_report/banks/aya/config/aeskey_getter.dart';
-import 'package:auto_report/banks/aya/config/config.dart';
 import 'package:auto_report/banks/aya/data/account/account_data.dart';
 import 'package:auto_report/banks/aya/network/sender.dart';
-import 'package:auto_report/banks/aya/pages/qr_data.dart';
 import 'package:auto_report/banks/aya/utils/sentry_header_generator.dart';
 import 'package:auto_report/proto/report/response/get_platforms_response.dart';
-import 'package:auto_report/proto/report/response/general_response.dart';
 import 'package:auto_report/utils/log_helper.dart';
 import 'package:auto_report/widges/platform_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:http/http.dart' as http;
-import 'package:uuid/uuid.dart';
 
 class AuthPage extends StatefulWidget {
   final List<GetPlatformsResponseData?>? platforms;
@@ -370,7 +362,7 @@ class _AuthPageState extends State<AuthPage> {
           return;
         }
 
-        
+
 
       //   final host = _platformsResponseData!.url!.replaceAll('http://', '');
       //   // const path = 'api/pay/payinfo_apply';
