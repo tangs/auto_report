@@ -100,7 +100,7 @@ MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0UQfZRSV8UYTsK+LhuiFpvjrxaX6m726PKMD
   // static const versioncode = '1460';
 
   static const appversion = '5.8.4';
-  static const osType = 'Android';
+  static const osType = 'android';
   static const osVersion = '14';
   static const language = 'zh';
   static const deviceVersion = '30';

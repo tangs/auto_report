@@ -128,14 +128,14 @@ class Sender {
   }
 
   Map<String, String> getTemplateHeader() {
-    var headers = ({
+    var headers = {
         'Content-Type': 'application/json;charset=utf-8',
         'Version': Config.appVersion,
         'Accept-Language': Config.language,
         'Authorization': authorization,
         'Sentry-Trace': sentryTrace,
         'Baggage': baggage,
-      });
+      };
 
     // if (needNew) {
     //   headers['MessageType'] = 'NEW';
@@ -192,7 +192,7 @@ class Sender {
       // final timestamp = '${DateTime.now().toUtc().millisecondsSinceEpoch + timeDiff}';
       // final timestamp = '1766641597819';
       final body = {
-        'deviceID': deviceId,
+        'deviceId': deviceId,
         'deviceName': deviceName,
         'os': Config.osType,
         'osVersion': Config.osVersion,
