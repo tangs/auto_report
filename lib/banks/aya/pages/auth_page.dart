@@ -73,12 +73,19 @@ class _AuthPageState extends State<AuthPage> {
     final ran = Random.secure();
 
     final headers = SentryHeaderGenerator.generateSentryHeaders("Win Kyi", "125923");
+
     final firebaseToken = generateFirebaseTokenLikeExample();
     final deviceId = generateRandomDeviceId();
-
     final authorization = headers['Authorization'] ?? '';
     final sentryTrace = headers['Sentry-Trace'] ?? '';
     final baggage = headers['Baggage'] ?? '';
+
+    // const authorization = 'Basic hQCOKs75uoYxakySqIA7qrjzdj2Z9PYn';
+    // const sentryTrace = '7a90ceee7d324e4782802b7816307af3-927d9bc3208888ee';
+    // const baggage = 'sentry-environment=production,sentry-public_key=dc90897854163b60850b69daf43b68e6,sentry-trace_id=7a90ceee7d324e4782802b7816307af3,sentry-org_id=1016539';
+    // const deviceId = '9a6eff0b958284b1';
+    // const firebaseToken = 'fmmcHmQoTFOsE2s0_Hzb1g:APA91bEoDd411gmspHys0HRIwnfYaHJ-k4RT5CKzFhhgn8LMhu7ednFahZTIy7X0FbN_qo4c6CFaTJxfexHGoR-F1U9oByAnEu9yzGSi2CO1diaiYhIvDps';
+
     final model = _models[ran.nextInt(_models.length)];
 
     logger.i("Authorization: $authorization");
