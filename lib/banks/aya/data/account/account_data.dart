@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:math';
 
-import 'package:auto_report/banks/aya/config/aeskey_getter.dart';
 import 'package:auto_report/banks/aya/config/config.dart';
 import 'package:auto_report/model/data/log/log_item.dart';
 import 'package:auto_report/model/data/account.dart';
@@ -14,7 +13,6 @@ import 'package:auto_report/network/backend_sender.dart';
 import 'package:auto_report/network/statistical_sender.dart';
 import 'package:auto_report/utils/log_helper.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:tuple/tuple.dart';
 
 enum RequestType { updateOrder, updateBalance, sendCash }
@@ -117,13 +115,6 @@ class AccountData implements Account {
       'authorization': sender.authorization,
       'sentryTrace': sender.sentryTrace,
       'baggage': sender.baggage,
-      // 'send_ivKey': sender.ivKey,
-      // 'send_deviceId': sender.deviceId,
-      // 'send_uuid': sender.uuid,
-      // 'send_model': sender.model,
-      'send_miPush': sender.miPush,
-      'send_token': sender.token,
-      'send_fullName': sender.fullName,
     };
   }
 

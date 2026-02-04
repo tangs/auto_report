@@ -104,7 +104,7 @@ MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0UQfZRSV8UYTsK+LhuiFpvjrxaX6m726PKMD
   static const osVersion = '14';
   static const language = 'zh';
   static const deviceVersion = '30';
-  static const appVersion = '3.3.11';
+  static const appVersion = '3.3.13';
 
   // static const deviceid = 'fd701ebde3dcc9342ab647f5b5800f76ba3a7b5d';
   // static const device = '';

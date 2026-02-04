@@ -42,7 +42,7 @@ class AuthPage extends StatefulWidget {
 class _AuthPageState extends State<AuthPage> {
   String? _phoneNumber;
   String? _id;
-  String? _pin;
+  String? _password;
   String? _otpCode;
 
   String? _token;
@@ -64,7 +64,7 @@ class _AuthPageState extends State<AuthPage> {
 
     _phoneNumber = widget.phoneNumber ?? '';
     _id = widget.id ?? '';
-    _pin = widget.pin ?? '';
+    _password = widget.pin ?? '';
 
     // _token = widget.token ?? '';
     _token = '';
@@ -146,43 +146,33 @@ class _AuthPageState extends State<AuthPage> {
       return;
     }
 
+    if (_password?.isEmpty ?? true) {
+      EasyLoading.showToast('phone number is empty.');
+      return;
+    }
+
     final phoneNumber = _phoneNumber!;
+    final password = _password!;
 
     EasyLoading.show(status: 'loading...');
-    // logger.i('request auth code start');
-    // logger.i('Phone number: $_phoneNumber');
 
     try {
       
-      await _sender.sendDeviceInfo();
-      // {
-      //   final ret = await _sender.geustLoginMsg();
+      if (await _sender.sendDeviceInfo() == false) {
+        EasyLoading.showToast('send device info fail.');
+        return;
+      }
 
-      //   if (!ret) {
-      //     EasyLoading.showToast('guest login fail.');
-      //     return;
-      //   }
-      // }
-      // {
-      //   await _sender.queryLoginMode(phoneNumber);
-      // }
-      // {
-      //   final ret = await _sender.requestOtpMsg(phoneNumber);
+      if (await _sender.login(phone: phoneNumber, password: password) == false) {
+        EasyLoading.showToast('login fail.');
+        return;
+      }
 
-      //   if (!ret) {
-      //     EasyLoading.showToast('request opt fail.');
-      //     return;
-      //   }
-      // }
+      if (await _sender.getDefaultSMS(phone: phoneNumber) == false) {
+        EasyLoading.showToast('get default sms fail.');
+        return;
+      }
 
-      // logger.i('$Config.wmtMfsKey: ${response.headers[Config.wmtMfsKey]}');
-
-      // final resBody = GeneralResponse.fromJson(jsonDecode(response.body));
-      // if (response.statusCode != 200 || !resBody.isSuccess()) {
-      //   EasyLoading.showToast(
-      //       resBody.message ?? 'err code: ${response.statusCode}');
-      //   return;
-      // }
       EasyLoading.showInfo('send auth code success.');
       logger.i('request auth code success');
     } catch (e, stackTrace) {
@@ -204,11 +194,7 @@ class _AuthPageState extends State<AuthPage> {
     //   EasyLoading.showToast('phone number must remove prefix 0.');
     //   return false;
     // }
-    if (_id?.isEmpty ?? true) {
-      EasyLoading.showToast('id is empty.');
-      return false;
-    }
-    if (_pin?.isEmpty ?? true) {
+    if (_password?.isEmpty ?? true) {
       EasyLoading.showToast('pin is empty.');
       return false;
     }
@@ -230,17 +216,21 @@ class _AuthPageState extends State<AuthPage> {
   String qrSerialNo = '';
   String businessUniqueId = '';
   
-  void _login() async {
+  void _verityOTP() async {
     if (!_checkInput()) return;
 
     final phoneNumber = _phoneNumber!;
-    final id = _id!.toUpperCase();
+    // final id = _id!.toUpperCase();
     final otpCode = _otpCode!;
 
     EasyLoading.show(status: 'loading...');
     try {
       {
 
+      if (await _sender.loginVerifyOTP(phone: phoneNumber, otp: otpCode,) == false) {
+        EasyLoading.showToast('loginVerifyOTP fail.');
+        return;
+      }
         // var needVerifyNrc = false;
         // {
         //   final ret1 = await _sender.finishQRCode(
@@ -366,88 +356,98 @@ class _AuthPageState extends State<AuthPage> {
     }
   }
 
-  void _auth() async {
+  void _authBackServer() async {
     if (!_checkInput(checkOtp: false)) return;
 
     try {
       EasyLoading.show(status: 'loading...');
       {
-        final host = _platformsResponseData!.url!.replaceAll('http://', '');
-        // const path = 'api/pay/payinfo_apply';
-        // const path = 'api/pay/tool_apply';
-        const path = 'api/pay/purview_apply';
-        final url = Uri.http(host, path, {
-          'token': _token,
-          'phone': _phoneNumber,
-          'platform': 'KBZ',
-          'remark': _remark,
-        });
-        logger.i('url: ${url.toString()}');
-        logger.i('host: $host, path: $path');
-        final response = await Future.any([
-          http.post(url),
-          Future.delayed(
-              const Duration(seconds: Config.httpRequestTimeoutSeconds)),
-        ]);
 
-        if (response is! http.Response) {
-          EasyLoading.showError('auth timeout');
-          logger.i('auth timeout');
+        final balance = await _sender.getBalance();
+         logger.i('balance: $balance');
+        if (balance == null) {
+          EasyLoading.showToast('get balance fail.');
           return;
         }
 
-        final body = response.body;
-        logger.i('res body: $body');
+        
 
-        final res = ReportGeneralResponse.fromJson(jsonDecode(body));
-        if (res.status != 'T') {
-          EasyLoading.showError(
-              'auth fail. code: ${res.status}, msg: ${res.message}');
-          return;
-        }
-      }
-      EasyLoading.show(status: 'wait server auth');
+      //   final host = _platformsResponseData!.url!.replaceAll('http://', '');
+      //   // const path = 'api/pay/payinfo_apply';
+      //   // const path = 'api/pay/tool_apply';
+      //   const path = 'api/pay/purview_apply';
+      //   final url = Uri.http(host, path, {
+      //     'token': _token,
+      //     'phone': _phoneNumber,
+      //     'platform': 'KBZ',
+      //     'remark': _remark,
+      //   });
+      //   logger.i('url: ${url.toString()}');
+      //   logger.i('host: $host, path: $path');
+      //   final response = await Future.any([
+      //     http.post(url),
+      //     Future.delayed(
+      //         const Duration(seconds: Config.httpRequestTimeoutSeconds)),
+      //   ]);
 
-      final host = _platformsResponseData!.url!.replaceAll('http://', '');
-      // const path = 'api/pay/payinfo_verify';
-      // const path = 'api/pay/tool_verify';
-      const path = 'api/pay/purview_verify';
-      final url = Uri.http(host, path, {
-        'token': _token,
-        'phone': _phoneNumber,
-        'platform': 'KBZ',
-      });
-      logger.i('url: ${url.toString()}');
-      logger.i('host: $host, path: $path');
-      for (var i = 0; i < 100; ++i) {
-        final response = await Future.any([
-          http.post(url),
-          Future.delayed(
-              const Duration(seconds: Config.httpRequestTimeoutSeconds)),
-        ]);
+      //   if (response is! http.Response) {
+      //     EasyLoading.showError('auth timeout');
+      //     logger.i('auth timeout');
+      //     return;
+      //   }
 
-        if (response is! http.Response) {
-          EasyLoading.showError('auth timeout');
-          logger.i('auth timeout');
-          return;
-        }
+      //   final body = response.body;
+      //   logger.i('res body: $body');
 
-        final body = response.body;
-        logger.i('res body: $body');
+      //   final res = ReportGeneralResponse.fromJson(jsonDecode(body));
+      //   if (res.status != 'T') {
+      //     EasyLoading.showError(
+      //         'auth fail. code: ${res.status}, msg: ${res.message}');
+      //     return;
+      //   }
+      // }
+      // EasyLoading.show(status: 'wait server auth');
 
-        final res = ReportGeneralResponse.fromJson(jsonDecode(body));
-        if (res.status == 'T') {
-          EasyLoading.showInfo('auth success.');
-          break;
-        }
-        if (res.status == 'F') {
-          EasyLoading.showError(
-              'auth fail. code: ${res.status}, msg: ${res.message}');
-          break;
-        }
-        if (res.status == 'W') {
-          await Future.delayed(const Duration(seconds: 3));
-        }
+      // final host = _platformsResponseData!.url!.replaceAll('http://', '');
+      // // const path = 'api/pay/payinfo_verify';
+      // // const path = 'api/pay/tool_verify';
+      // const path = 'api/pay/purview_verify';
+      // final url = Uri.http(host, path, {
+      //   'token': _token,
+      //   'phone': _phoneNumber,
+      //   'platform': 'KBZ',
+      // });
+      // logger.i('url: ${url.toString()}');
+      // logger.i('host: $host, path: $path');
+      // for (var i = 0; i < 100; ++i) {
+      //   final response = await Future.any([
+      //     http.post(url),
+      //     Future.delayed(
+      //         const Duration(seconds: Config.httpRequestTimeoutSeconds)),
+      //   ]);
+
+      //   if (response is! http.Response) {
+      //     EasyLoading.showError('auth timeout');
+      //     logger.i('auth timeout');
+      //     return;
+      //   }
+
+      //   final body = response.body;
+      //   logger.i('res body: $body');
+
+      //   final res = ReportGeneralResponse.fromJson(jsonDecode(body));
+      //   if (res.status == 'T') {
+      //     EasyLoading.showInfo('auth success.');
+      //     break;
+      //   }
+      //   if (res.status == 'F') {
+      //     EasyLoading.showError(
+      //         'auth fail. code: ${res.status}, msg: ${res.message}');
+      //     break;
+      //   }
+      //   if (res.status == 'W') {
+      //     await Future.delayed(const Duration(seconds: 3));
+      //   }
       }
       setState(() => _hasAuth = true);
     } catch (e, stackTrace) {
@@ -496,24 +496,24 @@ class _AuthPageState extends State<AuthPage> {
                 decoration: _buildInputDecoration("phone number", Icons.phone),
               ),
             ),
+            // Padding(
+            //   padding: const EdgeInsets.fromLTRB(15, 15, 15, 0),
+            //   child: TextFormField(
+            //     controller: TextEditingController()..text = _id ?? "",
+            //     onChanged: (value) => _id = value.trim(),
+            //     // validator: _validator,
+            //     keyboardType: TextInputType.number,
+            //     decoration: _buildInputDecoration("id", Icons.password),
+            //   ),
+            // ),
             Padding(
               padding: const EdgeInsets.fromLTRB(15, 15, 15, 15),
               child: TextFormField(
-                controller: TextEditingController()..text = _id ?? "",
-                onChanged: (value) => _id = value.trim(),
+                controller: TextEditingController()..text = _password ?? "",
+                onChanged: (value) => _password = value.trim(),
                 // validator: _validator,
                 keyboardType: TextInputType.number,
-                decoration: _buildInputDecoration("id", Icons.password),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(15, 0, 15, 15),
-              child: TextFormField(
-                controller: TextEditingController()..text = _pin ?? "",
-                onChanged: (value) => _pin = value.trim(),
-                // validator: _validator,
-                keyboardType: TextInputType.number,
-                decoration: _buildInputDecoration("pin", Icons.password),
+                decoration: _buildInputDecoration("password", Icons.password),
               ),
             ),
             OutlinedButton(
@@ -549,13 +549,13 @@ class _AuthPageState extends State<AuthPage> {
                 // ),
                 const Padding(padding: EdgeInsets.only(left: 15, right: 15)),
                 OutlinedButton(
-                  onPressed: _hasLogin ? null : _login,
+                  onPressed: _hasLogin ? null : _verityOTP,
                   // onPressed: _login,
                   child: Text(_hasLogin ? 'logined aya' : 'login aya'),
                 ),
                 const Padding(padding: EdgeInsets.only(left: 15, right: 15)),
                 OutlinedButton(
-                  onPressed: _hasAuth ? null : _auth,
+                  onPressed: _hasAuth ? null : _authBackServer,
                   // onPressed: _auth,
                   child: Text(_hasAuth ? 'login report' : 'login report'),
                 ),
@@ -580,7 +580,7 @@ class _AuthPageState extends State<AuthPage> {
                           platformKey: _platformsResponseData!.key!,
                           platformMark: _platformsResponseData!.mark!,
                           phoneNumber: _phoneNumber!,
-                          pin: _pin!,
+                          pin: _password!,
                           id: _id!,
                           authCode: _otpCode!,
                           // isWmtMfsInvalid: false,

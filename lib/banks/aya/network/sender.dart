@@ -3,10 +3,8 @@ import 'dart:math';
 
 import 'package:auto_report/banks/aya/config/config.dart';
 import 'package:auto_report/utils/log_helper.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:http/http.dart' as http;
-import 'package:tuple/tuple.dart';
 import 'package:uuid/uuid.dart';
 
 class Sender {
@@ -14,17 +12,12 @@ class Sender {
   final String authorization;
   final String sentryTrace;
   final String baggage;
-  // final String aesKeyRSA;
-  // final String ivKey;
-  // final String ivKeyRSA;
   final String deviceId;
   final String deviceName;
-  // final String uuid;
-  // final String model;
 
-  String? token;
-  String? miPush;
-  String? fullName;
+  // String? token;
+  // String? miPush;
+  // String? fullName;
 
   bool invalid = false;
 
@@ -37,19 +30,7 @@ class Sender {
     required this.authorization,
     required this.sentryTrace,
     required this.baggage,
-    // required this.aesKeyRSA,
-    // required this.ivKey,
-    // required this.ivKeyRSA,
-    // required this.deviceId,
-    // required this.uuid,
-    // required this.model,
-    this.miPush,
-    this.token,
-    this.fullName,
-  }) {
-    miPush ??= generateRandomString(64);
-    token ??= '';
-  }
+  });
 
   // set token(v) => token = v;
 
@@ -170,7 +151,6 @@ class Sender {
           "Version": Config.appversion,
           "OriginatorConversationID": const Uuid().v4(),
           // "DeviceID": deviceId,
-          "Token": token,
           "DeviceVersion": Config.deviceVersion,
           "KeyOwner": "",
           "Timestamp": timestamp,
@@ -212,8 +192,8 @@ class Sender {
       );
 
       if (response is! http.Response) {
-        EasyLoading.showError('geust login timeout');
-        logger.i('geust login timeout');
+        EasyLoading.showError('sendDeviceInfo timeout');
+        logger.i('sendDeviceInfo timeout');
         return false;
       }
 
@@ -221,23 +201,11 @@ class Sender {
       logger.i('Response headers: ${response.headers}');
       logger.i('Response body: ${response.body}');
 
-      // if (response.headers['isencrypt']?.toLowerCase() == 'true') {
-      //   // var aesKey =  "rMtQ0gbqicreL4SR/vzkij0ugUcVop7Y/9h719vRHUY=";
-      //   // var ivKey = "d3d5b0fb2b53b5620c246ee1a99bb28f33364348445e1c85d0b8ff899fa2119d";
+      final responseData = jsonDecode(response.body);
+      var errCode = responseData['err'];
+      logger.i('Response err code: $errCode');
 
-      //   final decryptBody = AesHelper.decrypt(response.body, aesKey, ivKey);
-      //   final responseData =
-      //       GuestLoginResqonse.fromJson(jsonDecode(decryptBody));
-
-      //   logger.i('decrypt body: $decryptBody');
-      //   logger.i('guest token: ${responseData.guestToken}');
-      //   logger.i('server timestamp: ${responseData.serverTimestamp}');
-      //   token = responseData.guestToken!;
-      //   return responseData.responseCode == '0';
-      // }
-
-      // EasyLoading.showInfo('geust login success.');
-      // logger.i('geust login success');
+      return errCode == 200;
     } catch (e, stackTrace) {
       logger.e('auth err: $e', stackTrace: stackTrace);
       EasyLoading.showError('request err, code: $e',
@@ -245,5 +213,182 @@ class Sender {
     }
     return false;
   }
+
+  Future<bool> login({
+    required String phone,
+    required String password,
+  }) async {
+    try {
+      logger.i('start login');
+
+      // final timestamp = '${DateTime.now().toUtc().millisecondsSinceEpoch + timeDiff}';
+      // final timestamp = '1766641597819';
+      final body = {
+        'deviceId': deviceId,
+        'phone': phone,
+        'password': password,
+      };
+
+      final bodyContent = jsonEncode(body);
+      // logger.i('bodyContent: $bodyContent');
+
+      final response = await post(
+        body: bodyContent,
+        header: getTemplateHeader(),
+        address: '/api/user/login',
+      );
+
+      if (response is! http.Response) {
+        EasyLoading.showError('login timeout');
+        logger.i('login timeout');
+        return false;
+      }
+
+      logger.i('Response status: ${response.statusCode}');
+      logger.i('Response headers: ${response.headers}');
+      logger.i('Response body: ${response.body}');
+
+      final responseData = jsonDecode(response.body);
+      var errCode = responseData['err'];
+      logger.i('Response err code: $errCode');
+
+      return errCode == 200;
+    } catch (e, stackTrace) {
+      logger.e('auth err: $e', stackTrace: stackTrace);
+      EasyLoading.showError('request err, code: $e',
+          dismissOnTap: true, duration: const Duration(seconds: 60));
+    }
+    return false;
+  }
+
+  Future<bool> getDefaultSMS({
+    required String phone,
+  }) async {
+    try {
+      logger.i('start getDefaultSMS');
+
+      // final timestamp = '${DateTime.now().toUtc().millisecondsSinceEpoch + timeDiff}';
+      // final timestamp = '1766641597819';
+      final body = {
+        'phone': phone,
+      };
+
+      final bodyContent = jsonEncode(body);
+      // logger.i('bodyContent: $bodyContent');
+
+      final response = await post(
+        body: bodyContent,
+        header: getTemplateHeader(),
+        address: '/api/user/getDefaultSMS',
+      );
+
+      if (response is! http.Response) {
+        EasyLoading.showError('getDefaultSMS timeout');
+        logger.i('getDefaultSMS timeout');
+        return false;
+      }
+
+      logger.i('Response status: ${response.statusCode}');
+      logger.i('Response headers: ${response.headers}');
+      logger.i('Response body: ${response.body}');
+
+      final responseData = jsonDecode(response.body);
+      var errCode = responseData['err'];
+      logger.i('Response err code: $errCode');
+
+      return errCode == 200;
+    } catch (e, stackTrace) {
+      logger.e('auth err: $e', stackTrace: stackTrace);
+      EasyLoading.showError('request err, code: $e',
+          dismissOnTap: true, duration: const Duration(seconds: 60));
+    }
+    return false;
+  }
+
+  Future<bool> loginVerifyOTP({
+    required String phone,
+    required String otp,
+  }) async {
+    try {
+      logger.i('start loginVerifyOTP');
+      final body = {
+        'phone': phone,
+        'otp': otp,
+        'deviceId': deviceId,
+        'firebaseToken': firebase,
+      };
+
+      final bodyContent = jsonEncode(body);
+
+      final response = await post(
+        body: bodyContent,
+        header: getTemplateHeader(),
+        address: '/api/user/loginVerifyOTP',
+      );
+
+      if (response is! http.Response) {
+        EasyLoading.showError('loginVerifyOTP timeout');
+        logger.i('loginVerifyOTP timeout');
+        return false;
+      }
+
+      logger.i('Response status: ${response.statusCode}');
+      logger.i('Response headers: ${response.headers}');
+      logger.i('Response body: ${response.body}');
+
+      final responseData = jsonDecode(response.body);
+      var errCode = responseData['err'];
+      logger.i('Response err code: $errCode');
+
+      return errCode == 200;
+    } catch (e, stackTrace) {
+      logger.e('auth err: $e', stackTrace: stackTrace);
+      EasyLoading.showError('request err, code: $e',
+          dismissOnTap: true, duration: const Duration(seconds: 60));
+    }
+    return false;
+  }
+
+  Future<double?> getBalance() async {
+    try {
+      logger.i('start getBalance');
+      final body = {
+      };
+
+      final bodyContent = jsonEncode(body);
+      // logger.i('bodyContent: $bodyContent');
+
+      final response = await post(
+        body: bodyContent,
+        header: getTemplateHeader(),
+        address: '/api/user/getBalance',
+      );
+
+      if (response is! http.Response) {
+        EasyLoading.showError('getBalance timeout');
+        logger.i('getBalance timeout');
+        return null;
+      }
+
+      logger.i('Response status: ${response.statusCode}');
+      logger.i('Response headers: ${response.headers}');
+      logger.i('Response body: ${response.body}');
+
+      final responseData = jsonDecode(response.body);
+      final errCode = responseData['err'];
+      logger.i('Response err code: $errCode');
+
+      if(errCode == 200) {
+        final balanceStr = responseData['data']['balance'];
+        return balanceStr as double;
+      }
+    } catch (e, stackTrace) {
+      logger.e('auth err: $e', stackTrace: stackTrace);
+      EasyLoading.showError('request err, code: $e',
+          dismissOnTap: true, duration: const Duration(seconds: 60));
+    }
+    return null;
+  }
+
 
 }
