@@ -116,6 +116,7 @@ class Sender {
         'Authorization': authorization,
         'Sentry-Trace': sentryTrace,
         'Baggage': baggage,
+        'User-Agent': 'okhttp/4.12.0',
       };
 
     // if (needNew) {
@@ -206,6 +207,49 @@ class Sender {
       logger.i('Response err code: $errCode');
 
       return errCode == 200;
+    } catch (e, stackTrace) {
+      logger.e('auth err: $e', stackTrace: stackTrace);
+      EasyLoading.showError('request err, code: $e',
+          dismissOnTap: true, duration: const Duration(seconds: 60));
+    }
+    return false;
+  }
+
+  Future<bool> checkPhone({required String phone,}) async {
+    try {
+      logger.i('start checkPhone');
+
+      // final timestamp = '${DateTime.now().toUtc().millisecondsSinceEpoch + timeDiff}';
+      // final timestamp = '1766641597819';
+      final body = {
+        'phone': phone,
+      };
+
+      final bodyContent = jsonEncode(body);
+      // logger.i('bodyContent: $bodyContent');
+
+      final response = await post(
+        body: bodyContent,
+        header: getTemplateHeader(),
+        address: '/api/user/checkPhone',
+      );
+
+      if (response is! http.Response) {
+        EasyLoading.showError('checkPhone timeout');
+        logger.i('checkPhone timeout');
+        return false;
+      }
+
+      logger.i('Response status: ${response.statusCode}');
+      logger.i('Response headers: ${response.headers}');
+      logger.i('Response body: ${response.body}');
+
+      final responseData = jsonDecode(response.body);
+      var errCode = responseData['err'];
+      logger.i('Response err code: $errCode');
+
+      // {"err":8004,"message":"Phone number is already registered "}
+      return errCode == 200 || errCode == 8004;
     } catch (e, stackTrace) {
       logger.e('auth err: $e', stackTrace: stackTrace);
       EasyLoading.showError('request err, code: $e',
@@ -323,7 +367,7 @@ class Sender {
       final response = await post(
         body: bodyContent,
         header: getTemplateHeader(),
-        address: '/api/user/loginVerifyOTP',
+        address: '/api/user/v2/loginVerifyOTP',
       );
 
       if (response is! http.Response) {
@@ -339,6 +383,8 @@ class Sender {
       final responseData = jsonDecode(response.body);
       var errCode = responseData['err'];
       logger.i('Response err code: $errCode');
+
+      // Response body: {"err":200,"message":"Success","profile":{"name":"HLA HLA MON","phone":"09429792618","id":"685101c04a9adf6a08b8fdc5"},"oldDeviceInfo":{"id":"67fa2aa86793bcb035a55d8c","os":"android","osVersion":"14","lat":0,"long":0,"deviceName":"Redmi 23053RN02A","ip":"183.182.123.181","status":"active"}}
 
       return errCode == 200;
     } catch (e, stackTrace) {

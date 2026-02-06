@@ -154,6 +154,11 @@ class _AuthPageState extends State<AuthPage> {
         EasyLoading.showToast('send device info fail.');
         return;
       }
+      
+      if (await _sender.checkPhone(phone: phoneNumber) == false) {
+        EasyLoading.showToast('check phone fail.');
+        return;
+      }
 
       if (await _sender.login(phone: phoneNumber, password: password) == false) {
         EasyLoading.showToast('login fail.');
