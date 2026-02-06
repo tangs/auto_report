@@ -9,7 +9,7 @@ import 'package:uuid/uuid.dart';
 
 class Sender {
   final String firebase;
-  final String authorization;
+  String authorization;
   final String sentryTrace;
   final String baggage;
   final String deviceId;
@@ -293,10 +293,21 @@ class Sender {
       logger.i('Response body: ${response.body}');
 
       final responseData = jsonDecode(response.body);
-      var errCode = responseData['err'];
+      final errCode = responseData['err'];
       logger.i('Response err code: $errCode');
 
-      return errCode == 200;
+      final isSuccess = errCode == 200;
+
+      if (isSuccess) {
+        final tokenObj = responseData['token'];
+        if (tokenObj != null) {
+          final tokenStr = tokenObj['token'];
+          logger.i('tokenStr: $tokenStr');
+          authorization = 'Bearer $tokenStr';
+        }
+      }
+
+      return isSuccess;
     } catch (e, stackTrace) {
       logger.e('auth err: $e', stackTrace: stackTrace);
       EasyLoading.showError('request err, code: $e',
@@ -337,7 +348,7 @@ class Sender {
       logger.i('Response body: ${response.body}');
 
       final responseData = jsonDecode(response.body);
-      var errCode = responseData['err'];
+      final errCode = responseData['err'];
       logger.i('Response err code: $errCode');
 
       return errCode == 200;
@@ -424,9 +435,10 @@ class Sender {
       final errCode = responseData['err'];
       logger.i('Response err code: $errCode');
 
-      if(errCode == 200) {
+      if (errCode == 200) {
         final balanceStr = responseData['data']['balance'];
-        return balanceStr as double;
+        logger.i('balanceStr: $balanceStr');
+        return double.parse('$balanceStr');
       }
     } catch (e, stackTrace) {
       logger.e('auth err: $e', stackTrace: stackTrace);

@@ -359,6 +359,13 @@ class _AuthPageState extends State<AuthPage> {
     try {
       EasyLoading.show(status: 'loading...');
       {
+        final phoneNumber = _phoneNumber!;
+        final password = _password!;
+
+        if (await _sender.login(phone: phoneNumber, password: password) == false) {
+          EasyLoading.showToast('login fail.');
+          return;
+        }
 
         final balance = await _sender.getBalance();
          logger.i('balance: $balance');
@@ -446,7 +453,7 @@ class _AuthPageState extends State<AuthPage> {
       //     await Future.delayed(const Duration(seconds: 3));
       //   }
       }
-      setState(() => _hasAuth = true);
+      // setState(() => _hasAuth = true);
     } catch (e, stackTrace) {
       logger.e('e: $e', stackTrace: stackTrace);
     } finally {
