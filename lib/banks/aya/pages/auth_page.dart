@@ -31,6 +31,8 @@ class AuthPage extends StatefulWidget {
   State<AuthPage> createState() => _AuthPageState();
 }
 
+enum AyaLoginStaus { none, requestOtp, waitOldDeviceAuth, logined }
+
 class _AuthPageState extends State<AuthPage> {
   String? _phoneNumber;
   String? _id;
@@ -47,7 +49,8 @@ class _AuthPageState extends State<AuthPage> {
   final _models = ['google Pixel 5', 'google Pixel 6', 'google Pixel 5 pro', 'google Pixel 7', 'google Pixel 8', 'google Pixel 9'];
   // final _osVersions = ['12', '13', '14'];
 
-  bool _hasLogin = false;
+  AyaLoginStaus _loginStatus = AyaLoginStaus.none;
+  // bool _hasLogin = false;
   bool _hasAuth = false;
 
   @override
@@ -160,8 +163,13 @@ class _AuthPageState extends State<AuthPage> {
         return;
       }
 
-      if (await _sender.login(phone: phoneNumber, password: password) == false) {
+      final loginRet = await _sender.login(phone: phoneNumber, password: password);
+      if (loginRet.item1 == false) {
         EasyLoading.showToast('login fail.');
+        return;
+      }
+      if (loginRet.item2) {
+        setState(() => _loginStatus = AyaLoginStaus.logined);
         return;
       }
 
@@ -169,6 +177,8 @@ class _AuthPageState extends State<AuthPage> {
         EasyLoading.showToast('get default sms fail.');
         return;
       }
+
+      setState(() => _loginStatus = AyaLoginStaus.requestOtp);
 
       EasyLoading.showInfo('send auth code success.');
       logger.i('request auth code success');
@@ -228,6 +238,20 @@ class _AuthPageState extends State<AuthPage> {
         EasyLoading.showToast('loginVerifyOTP fail.');
         return;
       }
+
+      // if (await _sender.login(phone: phoneNumber, password: _password!) == false) {
+      //   EasyLoading.showToast('login fail.');
+      //   return;
+      // }
+
+      // {
+      //   final balance = await _sender.getBalance();
+      //   if (balance == null) {
+      //     EasyLoading.showToast('get balance fail.');
+      //     return;
+      //   }
+      // }
+  
         // var needVerifyNrc = false;
         // {
         //   final ret1 = await _sender.finishQRCode(
@@ -342,7 +366,35 @@ class _AuthPageState extends State<AuthPage> {
         //   }
         // }
       }
-      setState(() => _hasLogin = true);
+      setState(() => _loginStatus = AyaLoginStaus.waitOldDeviceAuth);
+    } catch (e, stackTrace) {
+      logger.e('err: $e', stackTrace: stackTrace);
+      EasyLoading.showError('request err, code: $e',
+          dismissOnTap: true, duration: const Duration(seconds: 60));
+      return;
+    } finally {
+      EasyLoading.dismiss();
+    }
+  }
+
+  void _loginWithOldDevice() async {
+    if (!_checkInput(checkOtp: false)) return;
+
+    final phoneNumber = _phoneNumber!;
+    final password = _password!;
+
+    EasyLoading.show(status: 'loading...');
+    try {
+      final loginRet = await _sender.login(phone: phoneNumber, password: password);
+      if (loginRet.item1 == false) {
+        EasyLoading.showToast('login fail.');
+        return;
+      }
+      if (loginRet.item2) {
+        setState(() => _loginStatus = AyaLoginStaus.logined);
+      } else {
+        setState(() => _loginStatus = AyaLoginStaus.waitOldDeviceAuth);
+      }
     } catch (e, stackTrace) {
       logger.e('err: $e', stackTrace: stackTrace);
       EasyLoading.showError('request err, code: $e',
@@ -359,13 +411,13 @@ class _AuthPageState extends State<AuthPage> {
     try {
       EasyLoading.show(status: 'loading...');
       {
-        final phoneNumber = _phoneNumber!;
-        final password = _password!;
+        // final phoneNumber = _phoneNumber!;
+        // final password = _password!;
 
-        if (await _sender.login(phone: phoneNumber, password: password) == false) {
-          EasyLoading.showToast('login fail.');
-          return;
-        }
+        // if (await _sender.login(phone: phoneNumber, password: password) == false) {
+        //   EasyLoading.showToast('login fail.');
+        //   return;
+        // }
 
         final balance = await _sender.getBalance();
          logger.i('balance: $balance');
@@ -553,9 +605,21 @@ class _AuthPageState extends State<AuthPage> {
                 // ),
                 const Padding(padding: EdgeInsets.only(left: 15, right: 15)),
                 OutlinedButton(
-                  onPressed: _hasLogin ? null : _verityOTP,
+                  // onPressed: _hasLogin ? null : _verityOTP,
                   // onPressed: _login,
-                  child: Text(_hasLogin ? 'logined aya' : 'login aya'),
+                  // child: Text(_hasLogin ? 'logined aya' : 'login aya'),
+                  onPressed: switch (_loginStatus) {
+                    AyaLoginStaus.none => null,
+                    AyaLoginStaus.requestOtp => _verityOTP,
+                    AyaLoginStaus.waitOldDeviceAuth => _loginWithOldDevice,
+                    AyaLoginStaus.logined => null,
+                  },
+                  child: Text(switch (_loginStatus) {
+                    AyaLoginStaus.none => 'Wait Request OTP',
+                    AyaLoginStaus.requestOtp => "Auth OTP",
+                    AyaLoginStaus.waitOldDeviceAuth => "Login(Old Device Authed.)",
+                    AyaLoginStaus.logined => "Logined",
+                  }),
                 ),
                 const Padding(padding: EdgeInsets.only(left: 15, right: 15)),
                 OutlinedButton(
@@ -568,7 +632,7 @@ class _AuthPageState extends State<AuthPage> {
             ),
             const Padding(padding: EdgeInsets.fromLTRB(0, 15, 0, 0)),
             OutlinedButton(
-              onPressed: (!_hasAuth || !_hasLogin)
+              onPressed: (!_hasAuth || _loginStatus != AyaLoginStaus.logined)
                   ? null
                   : () async {
                       if (!context.mounted) return;

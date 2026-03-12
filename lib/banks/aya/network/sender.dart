@@ -5,6 +5,7 @@ import 'package:auto_report/banks/aya/config/config.dart';
 import 'package:auto_report/utils/log_helper.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:http/http.dart' as http;
+import 'package:tuple/tuple.dart';
 import 'package:uuid/uuid.dart';
 
 class Sender {
@@ -258,7 +259,8 @@ class Sender {
     return false;
   }
 
-  Future<bool> login({
+  // isSuccess: true, isAuthedByOldDevices: true
+  Future<Tuple2<bool, bool>> login({
     required String phone,
     required String password,
   }) async {
@@ -285,7 +287,7 @@ class Sender {
       if (response is! http.Response) {
         EasyLoading.showError('login timeout');
         logger.i('login timeout');
-        return false;
+        return const Tuple2(false, false);
       }
 
       logger.i('Response status: ${response.statusCode}');
@@ -297,6 +299,7 @@ class Sender {
       logger.i('Response err code: $errCode');
 
       final isSuccess = errCode == 200;
+      var isAuthedByOldDevices = false;
 
       if (isSuccess) {
         final tokenObj = responseData['token'];
@@ -304,16 +307,19 @@ class Sender {
           final tokenStr = tokenObj['token'];
           logger.i('tokenStr: $tokenStr');
           authorization = 'Bearer $tokenStr';
+          isAuthedByOldDevices = true;
         }
       }
 
-      return isSuccess;
+      return isSuccess
+          ? Tuple2(true, isAuthedByOldDevices)
+          : const Tuple2(false, false);
     } catch (e, stackTrace) {
       logger.e('auth err: $e', stackTrace: stackTrace);
       EasyLoading.showError('request err, code: $e',
           dismissOnTap: true, duration: const Duration(seconds: 60));
     }
-    return false;
+    return const Tuple2(false, false);
   }
 
   Future<bool> getDefaultSMS({
