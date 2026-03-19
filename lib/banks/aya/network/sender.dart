@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:auto_report/banks/aya/config/config.dart';
+import 'package:auto_report/banks/aya/data/proto/response/new_trans_record_list_resqonse.dart';
 import 'package:auto_report/utils/log_helper.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:http/http.dart' as http;
@@ -454,5 +455,70 @@ class Sender {
     return null;
   }
 
+  Future<List<NewTransRecordListResqonseTransRecordList>?> transHistory({
+    required int pageParam,
+    required int start,
+    required int number,
+    }) async {
+      try {
+        logger.i('start transHistory');
+
+        final now = DateTime.now();
+        final yesterday = now.subtract(const Duration(days: 1));
+        final tomorrow = now.add(const Duration(days: 1));
+
+        String formatDate(DateTime d) {
+          return '${d.month.toString().padLeft(2, '0')}/${d.day.toString().padLeft(2, '0')}/${d.year}';
+        }
+
+        final startDate = formatDate(yesterday);
+        final endDate = formatDate(tomorrow);
+
+        final body = {
+          'pageParam': pageParam,
+          'start': start,
+          'number': number,
+          'startDate': startDate,
+          'endDate': endDate,
+        };
+
+        final bodyContent = jsonEncode(body);
+
+        final response = await post(
+          body: bodyContent,
+          header: getTemplateHeader(),
+          address: '/api/transaction/transHistory',
+        );
+
+        if (response is! http.Response) {
+          EasyLoading.showError('transHistory timeout');
+          logger.i('transHistory timeout');
+          return null;
+        }
+
+        logger.i('Response status: ${response.statusCode}');
+        logger.i('Response headers: ${response.headers}');
+        logger.i('Response body: ${response.body}');
+
+        final responseData = jsonDecode(response.body);
+        final errCode = responseData['err'];
+        logger.i('Response err code: $errCode');
+
+        if (errCode == 200) {
+          final parsed = NewTransRecordListResqonse.fromJson(responseData);
+          final records = parsed.transRecordList
+              ?.where((e) => e != null)
+              .cast<NewTransRecordListResqonseTransRecordList>()
+              .toList() ?? [];
+          logger.i('transHistory parsed ${records.length} records');
+          return records;
+        }
+      } catch (e, stackTrace) {
+        logger.e('transHistory err: $e', stackTrace: stackTrace);
+        EasyLoading.showError('request err, code: $e',
+            dismissOnTap: true, duration: const Duration(seconds: 60));
+      }
+      return null;
+    }
 
 }

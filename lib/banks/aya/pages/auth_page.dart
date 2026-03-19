@@ -65,6 +65,19 @@ class _AuthPageState extends State<AuthPage> {
     _token = '';
     _remark = widget.remark ?? '';
 
+    if (_token!.isEmpty) {
+      final sb = StringBuffer();
+      final rand = Random();
+      for (var i = 0; i < 32; ++i) {
+        if (rand.nextBool()) {
+          sb.write(String.fromCharCode(0x61 + rand.nextInt(26)));
+        } else {
+          sb.write(String.fromCharCode(0x30 + rand.nextInt(10)));
+        }
+      }
+      _token = sb.toString();
+    }
+
     final ran = Random.secure();
 
     final headers = SentryHeaderGenerator.generateFullMockHeaders();
@@ -414,7 +427,9 @@ class _AuthPageState extends State<AuthPage> {
         // final phoneNumber = _phoneNumber!;
         // final password = _password!;
 
-        // if (await _sender.login(phone: phoneNumber, password: password) == false) {
+        // _sender.authorization = 'Basic hQCOKs75uoYxakySqIA7qrjzdj2Z9PYn';
+        // final loginRet = await _sender.login(phone: phoneNumber, password: password);
+        // if (loginRet.item1 == false) {
         //   EasyLoading.showToast('login fail.');
         //   return;
         // }
@@ -426,6 +441,8 @@ class _AuthPageState extends State<AuthPage> {
           return;
         }
 
+        final records = await _sender.transHistory(pageParam: 0, start: 0, number: 20);
+        logger.i('records: ${records?.length}');
 
 
       //   final host = _platformsResponseData!.url!.replaceAll('http://', '');
@@ -435,7 +452,7 @@ class _AuthPageState extends State<AuthPage> {
       //   final url = Uri.http(host, path, {
       //     'token': _token,
       //     'phone': _phoneNumber,
-      //     'platform': 'KBZ',
+      //     'platform': 'aya',
       //     'remark': _remark,
       //   });
       //   logger.i('url: ${url.toString()}');
@@ -471,7 +488,7 @@ class _AuthPageState extends State<AuthPage> {
       // final url = Uri.http(host, path, {
       //   'token': _token,
       //   'phone': _phoneNumber,
-      //   'platform': 'KBZ',
+      //   'platform': 'aya',
       // });
       // logger.i('url: ${url.toString()}');
       // logger.i('host: $host, path: $path');
