@@ -1,13 +1,16 @@
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:auto_report/banks/aya/data/account/account_data.dart';
 import 'package:auto_report/banks/aya/network/sender.dart';
 import 'package:auto_report/banks/aya/utils/sentry_header_generator.dart';
+import 'package:auto_report/proto/report/response/general_response.dart';
 import 'package:auto_report/proto/report/response/get_platforms_response.dart';
 import 'package:auto_report/utils/log_helper.dart';
 import 'package:auto_report/widges/platform_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:http/http.dart' as http;
 
 class AuthPage extends StatefulWidget {
   final List<GetPlatformsResponseData?>? platforms;
@@ -434,95 +437,94 @@ class _AuthPageState extends State<AuthPage> {
         //   return;
         // }
 
-        final balance = await _sender.getBalance();
-         logger.i('balance: $balance');
-        if (balance == null) {
-          EasyLoading.showToast('get balance fail.');
+        // final balance = await _sender.getBalance();
+        //  logger.i('balance: $balance');
+        // if (balance == null) {
+        //   EasyLoading.showToast('get balance fail.');
+        //   return;
+        // }
+
+        // final records = await _sender.transHistory(pageParam: 0, start: 0, number: 20);
+        // logger.i('records: ${records?.length}');
+
+        final host = _platformsResponseData!.url!.replaceAll('http://', '');
+        // const path = 'api/pay/payinfo_apply';
+        // const path = 'api/pay/tool_apply';
+        const path = 'api/pay/purview_apply';
+        final url = Uri.http(host, path, {
+          'token': _token,
+          'phone': _phoneNumber,
+          'platform': 'aya',
+          'remark': _remark,
+        });
+        logger.i('url: ${url.toString()}');
+        logger.i('host: $host, path: $path');
+        final response = await Future.any([
+          http.post(url),
+          Future.delayed(
+              const Duration(seconds: 10)),
+        ]);
+
+        if (response is! http.Response) {
+          EasyLoading.showError('auth timeout');
+          logger.i('auth timeout');
           return;
         }
 
-        final records = await _sender.transHistory(pageParam: 0, start: 0, number: 20);
-        logger.i('records: ${records?.length}');
+        final body = response.body;
+        logger.i('res body: $body');
 
-
-      //   final host = _platformsResponseData!.url!.replaceAll('http://', '');
-      //   // const path = 'api/pay/payinfo_apply';
-      //   // const path = 'api/pay/tool_apply';
-      //   const path = 'api/pay/purview_apply';
-      //   final url = Uri.http(host, path, {
-      //     'token': _token,
-      //     'phone': _phoneNumber,
-      //     'platform': 'aya',
-      //     'remark': _remark,
-      //   });
-      //   logger.i('url: ${url.toString()}');
-      //   logger.i('host: $host, path: $path');
-      //   final response = await Future.any([
-      //     http.post(url),
-      //     Future.delayed(
-      //         const Duration(seconds: Config.httpRequestTimeoutSeconds)),
-      //   ]);
-
-      //   if (response is! http.Response) {
-      //     EasyLoading.showError('auth timeout');
-      //     logger.i('auth timeout');
-      //     return;
-      //   }
-
-      //   final body = response.body;
-      //   logger.i('res body: $body');
-
-      //   final res = ReportGeneralResponse.fromJson(jsonDecode(body));
-      //   if (res.status != 'T') {
-      //     EasyLoading.showError(
-      //         'auth fail. code: ${res.status}, msg: ${res.message}');
-      //     return;
-      //   }
-      // }
-      // EasyLoading.show(status: 'wait server auth');
-
-      // final host = _platformsResponseData!.url!.replaceAll('http://', '');
-      // // const path = 'api/pay/payinfo_verify';
-      // // const path = 'api/pay/tool_verify';
-      // const path = 'api/pay/purview_verify';
-      // final url = Uri.http(host, path, {
-      //   'token': _token,
-      //   'phone': _phoneNumber,
-      //   'platform': 'aya',
-      // });
-      // logger.i('url: ${url.toString()}');
-      // logger.i('host: $host, path: $path');
-      // for (var i = 0; i < 100; ++i) {
-      //   final response = await Future.any([
-      //     http.post(url),
-      //     Future.delayed(
-      //         const Duration(seconds: Config.httpRequestTimeoutSeconds)),
-      //   ]);
-
-      //   if (response is! http.Response) {
-      //     EasyLoading.showError('auth timeout');
-      //     logger.i('auth timeout');
-      //     return;
-      //   }
-
-      //   final body = response.body;
-      //   logger.i('res body: $body');
-
-      //   final res = ReportGeneralResponse.fromJson(jsonDecode(body));
-      //   if (res.status == 'T') {
-      //     EasyLoading.showInfo('auth success.');
-      //     break;
-      //   }
-      //   if (res.status == 'F') {
-      //     EasyLoading.showError(
-      //         'auth fail. code: ${res.status}, msg: ${res.message}');
-      //     break;
-      //   }
-      //   if (res.status == 'W') {
-      //     await Future.delayed(const Duration(seconds: 3));
-      //   }
+        final res = ReportGeneralResponse.fromJson(jsonDecode(body));
+        if (res.status != 'T') {
+          EasyLoading.showError(
+              'auth fail. code: ${res.status}, msg: ${res.message}');
+          return;
+        }
       }
-      // setState(() => _hasAuth = true);
+      EasyLoading.show(status: 'wait server auth');
+
+      final host = _platformsResponseData!.url!.replaceAll('http://', '');
+      // const path = 'api/pay/payinfo_verify';
+      // const path = 'api/pay/tool_verify';
+      const path = 'api/pay/purview_verify';
+      final url = Uri.http(host, path, {
+        'token': _token,
+        'phone': _phoneNumber,
+        'platform': 'aya',
+      });
+      logger.i('url: ${url.toString()}');
+      logger.i('host: $host, path: $path');
+      for (var i = 0; i < 10; ++i) {
+        final response = await Future.any([
+          http.post(url),
+          Future.delayed(
+              const Duration(seconds: 10)),
+        ]);
+
+        if (response is! http.Response) {
+          EasyLoading.showError('auth timeout');
+          logger.i('auth timeout');
+          return;
+        }
+
+        final body = response.body;
+        logger.i('res body: $body');
+
+        final res = ReportGeneralResponse.fromJson(jsonDecode(body));
+        if (res.status == 'T') {
+          EasyLoading.showInfo('auth success.');
+          break;
+        }
+        if (res.status == 'F') {
+          EasyLoading.showError(
+              'auth fail. code: ${res.status}, msg: ${res.message}');
+          break;
+        }
+        if (res.status == 'W') {
+          await Future.delayed(const Duration(seconds: 3));
+        }
+      }
+      setState(() => _hasAuth = true);
     } catch (e, stackTrace) {
       logger.e('e: $e', stackTrace: stackTrace);
     } finally {
