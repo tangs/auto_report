@@ -30,6 +30,7 @@ class AccountData implements Account {
   late String id;
   late String authCode;
 
+  bool isLogined = false;
   /// 上报服务器授权失败
   bool isAuthInvidWithReport = false;
   bool needRemove = false;
@@ -132,7 +133,11 @@ class AccountData implements Account {
   }
 
   login() async{
-    await sender.login(phone: phoneNumber, password: pin);
+    sender.authorization = 'Basic hQCOKs75uoYxakySqIA7qrjzdj2Z9PYn';
+    final result = await sender.login(phone: phoneNumber, password: pin);
+    if (result.item1 && result.item2) {
+      isLogined = true;
+    }
   }
 
   get isWmtMfsInvalid {
@@ -214,6 +219,7 @@ class AccountData implements Account {
     if (isWmtMfsInvalid) return;
     if (isAuthInvidWithReport) return;
     if (isUpdating) return;
+    if (!isLogined) return;
 
     try {
       isUpdating = true;
@@ -225,9 +231,9 @@ class AccountData implements Account {
         logger.i('end get orders, phone: $phoneNumber');
       }
 
-      if (DateTime.now().difference(lastUpdateBalanceTime).inMinutes >= 30) {
-        _updateBalance(dataUpdated, onLogged);
-      }
+      // if (needUpdateBalance && DateTime.now().difference(lastUpdateBalanceTime).inMinutes >= 240) {
+      //   _updateBalance(dataUpdated, onLogged);
+      // }
     } catch (e, stack) {
       logger.e(e, stackTrace: stack);
     }
