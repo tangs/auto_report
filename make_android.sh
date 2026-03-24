@@ -30,3 +30,10 @@ flutter build apk --release
 rm -rf "$buildPath/wave_reporter_v$version.apk"
 cp -rf build/app/outputs/flutter-apk/app-release.apk "$buildPath/wave_reporter_v$version.apk"
 
+sh setup_aya.sh
+flutter clean
+flutter build apk --release
+
+rm -rf "$buildPath/aya_reporter_v$version.apk"
+cp -rf build/app/outputs/flutter-apk/app-release.apk "$buildPath/aya_reporter_v$version.apk"
+

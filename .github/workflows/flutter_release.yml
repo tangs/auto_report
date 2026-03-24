@@ -10,7 +10,7 @@ jobs:
     runs-on: macos-latest
     strategy:
       matrix:
-        bank: [kbz, wave, kbiz]
+        bank: [kbz, wave, kbiz, aya]
         include:
           - bank: kbz
             app_name: "kbz report"
@@ -20,6 +20,9 @@ jobs:
             logo: "ic_wave_logo.png"
           - bank: kbiz
             app_name: "kbiz report"
+            logo: "ic_bank_logo.png"
+          - bank: aya
+            app_name: "aya report"
             logo: "ic_bank_logo.png"
 
     steps:
