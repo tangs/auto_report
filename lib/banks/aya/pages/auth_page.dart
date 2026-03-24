@@ -670,6 +670,7 @@ class _AuthPageState extends State<AuthPage> {
                           pin: _password!,
                           id: _id!,
                           authCode: _otpCode!,
+                          isLogined: true
                           // isWmtMfsInvalid: false,
                         ),
                       );

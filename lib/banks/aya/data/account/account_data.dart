@@ -72,6 +72,7 @@ class AccountData implements Account {
     required this.pin,
     required this.id,
     required this.authCode,
+    required this.isLogined,
     this.disableReport = true,
     this.disableCash = true,
     this.disableRechargeTransfer = true,
@@ -231,9 +232,9 @@ class AccountData implements Account {
         logger.i('end get orders, phone: $phoneNumber');
       }
 
-      // if (needUpdateBalance && DateTime.now().difference(lastUpdateBalanceTime).inMinutes >= 240) {
-      //   _updateBalance(dataUpdated, onLogged);
-      // }
+      if (DateTime.now().difference(lastUpdateBalanceTime).inMinutes >= 30) {
+        _updateBalance(dataUpdated, onLogged);
+      }
     } catch (e, stack) {
       logger.e(e, stackTrace: stack);
     }
