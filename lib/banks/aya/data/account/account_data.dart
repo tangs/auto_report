@@ -333,7 +333,9 @@ class AccountData implements Account {
       phoneNumber: phoneNumber,
       remark: remark,
       token: token,
-      orderId: data.orderId!,
+      // orderId: data.orderId!,
+      // 没有
+      orderId: '',
       payId: payId,
       platform: 'aya',
       type: '4710',
