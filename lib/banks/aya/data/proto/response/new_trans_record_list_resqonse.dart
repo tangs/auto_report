@@ -77,6 +77,8 @@ class NewTransRecordListResqonseTransRecordList implements Comparable {
       Map<String, dynamic> json) {
     orderId = json['_id']?.toString();
     code = json['code']?.toString();
+    // code 还是order id，保持兼容
+    orderId = code;
     tradeType = json['name']?.toString();
     transRefId = json['transRefId']?.toString();
     amount = (json['amount'] is num) ? (json['amount'] as num).toInt() : null;
