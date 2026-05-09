@@ -2,13 +2,7 @@ class Config {
   static const wmtMfsKey = 'wmt-mfs';
 
   static const pinPublicKey = '''-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArvCjjTiXtN++gUs3HHBT
-lqV6ZslJ/JXOyBO93lI0y5QjcMpe27xfljy6snHkFEMOibz+XibNqgLFxhCFXrcl
-9ac0naphGhnabWDvlg4W/Wvg3IOm5s+PUNXl0jyr1yahVvSHOvQlU9+HzbvLlUtX
-GLS+EGUcXuu3tQB3MUd+XgDjRwLReeGw0YNDOwqQ8Wt7udaXE/+hiM3xKD7pQJ+A
-CGX1YtLh+OsV2RVpA9Hqbz5yaxpQScM+HO8sS/Q6sEG0Bto6ngVBtSAs5vtA5gBM
-UeeQgtg8MDnr1Gq/sOo5k27YsdEiJh4IO5yrEAY9fgX0HJ15MXyUaPjfrfRFs9un
-oQIDAQAB
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAt/6qX9qc24RSBab/2t9K8g2UXhxznT7OMH22WNENWULL4NO8zJtjk2dwekNgNGb57az62x3RPiPn1ontVp6rwkAEBKdYcJfo3uEV1UVM/0OOJ3uqZJykXFIQlDGiPrBJShXeP2MYWRY6unE15BtXdRA+Iq1GEuBYkaMjR5OD+KjgNtTXXkzhJNEyChJ+0my9hwGqm2bLvnDTMeoqRej/6UOr5kDDyuY1MzDZiQCB3I6IAM30ycU65NGbWTgJSkRllzNR0+3bXYRK1PCKwceC+fZJnSIuF2zRP4rU8/k6i0wOJRpy+lloHNgTUO1tLRKElg0pCAb7aeIZIDzmfVEgYQIDAQAB
 -----END PUBLIC KEY-----''';
 
 //   static const rsaPublicKey = '''-----BEGIN PUBLIC KEY-----
@@ -99,7 +93,7 @@ MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0UQfZRSV8UYTsK+LhuiFpvjrxaX6m726PKMD
   static const acceptEncoding = 'gzip, deflate, br';
   // static const versioncode = '1460';
 
-  static const appversion = '5.8.4';
+  static const appversion = '5.8.5';
   static const osType = 'Android';
   static const language = 'zh';
   static const deviceVersion = '30';

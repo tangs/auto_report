@@ -43,6 +43,17 @@ class Sender {
 
   int timeDiff = 0;
 
+  String _encryptPin(String pin, timestamp) {
+    final random = Random.secure();
+    final rand4 = random.nextInt(10000).toString().padLeft(4, '0');
+    final rand2 = random.nextInt(100).toString().padLeft(2, '0');
+    // final timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+    final pinUuid = const Uuid().v4();
+    final vaguePin = '01${rand4}06$timestamp$pin$pinUuid$rand2';
+    logger.i('vaguePin: $vaguePin');
+    return RSAHelper.encrypt(vaguePin, Config.pinPublicKey);
+  }
+
   Sender({
     required this.aesKey,
     required this.aesKeyRSA,
@@ -90,9 +101,12 @@ class Sender {
   // String timestamp = '1766640002094';
 
   Future post(
-      {required Map<String, dynamic> body,
-      required Map<String, String> header}) async {
-    final timestamp = '${DateTime.now().toUtc().millisecondsSinceEpoch + timeDiff}';
+      {
+        required Map<String, dynamic> body,
+        required Map<String, String> header,
+        String? timestamp,
+      }) async {
+    timestamp ??= '${DateTime.now().toUtc().millisecondsSinceEpoch + timeDiff}';
 
     final url = Uri.https(Config.host, 'api/interface/version1.3/customer');
  
@@ -176,7 +190,8 @@ class Sender {
     final timestamp =
         '${DateTime.now().toUtc().millisecondsSinceEpoch + timeDiff}';
     return {
-      'deviceID': deviceId,
+      'deviceID': '',
+      'imei': deviceId,
       // 'DeviceToken': '',
       'encoding': 'unicode',
       'language': Config.language,
@@ -191,9 +206,9 @@ class Sender {
   Map<String, dynamic> getBodyTemplateContainsHeaders({
     required String commondId,
     required Map<dynamic, dynamic> body,
+    String? timestamp,
   }) {
-    final timestamp =
-        '${DateTime.now().toUtc().millisecondsSinceEpoch + timeDiff}';
+    timestamp ??= '${DateTime.now().toUtc().millisecondsSinceEpoch + timeDiff}';
     return {
       'Request': {
         'Header': {
@@ -203,6 +218,7 @@ class Sender {
           "Version": Config.appversion,
           "OriginatorConversationID": const Uuid().v4(),
           "DeviceID": deviceId,
+          "Imei": deviceId,
           "Token": token,
           "DeviceVersion": Config.deviceVersion,
           "KeyOwner": "",
@@ -427,21 +443,24 @@ class Sender {
     try {
       logger.i(
           'start verify pin: $phoneNumber, business uniqueId: $businessUniqueId, pin: $pin');
-
-      final encryptPin = RSAHelper.encrypt(pin, Config.pinPublicKey);
-      logger.i('encrypt pin: $encryptPin');
+      final bodyTemp = getBodyTemplate1();
+      final timestamp = bodyTemp['timestamp'];
+      final encryptPin = _encryptPin(pin, timestamp);
+      logger.i('encrypt pin: $encryptPin, timestamp: $timestamp');
 
       final response = await post(
-        body: getBodyTemplate1()
+        body: bodyTemp
           ..addAll({
             'commandId': 'RiskControlCheckVerifyPin',
             'businessUniqueId': businessUniqueId,
             'initiatorMSISDN': phoneNumber,
             'initiatorPin': encryptPin,
+            'useDynamicCaller': "true",
           }),
         header: getTemplateHeader(true)..addAll({
           'KBZPay-Command-Id': 'RiskControlCheckVerifyPin',
         }),
+        timestamp: timestamp,
         // header: {
         //   'User-Agent': 'okhttp/4.10.0',
         //   'Messagetype': 'NEW',
@@ -481,21 +500,24 @@ class Sender {
       String phoneNumber, String pin) async {
     try {
       logger.i('start history verify pin: $phoneNumber, pin: $pin');
-
-      final encryptPin = RSAHelper.encrypt(pin, Config.pinPublicKey);
+      final bodyTemp = getBodyTemplate1();
+      final timestamp = bodyTemp['timestamp'];
+      final encryptPin = _encryptPin(pin, timestamp);
       logger.i('encrypt pin: $encryptPin');
 
       final response = await post(
-        body: getBodyTemplate1()
+        body: bodyTemp
           ..addAll({
             'commandId': 'HistoryPinCheckIdentity',
             'businessScenario': 'history',
             'initiatorMSISDN': phoneNumber,
             'initiatorPin': encryptPin,
+            'useDynamicCaller': "true",
           }),
         header: getTemplateHeader(true)..addAll({
           'KBZPay-Command-Id': 'HistoryPinCheckIdentity',
         }),
+        timestamp: timestamp,
         // header: {
         //   'User-Agent': 'okhttp/4.10.0',
         //   'Messagetype': 'NEW',
@@ -1519,7 +1541,10 @@ class Sender {
       }
       logger.i(
           'start transfer: $phoneNumber, r: $receiverAccount, amount: $amount, note: $transNote');
-      final encryptPin = RSAHelper.encrypt(pin, Config.pinPublicKey);
+      final bodyTemp = getBodyTemplate1();
+      final timestamp = bodyTemp['timestamp'];
+      final encryptPin = _encryptPin(pin, timestamp);
+      // todo time stamp need same.
       final response = await post(
         body: getBodyTemplateContainsHeaders(
           commondId: 'TransferToAccount',
@@ -1548,6 +1573,7 @@ class Sender {
         header: getTemplateHeader(false)..addAll({
           'KBZPay-Command-Id': 'TransferToAccount',
         }),
+        timestamp: timestamp,
         // header: {
         //   'User-Agent': 'okhttp/4.10.0',
         // },
