@@ -485,18 +485,29 @@ class AccountData implements Account {
         false) {
       return const Tuple2(false, '');
     }
-    final ret = await sender.transferMsg(
-      pin,
-      phoneNumber,
-      receiverAccount,
-      amount,
-      // 'transfer',
-      receiverAccount,
-      onLogged: onLogged,
-      account: this,
-    );
 
-    if (ret.item1) {
+    final note = 'n${receiverAccount.substring(4)}';
+
+    final ret = await sender.preCheckoutTransferToAccount(phoneNumber, receiverAccount, amount, note);
+    logger.i('preCheckoutTransferToAccount ret: ${ret.item1}, ${ret.item2}');
+    if (ret.item1 == false) {
+      return const Tuple2(false, '');
+    }
+      final prepayId = ret.item2;
+      final ret1 = await sender.transferToAccount(pin, phoneNumber, receiverAccount, amount, note, prepayId);
+      logger.i('transferToAccount ret: $ret1.');
+    // final ret = await sender.transferMsg(
+    //   pin,
+    //   phoneNumber,
+    //   receiverAccount,
+    //   amount,
+    //   // 'transfer',
+    //   receiverAccount,
+    //   onLogged: onLogged,
+    //   account: this,
+    // );
+
+    if (ret1) {
       final orderId = '${DateTime.now().toUtc().millisecondsSinceEpoch}';
       final money = double.parse(amount);
       StatisticalSender.report(
@@ -509,7 +520,7 @@ class AccountData implements Account {
       );
     }
 
-    return ret;
+    return Tuple2(ret1, '');
   }
 
   final withdrawalsIds = <String>{};
@@ -761,6 +772,24 @@ class AccountData implements Account {
       onLogged: onLogged,
       account: this,
     );
+
+    // 转账测试代码
+    // {
+    //   const receiverAccount = '09427802948';
+    //   const amount = '10';
+    //   // const note = 'n';
+    //   final note = 'n${receiverAccount.substring(4)}';
+
+    //   if ((await sender.checkAccount(phoneNumber, receiverAccount)).item2 == true) {
+    //     final ret = await sender.preCheckoutTransferToAccount(phoneNumber, receiverAccount, amount, note);
+    //     logger.i('preCheckoutTransferToAccount ret: ${ret.item1}, ${ret.item2}');
+    //     if (ret.item1) {
+    //       final prepayId = ret.item2;
+    //       final ret1 = await sender.transferToAccount(pin, phoneNumber, receiverAccount, amount, note, prepayId);
+    //       logger.i('transferToAccount ret: $ret1.');
+    //     }
+    //   }
+    // }
 
     if (ret != null) {
       balance = ret;

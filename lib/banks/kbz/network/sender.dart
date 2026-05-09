@@ -207,6 +207,7 @@ class Sender {
     required String commondId,
     required Map<dynamic, dynamic> body,
     String? timestamp,
+    bool useDynamicCaller = false,
   }) {
     timestamp ??= '${DateTime.now().toUtc().millisecondsSinceEpoch + timeDiff}';
     return {
@@ -219,6 +220,7 @@ class Sender {
           "OriginatorConversationID": const Uuid().v4(),
           "DeviceID": deviceId,
           "Imei": deviceId,
+          "UseDynamicCaller": useDynamicCaller,
           "Token": token,
           "DeviceVersion": Config.deviceVersion,
           "KeyOwner": "",
@@ -1526,6 +1528,145 @@ class Sender {
     return const Tuple2(true, false);
   }
 
+  Future<bool> transferToAccount(
+    String pin,
+    String phoneNumber,
+    String receiverAccount,
+    String amount,
+    String note,
+    String prepayId,
+    // String balanceStr,
+  ) async {
+    try {
+      logger.i(
+          'start transferToAccount.pin: $pin, phone number: $phoneNumber, receiverAccount: $receiverAccount, amount: $amount, note: $note, prepayId: $prepayId');
+
+      final header = getTemplateHeader(true)..addAll({
+        'KBZPay-Command-Id': 'PayOrder.TransferToAccount',
+      });
+
+      final bodyTemp = getBodyTemplate1();
+      final timestamp = bodyTemp['timestamp'];
+      final encryptPin = _encryptPin(pin, timestamp);
+
+
+      final response = await post(
+        body: bodyTemp
+          ..addAll({
+            'additionalParam': {},
+            "extendParams": {"amount": amount, "transNote": note},
+            "payMethod": {
+              "alpha": 1.0,
+              "available": "true",
+              "displayIcon": "https://static.kbzpay.com/app/prod/res/img/pgwtc/balance_icon.png",
+              "displayInfo": "余额",
+              "isSelect": true,
+              "odActivate": false,
+              "payMethod": "PAY_BY_WALLET",
+              "selected": "true",
+              // "supplementInfo": "<font color='#808080'>$balanceStr</font>"
+            },
+            "prepayId": prepayId,
+            "referenceData": {"authType":"PIN","qrOrigin":""},
+            'commandId': 'PayOrder.TransferToAccount',
+            "supportMultiPayMethod":"true",
+            'initiatorMSISDN': phoneNumber,
+            "initiatorPin": encryptPin,
+            'receiverMSISDN': receiverAccount,
+            "useDynamicCaller": "true",
+          }),
+        header: header,
+      );
+
+      if (response is! http.Response) {
+        EasyLoading.showError('new trans record list msg timeout');
+        logger.i('new trans record list msg timeout');
+        return false;
+      }
+
+      logger.i('Response status: ${response.statusCode}');
+      logger.i('Response headers: ${response.headers}');
+      logger.i('Response body: ${response.body}');
+
+      if (response.headers['isencrypt']?.toLowerCase() == 'true') {
+        final decryptBody = AesHelper.decrypt(response.body, aesKey, ivKey);
+        logger.i('decrypt body: $decryptBody');
+        final responseJson = jsonDecode(decryptBody);
+
+        final ret = responseJson['responseCode'] == '0';
+        return ret;
+
+      } 
+    } catch (e, stackTrace) {
+      logger.e('new trans record list msg err: $e', stackTrace: stackTrace);
+      EasyLoading.showError('new trans record list msg err, code: $e',
+          dismissOnTap: true, duration: const Duration(seconds: 60));
+    }
+
+    return false;
+  }
+
+  Future<Tuple2<bool, String>> preCheckoutTransferToAccount(
+    String phoneNumber,
+    String receiverAccount,
+    String amount,
+    String note,
+  ) async {
+    if (note.isEmpty) note = 'n';
+    try {
+      logger.i(
+          'start preCheckoutTransferToAccount.phone number: $phoneNumber, receiverAccount: $receiverAccount, amount: $amount, note: $note');
+
+      final header = getTemplateHeader(true)..addAll({
+        'KBZPay-Command-Id': 'PreCheckout.TransferToAccount',
+      });
+
+      final response = await post(
+        body: getBodyTemplate1()
+          ..addAll({
+            'amount': amount,
+            'note': note,
+            "referenceData": {"authType":"PIN","qrOrigin":""},
+            "supportMultiPayMethod":"true",
+            'commandId': 'PreCheckout.TransferToAccount',
+            'initiatorMSISDN': phoneNumber,
+            'receiverMSISDN': receiverAccount,
+          }),
+        header: header,
+      );
+
+      if (response is! http.Response) {
+        EasyLoading.showError('new trans record list msg timeout');
+        logger.i('new trans record list msg timeout');
+        return const Tuple2(false, "");
+      }
+
+      logger.i('Response status: ${response.statusCode}');
+      logger.i('Response headers: ${response.headers}');
+      logger.i('Response body: ${response.body}');
+
+      if (response.headers['isencrypt']?.toLowerCase() == 'true') {
+        final decryptBody = AesHelper.decrypt(response.body, aesKey, ivKey);
+        logger.i('decrypt body: $decryptBody');
+        final responseJson = jsonDecode(decryptBody);
+
+        final ret = responseJson['responseCode'] == '0';
+        if (ret) {
+          final prepayId = responseJson['prepayId'] as String;
+          // final balanceStr = responseJson['availablePayMethods'][0]['supplementInfo'];
+          return Tuple2(true, prepayId);
+        }
+
+      } 
+    } catch (e, stackTrace) {
+      logger.e('new trans record list msg err: $e', stackTrace: stackTrace);
+      EasyLoading.showError('new trans record list msg err, code: $e',
+          dismissOnTap: true, duration: const Duration(seconds: 60));
+    }
+
+    return const Tuple2(false, "");
+  }
+
   Future<Tuple2<bool, String>> transferMsg(
     String pin,
     String phoneNumber,
@@ -1547,6 +1688,7 @@ class Sender {
       // todo time stamp need same.
       final response = await post(
         body: getBodyTemplateContainsHeaders(
+          useDynamicCaller: true,
           commondId: 'TransferToAccount',
           body: {
             'RequestDetail': {
