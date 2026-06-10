@@ -6,7 +6,7 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 class Config {
   static const wmtMfsKey = 'wmt-mfs';
 
-  static const rsaPublicKey = '''-----BEGIN PUBLIC KEY-----
+  static const rsaPublicKey1 = '''-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA4fV3EhdFo6O6ujXcji4y
 6GmhX8eXP6Of0SJSVp4AVQXj9Bbb5UKW0smu/wVhqBOSBpF9dfaJcCAhXOr9XDm5
 aGZVEMQIJ1UM89MgYcvZ11zQ6z8mbq775X/8TUPun1L2Z+2oIc6fu5v0VKfjFo1J
@@ -14,6 +14,16 @@ aGZVEMQIJ1UM89MgYcvZ11zQ6z8mbq775X/8TUPun1L2Z+2oIc6fu5v0VKfjFo1J
 mvbeBSOyITpnLppXOui6RIba7Kc5KPvSJxJ270+SJxrg2t6CehoDAx1JW17q1VfC
 OMVWewfwge8EkQ0DVwNy7p5z6a+1BoIEdweJn83/XluyMx6sWlbnwIJvc0i6vPTX
 lwIDAQAB
+-----END PUBLIC KEY-----''';
+
+  static const rsaPublicKey = '''-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyVd3HpGdUJSJ+PMes20w
+IPP0QTCTiiaMwldFnLWp8xi0hD5yY0ZXAkBYebDUQoxSCq2lSTNzI0PCHg48tOOA
+c2QIB0/n/xhcr6UBIaXUVCjAiDa9NjEQ3DBs2eS9/MsTzHM4rj73+/XHK04XIUKE
+upqpXSgeslanGWzu3I7HqVNPVLf2uCJp7TpCNhRCEMjOaKnteQRczTysjeZ/NaFr
+zV4H1PMZClJxRUxcvWuORX1h/hmSAIYweJr9UL5xWKSnTYlR6FLLJRwIDGt9EjQF
+9l15hT3kNxPPgRakfCv5sXOrALqxXQKy83m1WeR0MVvbSUx7Ct6N97M51lkQEcbw
+VwIDAQAB
 -----END PUBLIC KEY-----''';
 
   static const rsaPrivateKeyReport = '''-----BEGIN PRIVATE KEY-----
@@ -89,8 +99,8 @@ w8UsJovG2xCw3FHr3Qzl1XRMb19BwYflGgikMbIfAsWhRHC1Gg==''';
   static const appid = 'mm.com.wavemoney.wavepay';
   static const userlanguage = 'en';
   static const acceptEncoding = 'gzip, deflate, br';
-  static const versioncode = '1465';
-  static const appversion = '2.4.1';
+  static const versioncode = '1470';
+  static const appversion = '2.6.1';
 
   // static const deviceid = 'fd701ebde3dcc9342ab647f5b5800f76ba3a7b5d';
   static const device = '';

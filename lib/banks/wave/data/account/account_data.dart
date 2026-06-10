@@ -4,6 +4,7 @@ import 'dart:math';
 
 import 'package:auto_report/banks/wave/config/config.dart';
 import 'package:auto_report/banks/wave/data/account/histories_response.dart';
+import 'package:auto_report/banks/wave/utils/wave_crypto.dart';
 import 'package:auto_report/container/limit_set.dart';
 import 'package:auto_report/manager/data_manager.dart';
 import 'package:auto_report/banks/wave/data/proto/response/cash/send_money_response.dart';
@@ -181,7 +182,8 @@ class AccountData implements Account {
       final url =
           // Uri.https(Config.host, 'v3/mfs-customer/utility/tnx-histories', {
           // Uri.https(Config.host, 'v3/mfs-customer/tnxhistory-utility/tnx-histories', {
-          Uri.https(Config.host, 'v3/mfs-customer/tnxhistory-utility/v2/tnx-histories', {
+          // Uri.https(Config.host, 'v3/mfs-customer/tnxhistory-utility/v2/tnx-histories', {
+          Uri.https(Config.host, '/merchant-app/tnxhistory-utility/v2/tnx-histories', {
         'limit': '$limit',
         'offset': '$offset',
       });
@@ -583,7 +585,7 @@ class AccountData implements Account {
       });
 
     final token = await _generateToken();
-    final pin1 = RSAHelper.encrypt('$pin:$token', Config.rsaPublicKey);
+    final pin1 = RSAHelper.encrypt('$pin:$token', Config.rsaPublicKey1);
 
     final formData = {
       'receiverMsisdn': account,
@@ -854,12 +856,334 @@ class AccountData implements Account {
     dataUpdated?.call();
   }
 
+  Future<bool> _registeredDevices() async {
+
+    // EasyLoading.show(status: 'loading...');
+    logger.i('registered-devices start');
+
+    final String myUid = WaveCrypto.generateRandomUid();
+    final String myIvB64 = WaveCrypto.generateRandomIvB64();
+
+    // const myUid = '443b1af1';
+    // const myIvB64 = '6z1tByRz2YLkIrdOEPc+zA==';
+
+    // final txt = '$myUid:$myIvB64';
+
+    logger.i("--- 生成的随机参数 ---");
+    logger.i("UID    : $myUid");
+    logger.i("IV B64 : $myIvB64");
+    // logger.i("txt : $txt");
+
+    String cipher = WaveCrypto.encryptKeyHeader(myUid, myIvB64, Config.rsaPublicKey);
+    logger.i("cipher : $cipher");
+
+    final url = Uri.https(
+        Config.host, 'v3/mfs-customer/registered-devices');
+    final headers = Config.getHeaders(
+        deviceid: deviceId, model: model, osversion: osVersion)
+      ..addAll({
+        "key": cipher,
+        "user-agent": "okhttp/4.9.0",
+        "Content-Type": "text/plain",
+        Config.wmtMfsKey: wmtMfs,
+      });
+    try {
+      final response = await Future.any([
+        http.get(url, headers: headers),
+        Future.delayed(
+            const Duration(seconds: Config.httpRequestTimeoutSeconds)),
+      ]);
+
+      if (response is! http.Response) {
+        EasyLoading.showError('registered-devices timeout');
+        logger.i('registered-devices timeout');
+        return false;
+      }
+
+      wmtMfs = response.headers[Config.wmtMfsKey] ?? wmtMfs;
+      logger.i('Response status: ${response.statusCode}');
+      logger.i('Response body: ${response.body}');
+      logger.i('$Config.wmtMfsKey: ${response.headers[Config.wmtMfsKey]}');
+
+      String decryptedBody = WaveCrypto.decryptResponse(response.body, myUid, myIvB64);
+      logger.i('decrypted body: $decryptedBody');
+
+      final resBody = GeneralResponse.fromJson(jsonDecode(decryptedBody));
+      if (response.statusCode != 200) {
+        EasyLoading.showToast(
+            resBody.message ?? 'err code: ${response.statusCode}');
+        return false;
+      }
+      // EasyLoading.showInfo('registered-devices success.');
+      logger.i('registered-devices success');
+      return true;
+    } catch (e, stackTrace) {
+      logger.e('auth err: $e', stackTrace: stackTrace);
+      EasyLoading.showError('request err, code: $e',
+          dismissOnTap: true, duration: const Duration(seconds: 60));
+      return false;
+    } finally {
+      // EasyLoading.dismiss();
+    }
+  }
+
+  Future<bool> _getKycInfo() async {
+
+    // EasyLoading.show(status: 'loading...');
+    logger.i('get-kyc-info start');
+
+    final String myUid = WaveCrypto.generateRandomUid();
+    final String myIvB64 = WaveCrypto.generateRandomIvB64();
+
+    // const myUid = '443b1af1';
+    // const myIvB64 = '6z1tByRz2YLkIrdOEPc+zA==';
+
+    // final txt = '$myUid:$myIvB64';
+
+    logger.i("--- 生成的随机参数 ---");
+    logger.i("UID    : $myUid");
+    logger.i("IV B64 : $myIvB64");
+    // logger.i("txt : $txt");
+
+    String cipher = WaveCrypto.encryptKeyHeader(myUid, myIvB64, Config.rsaPublicKey);
+    logger.i("cipher : $cipher");
+
+    final url = Uri.https(
+        Config.host, 'v3/mfs-customer/get-kyc-info');
+    final headers = Config.getHeaders(
+        deviceid: deviceId, model: model, osversion: osVersion)
+      ..addAll({
+        "key": cipher,
+        "user-agent": "okhttp/4.9.0",
+        "Content-Type": "text/plain",
+        Config.wmtMfsKey: wmtMfs,
+      });
+    try {
+      final response = await Future.any([
+        http.get(url, headers: headers),
+        Future.delayed(
+            const Duration(seconds: Config.httpRequestTimeoutSeconds)),
+      ]);
+
+      if (response is! http.Response) {
+        EasyLoading.showError('get-kyc-info timeout');
+        logger.i('get-kyc-info timeout');
+        return false;
+      }
+
+      wmtMfs = response.headers[Config.wmtMfsKey] ?? wmtMfs;
+      logger.i('Response status: ${response.statusCode}');
+      logger.i('Response body: ${response.body}');
+      logger.i('$Config.wmtMfsKey: ${response.headers[Config.wmtMfsKey]}');
+
+      String decryptedBody = WaveCrypto.decryptResponse(response.body, myUid, myIvB64);
+      logger.i('decrypted body: $decryptedBody');
+
+      final resBody = GeneralResponse.fromJson(jsonDecode(decryptedBody));
+      if (response.statusCode != 200) {
+        EasyLoading.showToast(
+            resBody.message ?? 'err code: ${response.statusCode}');
+        return false;
+      }
+      // EasyLoading.showInfo('get-kyc-info success.');
+      logger.i('get-kyc-info success');
+      return true;
+    } catch (e, stackTrace) {
+      logger.e('auth err: $e', stackTrace: stackTrace);
+      EasyLoading.showError('request err, code: $e',
+          dismissOnTap: true, duration: const Duration(seconds: 60));
+      return false;
+    } finally {
+      // EasyLoading.dismiss();
+    }
+  }
+
+  Future<bool> _getSubscriberProfile() async {
+    // EasyLoading.show(status: 'loading...');
+    logger.i('get-subscriber-profile start');
+
+    final String myUid = WaveCrypto.generateRandomUid();
+    final String myIvB64 = WaveCrypto.generateRandomIvB64();
+
+    // const myUid = '443b1af1';
+    // const myIvB64 = '6z1tByRz2YLkIrdOEPc+zA==';
+
+    // final txt = '$myUid:$myIvB64';
+
+    logger.i("--- 生成的随机参数 ---");
+    logger.i("UID    : $myUid");
+    logger.i("IV B64 : $myIvB64");
+    // logger.i("txt : $txt");
+
+    String cipher = WaveCrypto.encryptKeyHeader(myUid, myIvB64, Config.rsaPublicKey);
+    logger.i("cipher : $cipher");
+
+    final url = Uri.https(
+        Config.host, 'v3/mfs-customer/get-subscriber-profile');
+    final headers = Config.getHeaders(
+        deviceid: deviceId, model: model, osversion: osVersion)
+      ..addAll({
+        "key": cipher,
+        "user-agent": "okhttp/4.9.0",
+        "Content-Type": "text/plain",
+        Config.wmtMfsKey: wmtMfs,
+      });
+    try {
+      final response = await Future.any([
+        http.get(url, headers: headers),
+        Future.delayed(
+            const Duration(seconds: Config.httpRequestTimeoutSeconds)),
+      ]);
+
+      if (response is! http.Response) {
+        EasyLoading.showError('get-subscriber-profile timeout');
+        logger.i('get-subscriber-profile timeout');
+        return false;
+      }
+
+      wmtMfs = response.headers[Config.wmtMfsKey] ?? wmtMfs;
+      logger.i('Response status: ${response.statusCode}');
+      logger.i('Response body: ${response.body}');
+      logger.i('$Config.wmtMfsKey: ${response.headers[Config.wmtMfsKey]}');
+
+      String decryptedBody = WaveCrypto.decryptResponse(response.body, myUid, myIvB64);
+      logger.i('decrypted body: $decryptedBody');
+
+      final resBody = GeneralResponse.fromJson(jsonDecode(decryptedBody));
+      if (response.statusCode != 200) {
+        EasyLoading.showToast(
+            resBody.message ?? 'err code: ${response.statusCode}');
+        return false;
+      }
+      // EasyLoading.showInfo('get-subscriber-profile success.');
+      logger.i('get-subscriber-profile success');
+      return true;
+    } catch (e, stackTrace) {
+      logger.e('auth err: $e', stackTrace: stackTrace);
+      EasyLoading.showError('request err, code: $e',
+          dismissOnTap: true, duration: const Duration(seconds: 60));
+      return false;
+    } finally {
+      // EasyLoading.dismiss();
+    }
+  }
+
+  Future<bool> _selfAuthoriaztion() async {
+    // EasyLoading.show(status: 'loading...');
+    logger.i('self-authorization-eligiblity start');
+
+    final String myUid = WaveCrypto.generateRandomUid();
+    final String myIvB64 = WaveCrypto.generateRandomIvB64();
+
+    // const myUid = '443b1af1';
+    // const myIvB64 = '6z1tByRz2YLkIrdOEPc+zA==';
+
+    // final txt = '$myUid:$myIvB64';
+
+    logger.i("--- 生成的随机参数 ---");
+    logger.i("UID    : $myUid");
+    logger.i("IV B64 : $myIvB64");
+    // logger.i("txt : $txt");
+
+    String cipher = WaveCrypto.encryptKeyHeader(myUid, myIvB64, Config.rsaPublicKey);
+    logger.i("cipher : $cipher");
+
+    final url = Uri.https(
+        Config.host, 'v3/mfs-customer/self-authorization-eligiblity');
+    final headers = Config.getHeaders(
+        deviceid: deviceId, model: model, osversion: osVersion)
+      ..addAll({
+        "key": cipher,
+        "user-agent": "okhttp/4.9.0",
+        "Content-Type": "text/plain",
+        Config.wmtMfsKey: wmtMfs,
+      });
+    try {
+      final response = await Future.any([
+        http.get(url, headers: headers),
+        Future.delayed(
+            const Duration(seconds: Config.httpRequestTimeoutSeconds)),
+      ]);
+
+      if (response is! http.Response) {
+        EasyLoading.showError('self-authorization-eligiblity timeout');
+        logger.i('self-authorization-eligiblity timeout');
+        return false;
+      }
+
+      wmtMfs = response.headers[Config.wmtMfsKey] ?? wmtMfs;
+      logger.i('Response status: ${response.statusCode}');
+      logger.i('Response body: ${response.body}');
+      logger.i('$Config.wmtMfsKey: ${response.headers[Config.wmtMfsKey]}');
+
+      String decryptedBody = WaveCrypto.decryptResponse(response.body, myUid, myIvB64);
+      logger.i('decrypted body: $decryptedBody');
+
+      final resBody = GeneralResponse.fromJson(jsonDecode(decryptedBody));
+      if (response.statusCode != 200) {
+        EasyLoading.showToast(
+            resBody.message ?? 'err code: ${response.statusCode}');
+        return false;
+      }
+      // EasyLoading.showInfo('self-authorization-eligiblity success.');
+      logger.i('self-authorization-eligiblity success');
+      return true;
+    } catch (e, stackTrace) {
+      logger.e('auth err: $e', stackTrace: stackTrace);
+      EasyLoading.showError('request err, code: $e',
+          dismissOnTap: true, duration: const Duration(seconds: 60));
+      return false;
+    } finally {
+      // EasyLoading.dismiss();
+    }
+  }
+
+
   _updateBalance(
       VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
     isUpdatingBalance = true;
     dataUpdated?.call();
 
     try {
+
+      {
+        final ret = await _selfAuthoriaztion();
+        logger.i('get sub profile: $ret');
+      }
+      if (false) {
+        // test code
+        // A. 准备随机参数
+        // final String myUid = WaveCrypto.generateRandomUid();
+        // final String myIvB64 = WaveCrypto.generateRandomIvB64();
+        const myUid = "443b1af1";
+        const myIvB64 = "IqTyXe/JwyxGuQKv0TEcbQ==";
+
+        logger.i("--- 生成的随机参数 ---");
+        logger.i("UID    : $myUid");
+        logger.i("IV B64 : $myIvB64");
+
+        // B. 模拟加密请求参数
+        String originData = '{"deviceId":"0c34abd5...","osVersion":"11"}';
+        String cipher = WaveCrypto.encryptRequest(originData, myUid, myIvB64);
+
+        logger.i("\n--- 加密过程 (Request) ---");
+        logger.i("原始明文: $originData");
+        logger.i("加密密文: $cipher");
+
+        // C. 模拟解密服务器响应
+        // 假设服务器返回了相同的密文
+        String decrypted = WaveCrypto.decryptResponse(cipher, myUid, myIvB64);
+
+        logger.i("\n--- 解密过程 (Response) ---");
+        logger.i("解密结果: $decrypted");
+
+        const respData = "Kq78lG+r/ye0ntNZC48aVuvJvq652XibTtX7zjXZO04lzDkS//l7Z0+41U8/uDRWqerPVsaArHeCj7h+PiST6Mmht2W9drF0IJEV7yvIq/6dh3jCyNLpwiu+tL8HiUbO5PfD35aMCt0fy2DoA4z7kxDZgIi5pQJ8RqXOjYGL1UEDKDTCZnoHBXZfN+oX9J211ibfA1eLA4M4lIXpEd4YVZ7bdDiiwB8QaZdCLzr40m3sDNMsfJ9GKLecvfE9NaMzfx9Jernp3Ga50a78bUBZ5hq5S8NMvLAtipfLHd1lY2N3gnagVMBNk6r6w7S7P9Asib/W88DUgHXOVYL5y7T/x3EXnQnH3OUW5UxnhSLI0AT4hDxDx/Z44LzjACFess1eLdRc3Z90FGf+fABSIqzuUmsht2Wv2G4IngDbJnxv0t5xuJ3jiBtRhFufUDITPMHOYSB10CJLbSOxiqEJBQXEEX4a5cUyB5rGa0utpRI0n8raBpy8CzhM/d38gVRb/+AnUnsq08AptnSoZJoWfneiZsKuEt3f2yhnIkUSobjoynB59gU14FywWS/3/vTEs8xetpnk5Eyiz2gHVHmoNCqUTo/jUJ+wfRsDaHiQRjBOxd581VHg6DY+ubgO9VEwQxLI+T8gWpG1ZYZy7YOJBRJmpGIHAvA2yckKK7pnTCvMxSGrKUg7LGZGZ3n72C5+Sx6/sFO1zDRD8vscY2mzo1r624aYxt9b3v7TPIodWTmrWNU8tN6jwPenJCUx31HvbL6aJ8+GF1udbQtRXiaptSEjAwATkjhx+0eWpc0A2mUV+zEhAutDdzm3krrZnN/Wxaz758ROLyjdBFZTkom2WHBbQ7btdddBy3xtUg721OiPsQtmX7YG/MMRMmahQ43Sw5v8tN6cLvYByRfw77hwlyOpXwG/XlcT/p4KmJztJsuA1HUapSto5r2Rpkr9HstgSlqTTEsZ46ZJYqNECXSwZi2lsFOQh1lQCLuQLv9kH36y1KXxTbA0ODIPsGysS179zFvHDXJxEnvySo5lobcfaE4IAw==";
+        String decrypted1 = WaveCrypto.decryptResponse(respData, myUid, myIvB64);
+        logger.i("解密结果1: $decrypted1");
+
+        // test code end
+      }
+
       final url = Uri.https(Config.host, 'v2/mfs-customer/wallet-balance');
       final headers = Config.getHeaders(
           deviceid: deviceId, model: model, osversion: osVersion)
