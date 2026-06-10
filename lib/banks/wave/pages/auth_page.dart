@@ -1013,31 +1013,42 @@ class _AuthPageState extends State<AuthPage> {
     //   return;
     // }
 
-    var ret = await _login();
-    logger.i('ret: $ret');
-    if (!ret) return;
+    try {
+      EasyLoading.show(status: 'login...');
+      var ret = await _login();
+      logger.i('ret: $ret');
+      if (!ret) return;
 
-    // {
-    //   await _getBalance();
-    //   // return;
-    // }
+      // {
+      //   await _getBalance();
+      //   // return;
+      // }
 
-    // var ret0 = await _saveNotificationToken();
-    // logger.i('ret0: $ret0');
-    // if (!ret0) return;
+      // var ret0 = await _saveNotificationToken();
+      // logger.i('ret0: $ret0');
+      // if (!ret0) return;
 
-    var ret1 = await _getKycInfo();
-    logger.i('ret1: $ret1');
-    if (!ret1) return;
+      EasyLoading.show(status: 'get kyc info...');
+      var ret1 = await _getKycInfo();
+      logger.i('ret1: $ret1');
+      if (!ret1) return;
 
-    var ret2 = await _getSubscriberProfile();
-    logger.i('ret2: $ret2');
-    if (!ret2) return;
-  
+      EasyLoading.show(status: 'get subscriber info...');
+      var ret2 = await _getSubscriberProfile();
+      logger.i('ret2: $ret2');
+      if (!ret2) return;
+    
+      EasyLoading.show(status: 'get register device...');
+      var ret3 = await _registeredDevices();
+      logger.i('ret3: $ret3');
+      if (!ret3) return;
 
-    var ret3 = await _registeredDevices();
-    logger.i('ret3: $ret3');
-    if (!ret3) return;
+    } catch(e) {
+      logger.e('e: $e');
+    } finally {
+      EasyLoading.dismiss();
+    }
+    
 
     // var ret4 = await _registeredDevice();
     // logger.i('ret4: $ret4');
@@ -1062,19 +1073,6 @@ class _AuthPageState extends State<AuthPage> {
 
   void _auth() async {
     if (!_checkInput(checkOtp: false)) return;
-
-    // {
-    //   await _getBalance();
-
-    // var ret3 = await _registeredDevices();
-    // logger.i('ret3: $ret3');
-    // if (!ret3) return;
-
-    //   // var ret4 = await _registeredDevice();
-    //   // logger.i('ret4: $ret4');
-    //   // if (!ret4) return;
-    //   return;
-    // }
 
     try {
       EasyLoading.show(status: 'loading...');

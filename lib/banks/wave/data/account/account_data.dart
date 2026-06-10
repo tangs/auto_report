@@ -477,7 +477,7 @@ class AccountData implements Account {
               await _transferMoneys(transferList, dataUpdated, onLogged);
 
           if (needUpdateBalance) {
-            await Future.delayed(const Duration(milliseconds: 300));
+            await Future.delayed(const Duration(milliseconds: 600));
             lastUpdateBalanceTime = DateTime.fromMicrosecondsSinceEpoch(0);
           }
         }
@@ -508,107 +508,117 @@ class AccountData implements Account {
     return _lasttransDate == null;
   }
 
+  bool _updatingOrder = false;
   _updateOrder(
       VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
     logger.i('start update order.phone: $phoneNumber');
     dataUpdated?.call();
 
-    final waitReportList = <HistoriesResponseResponseMapTnxHistoryList>[];
-    final isFirst = _isFirstGetTransOrders();
+    _updatingOrder = true;
+    try {
 
-    // do {
-    // todo
-    // if (false) break;
-    // if (isFirst) {
-    //   final ret = await getOrders(
-    //     waitReportList,
-    //     offset: 0,
-    //     limit: 20,
-    //     onLogged: onLogged,
-    //   );
-    //   if (!ret.item1) break;
+      final waitReportList = <HistoriesResponseResponseMapTnxHistoryList>[];
+      final isFirst = _isFirstGetTransOrders();
 
-    //   if (waitReportList.isEmpty) {
-    //     _lasttransDate = DateTime.fromMicrosecondsSinceEpoch(0);
-    //     _lastTransId = '-1';
-    //   } else {
-    //     waitReportList.sort((a, b) => a.compareTo(b));
-    //     final cell = waitReportList.last;
-    //     _lastTransId = cell.transId;
-    //     _lasttransDate = cell.toDateTime();
-    //   }
-    // } else {}
-    // } while (false);
+      // do {
+      // todo
+      // if (false) break;
+      // if (isFirst) {
+      //   final ret = await getOrders(
+      //     waitReportList,
+      //     offset: 0,
+      //     limit: 20,
+      //     onLogged: onLogged,
+      //   );
+      //   if (!ret.item1) break;
 
-    const limitCnt = 40;
-    var offset = 0;
-    var isSuccess = false;
-    while (!isWmtMfsInvalid) {
-      final ret = await getOrders(
-        waitReportList,
-        offset: offset,
-        limit: limitCnt,
-        onLogged: onLogged,
-      );
-      isSuccess = ret.item1;
-      if (!ret.item2) break;
-      offset += limitCnt - 5;
-      await Future.delayed(const Duration(milliseconds: 300));
-    }
+      //   if (waitReportList.isEmpty) {
+      //     _lasttransDate = DateTime.fromMicrosecondsSinceEpoch(0);
+      //     _lastTransId = '-1';
+      //   } else {
+      //     waitReportList.sort((a, b) => a.compareTo(b));
+      //     final cell = waitReportList.last;
+      //     _lastTransId = cell.transId;
+      //     _lasttransDate = cell.toDateTime();
+      //   }
+      // } else {}
+      // } while (false);
 
-    if (isSuccess) {
-      waitReportList.sort((a, b) => a.compareTo(b));
-      if (isFirst) {
-        if (waitReportList.isEmpty) {
-          _lasttransDate = DateTime.fromMicrosecondsSinceEpoch(0);
-          _lastTransId = '-1';
+      const limitCnt = 40;
+      var offset = 0;
+      var isSuccess = false;
+      while (!isWmtMfsInvalid) {
+        final ret = await getOrders(
+          waitReportList,
+          offset: offset,
+          limit: limitCnt,
+          onLogged: onLogged,
+        );
+        isSuccess = ret.item1;
+        if (!ret.item2) break;
+        offset += limitCnt - 5;
+        await Future.delayed(const Duration(milliseconds: 300));
+      }
+
+      if (isSuccess) {
+        waitReportList.sort((a, b) => a.compareTo(b));
+        if (isFirst) {
+          if (waitReportList.isEmpty) {
+            _lasttransDate = DateTime.fromMicrosecondsSinceEpoch(0);
+            _lastTransId = '-1';
+          } else {
+            final cell = waitReportList.last;
+            _lastTransId = cell.transId;
+            _lasttransDate = cell.toDateTime();
+          }
+          logger.i('report: init last date time: $_lasttransDate, $_lastTransId');
+          onLogged(LogItem(
+            type: LogItemType.info,
+            platformName: platformName,
+            platformKey: platformKey,
+            phone: phoneNumber,
+            time: DateTime.now(),
+            content:
+                'get last order info. time : $_lasttransDate, id: $_lastTransId',
+          ));
         } else {
-          final cell = waitReportList.last;
-          _lastTransId = cell.transId;
-          _lasttransDate = cell.toDateTime();
-        }
-        logger.i('report: init last date time: $_lasttransDate, $_lastTransId');
-        onLogged(LogItem(
-          type: LogItemType.info,
-          platformName: platformName,
-          platformKey: platformKey,
-          phone: phoneNumber,
-          time: DateTime.now(),
-          content:
-              'get last order info. time : $_lasttransDate, id: $_lastTransId',
-        ));
-      } else {
-        final ids = <String>{};
-        final needReportList = waitReportList.where((cell) {
-          if (cell.transId == null) return false;
-          if (ids.contains(cell.transId)) return false;
-          ids.add(cell.transId!);
-          return true;
-        }).map((cell) {
-          logger.i('report: phone: $phoneNumber id: ${cell.transId}, '
-              'amount: ${cell.amount}, time: ${cell.transDate}');
-          return cell;
-        }).toList();
-        logger.i('report: cnt: ${needReportList.length}, phone: $phoneNumber');
+          final ids = <String>{};
+          final needReportList = waitReportList.where((cell) {
+            if (cell.transId == null) return false;
+            if (ids.contains(cell.transId)) return false;
+            ids.add(cell.transId!);
+            return true;
+          }).map((cell) {
+            logger.i('report: phone: $phoneNumber id: ${cell.transId}, '
+                'amount: ${cell.amount}, time: ${cell.transDate}');
+            return cell;
+          }).toList();
+          logger.i('report: cnt: ${needReportList.length}, phone: $phoneNumber');
 
-        if (needReportList.isNotEmpty) {
-          final lastCell = needReportList.last;
-          _lastTransId = lastCell.transId!;
-          _lasttransDate = lastCell.toDateTime();
+          if (needReportList.isNotEmpty) {
+            final lastCell = needReportList.last;
+            _lastTransId = lastCell.transId!;
+            _lasttransDate = lastCell.toDateTime();
 
-          _reports(needReportList, dataUpdated, onLogged);
-          if (DataManager().autoUpdateBalance) {
-            _updateBalance(dataUpdated, onLogged);
+            _reports(needReportList, dataUpdated, onLogged);
+            if (DataManager().autoUpdateBalance) {
+              _updateBalance(dataUpdated, onLogged);
+            }
           }
         }
       }
+
+      // waitReportList.clear();
+
+      logger.i('end update order.phone: $phoneNumber');
+      lastUpdateTime = DateTime.now();
+      dataUpdated?.call();
+    } catch(e) {
+      logger.e('e: $e');
+    } finally {
+      _updatingOrder = false;
     }
-
-    // waitReportList.clear();
-
-    logger.i('end update order.phone: $phoneNumber');
-    lastUpdateTime = DateTime.now();
-    dataUpdated?.call();
+  
   }
 
   Future<String?> _generateToken() async {
@@ -863,9 +873,9 @@ class AccountData implements Account {
             Duration(milliseconds: 2000 + _rand.nextInt(1500)));
       }
 
-      if (DataManager().autoUpdateBalance) {
-        _updateBalance(dataUpdated, onLogged);
-      }
+      // if (DataManager().autoUpdateBalance) {
+      //   _updateBalance(dataUpdated, onLogged);
+      // }
     } catch (e, stackTrace) {
       logger.e('e: $e', stackTrace: stackTrace);
       onLogged(
@@ -923,9 +933,9 @@ class AccountData implements Account {
             Duration(milliseconds: 2000 + _rand.nextInt(1500)));
       }
 
-      if (DataManager().autoUpdateBalance) {
-        _updateBalance(dataUpdated, onLogged);
-      }
+      // if (DataManager().autoUpdateBalance) {
+      //   _updateBalance(dataUpdated, onLogged);
+      // }
     } catch (e, stackTrace) {
       logger.e('e: $e', stackTrace: stackTrace);
       onLogged(
@@ -1305,7 +1315,7 @@ class AccountData implements Account {
 
   _updateBalance(
       VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
-    if (!disableReport) {
+    if (!disableReport || _updatingOrder) {
       // 打开转账时不能更新
       return;
     }
@@ -1384,6 +1394,7 @@ class AccountData implements Account {
       );
     } finally {
       isUpdatingBalance = false;
+      lastUpdateBalanceTime = DateTime.now();
       dataUpdated?.call();
     }
   }
