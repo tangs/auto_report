@@ -7,28 +7,28 @@ buildPath='release/android'
 mkdir -p $buildPath
 
 
-sh setup_kbiz.sh
-flutter clean
-flutter build apk --release
+# sh setup_kbiz.sh
+# flutter clean
+# flutter build apk --release
 
-rm -rf "$buildPath/kbiz_reporter_v$version.apk"
-cp -rf build/app/outputs/flutter-apk/app-release.apk "$buildPath/kbiz_reporter_v$version.apk"
-
-
-sh setup_kbz.sh
-flutter clean
-flutter build apk --release
-
-rm -rf "$buildPath/kbz_reporter_v$version.apk"
-cp -rf build/app/outputs/flutter-apk/app-release.apk "$buildPath/kbz_reporter_v$version.apk"
+# rm -rf "$buildPath/kbiz_reporter_v$version.apk"
+# cp -rf build/app/outputs/flutter-apk/app-release.apk "$buildPath/kbiz_reporter_v$version.apk"
 
 
-sh setup_aya.sh
-flutter clean
-flutter build apk --release
+# sh setup_kbz.sh
+# flutter clean
+# flutter build apk --release
 
-rm -rf "$buildPath/aya_reporter_v$version.apk"
-cp -rf build/app/outputs/flutter-apk/app-release.apk "$buildPath/aya_reporter_v$version.apk"
+# rm -rf "$buildPath/kbz_reporter_v$version.apk"
+# cp -rf build/app/outputs/flutter-apk/app-release.apk "$buildPath/kbz_reporter_v$version.apk"
+
+
+# sh setup_aya.sh
+# flutter clean
+# flutter build apk --release
+
+# rm -rf "$buildPath/aya_reporter_v$version.apk"
+# cp -rf build/app/outputs/flutter-apk/app-release.apk "$buildPath/aya_reporter_v$version.apk"
 
 
 sh setup_wave.sh
