@@ -130,19 +130,19 @@ w8UsJovG2xCw3FHr3Qzl1XRMb19BwYflGgikMbIfAsWhRHC1Gg==''';
       required String osversion}) {
     return {
       "fingerprint": fingerprint,
-      "appid": appid,
-      "userlanguage": userlanguage,
+      "appId": appid,
+      "userLanguage": userlanguage,
       "accept-encoding": acceptEncoding,
-      "versioncode": versioncode,
-      "appversion": appversion,
+      "versionCode": versioncode,
+      "appVersion": appversion,
       // "user-agent": "okhttp/4.9.0",
-      "deviceid": deviceid, // 随机生成40位的uuid,用于确定是否当前登录设备
+      "deviceId": deviceid, // 随机生成40位的uuid,用于确定是否当前登录设备
       "device": device, // 设备驱动名称
       "product": product, // 产品的名称
-      "cpuabi": cpuabi, // 设备指令集名称（CPU的类型）
+      "cpuAbi": cpuabi, // 设备指令集名称（CPU的类型）
       "manufacturer": manufacturer, // 设备制造商
       "model": model, // 手机的型号 设备名称
-      "osversion": osversion, // OS系统版本
+      "osVersion": osversion, // OS系统版本
     };
   }
 }

@@ -178,7 +178,7 @@ class _AuthPageState extends State<AuthPage> {
     logger.i('Phone number: $_phoneNumber');
 
     final url = Uri.https(
-        Config.host, 'wmt-mfs-otp/generate-otp', {'msisdn': '$_phoneNumber'});
+        Config.host, 'v3/wmt-mfs-otp/generate-otp', {'msisdn': '$_phoneNumber'});
     final headers = Config.getHeaders(
         deviceid: _deviceId, model: _model, osversion: _osVersion)
       ..addAll({
@@ -221,83 +221,13 @@ class _AuthPageState extends State<AuthPage> {
     }
   }
 
-  // _registeredDevices() async {
-  //   if (_phoneNumber?.isEmpty ?? true) {
-  //     EasyLoading.showToast('phone number is empty.');
-  //     return;
-  //   }
-
-  //   EasyLoading.show(status: 'loading...');
-  //   logger.i('registered-devices start');
-  //   logger.i('Phone number: $_phoneNumber');
-
-  //   final String myUid = WaveCrypto.generateRandomUid();
-  //   final String myIvB64 = WaveCrypto.generateRandomIvB64();
-  //   final txt = '$myUid:$myIvB64';
-
-  //   logger.i("--- 生成的随机参数 ---");
-  //   logger.i("UID    : $myUid");
-  //   logger.i("IV B64 : $myIvB64");
-  //   logger.i("txt : $txt");
-
-
-  //   String cipher = WaveCrypto.encryptRequest(txt, myUid, myIvB64);
-    
-
-  //   final url = Uri.https(
-  //       Config.host, 'v3/mfs-customer/registered-devices');
-  //   final headers = Config.getHeaders(
-  //       deviceid: _deviceId, model: _model, osversion: _osVersion)
-  //     ..addAll({
-  //       "Key": cipher,
-  //       "user-agent": "okhttp/4.9.0",
-  //       "Content-Type": "text/plain",
-  //       Config.wmtMfsKey: _wmtMfs ?? '',
-  //     });
-  //   try {
-  //     final response = await Future.any([
-  //       http.get(url, headers: headers),
-  //       Future.delayed(
-  //           const Duration(seconds: Config.httpRequestTimeoutSeconds)),
-  //     ]);
-
-  //     if (response is! http.Response) {
-  //       EasyLoading.showError('registered-devices timeout');
-  //       logger.i('registered-devices timeout');
-  //       return;
-  //     }
-
-  //     _wmtMfs = response.headers[Config.wmtMfsKey] ?? _wmtMfs;
-  //     logger.i('Response status: ${response.statusCode}');
-  //     logger.i('Response body: ${response.body}');
-  //     logger.i('$Config.wmtMfsKey: ${response.headers[Config.wmtMfsKey]}');
-
-  //     String decryptedBody = WaveCrypto.decryptResponse(response.body, myUid, myIvB64);
-  //     logger.i('decrypted body: $decryptedBody');
-
-  //     final resBody = GeneralResponse.fromJson(jsonDecode(response.body));
-  //     if (response.statusCode != 200 || !resBody.isSuccess()) {
-  //       EasyLoading.showToast(
-  //           resBody.message ?? 'err code: ${response.statusCode}');
-  //       return;
-  //     }
-  //     EasyLoading.showInfo('registered-devices success.');
-  //     logger.i('registered-devices success');
-  //   } catch (e, stackTrace) {
-  //     logger.e('auth err: $e', stackTrace: stackTrace);
-  //     EasyLoading.showError('request err, code: $e',
-  //         dismissOnTap: true, duration: const Duration(seconds: 60));
-  //     return;
-  //   } finally {
-  //     EasyLoading.dismiss();
-  //   }
-  // }
-
   Future<String?> _generateToken() async {
     logger.i('get token start.');
     logger.i('Phone number: $_phoneNumber');
+    // final url = Uri.https(
+    //     Config.host, 'wmt-mfs-otp/security-token', {'msisdn': '$_phoneNumber'});
     final url = Uri.https(
-        Config.host, 'wmt-mfs-otp/security-token', {'msisdn': '$_phoneNumber'});
+        Config.host, 'v3/wmt-mfs-otp/security-token', {'msisdn': '$_phoneNumber'});
     final headers = Config.getHeaders(
         deviceid: _deviceId, model: _model, osversion: _osVersion)
       ..addAll({
@@ -339,7 +269,8 @@ class _AuthPageState extends State<AuthPage> {
   }
 
   Future<bool> _confirmAuthCode() async {
-    final url = Uri.https(Config.host, 'wmt-mfs-otp/confirm-otp');
+    // final url = Uri.https(Config.host, 'wmt-mfs-otp/confirm-otp');
+    final url = Uri.https(Config.host, 'v3/wmt-mfs-otp/confirm-otp');
     final headers = Config.getHeaders(
         deviceid: _deviceId, model: _model, osversion: _osVersion)
       ..addAll({
@@ -451,56 +382,9 @@ class _AuthPageState extends State<AuthPage> {
     return key1;
   }
 
-  // Future<bool> _selfAuthoirizedDevice() async {
-  //   final url = Uri.https(Config.host, 'v3/mfs-customer/self-authoirized-device');
-  //   final headers = Config.getHeaders(
-  //       deviceid: _deviceId, 
-  //       model: _model, 
-  //       osversion: _osVersion,
-  //       )
-  //     ..addAll({
-  //       // 'Content-Type': 'application/x-www-form-urlencoded',
-  //       "Key": _getKeyAndIV(),
-  //       "user-agent": "okhttp/4.9.0",
-  //       Config.wmtMfsKey: _wmtMfs ?? '',
-  //     });
-
-  //   final aseKey1 = _convertKeyToAESKey(aesKey!);
-  //   final formData =_getSelfAuthoirizedDeviceBody(_nrc!, _phoneNumber!);
-  //   final bodyData = AesHelper.encrypt1(formData, encrypt.Key(aseKey1), ivKey);
-
-  //   logger.i('Authoirized start');
-  //   logger.i('Phone number: $_phoneNumber');
-  //   logger.i('auth code: $_otpCode');
-  //   logger.i('form data: $formData');
-  //   final response = await Future.any([
-  //     http.post(url, headers: headers, body: bodyData),
-  //     Future.delayed(const Duration(seconds: Config.httpRequestTimeoutSeconds)),
-  //   ]);
-
-  //   if (response is! http.Response) {
-  //     EasyLoading.showError('firm auth timeout');
-  //     logger.i('firm auth timeout');
-  //     return false;
-  //   }
-
-  //   _wmtMfs = response.headers[Config.wmtMfsKey] ?? _wmtMfs;
-  //   logger.i('Response status: ${response.statusCode}');
-  //   logger.i('Response body: ${response.body}');
-  //   logger.i('$Config.wmtMfsKey: ${response.headers[Config.wmtMfsKey]}');
-
-  //   final resBody = GeneralResponse.fromJson(jsonDecode(response.body));
-  //   // if (response.statusCode != 200 || !resBody.isSuccess()) {
-  //   if (response.statusCode != 200) {
-  //     logger.e('Authoirized code errr: ${response.statusCode}',
-  //         stackTrace: StackTrace.current);
-  //     EasyLoading.showToast(
-  //         resBody.message ?? 'err code: ${response.statusCode}');
-  //     return false;
-  //   }
-  //   logger.i('Authoirized success');
-  //   return true;
-  // }
+  printHaders(Map<String, String> header) {
+    header.forEach((k, v) {logger.i('key: $k, val: $v');});
+  }
 
   Future<bool> _registeredDevices() async {
 
@@ -533,6 +417,9 @@ class _AuthPageState extends State<AuthPage> {
         "Content-Type": "text/plain",
         Config.wmtMfsKey: _wmtMfs ?? "",
       });
+      // headers.remove("");
+    // printHaders(headers);
+
     try {
       final response = await Future.any([
         http.get(url, headers: headers),
@@ -573,10 +460,10 @@ class _AuthPageState extends State<AuthPage> {
     }
   }
 
-  Future<bool> _saveNotificationToken() async {
+  Future<bool> _registeredDevice() async {
 
     // EasyLoading.show(status: 'loading...');
-    logger.i('get-kyc-info start');
+    logger.i('registered-device start');
 
     final String myUid = WaveCrypto.generateRandomUid();
     final String myIvB64 = WaveCrypto.generateRandomIvB64();
@@ -589,31 +476,49 @@ class _AuthPageState extends State<AuthPage> {
     logger.i("--- 生成的随机参数 ---");
     logger.i("UID    : $myUid");
     logger.i("IV B64 : $myIvB64");
-    // logger.i("txt : $txt");
+
+    logger.i('agent id: $_agentId, device id: $_deviceId');
+
+    final body = {
+      "agentId": _agentId,
+      "pin": '',
+      "deviceAuthorizationStatus": "1",
+      "deviceIdToPatch": _deviceId,
+    };
+    final bodyStr = jsonEncode(body);
+    logger.i("body str : $bodyStr");
 
     String cipher = WaveCrypto.encryptKeyHeader(myUid, myIvB64, Config.rsaPublicKey);
+    String encodedData = Uri.encodeQueryComponent(cipher);
     logger.i("cipher : $cipher");
+    logger.i("encodedData : $encodedData");
+
+    var reqBody = {
+      "data": encodedData
+    };
 
     final url = Uri.https(
-        Config.host, 'v2/mfs-customer/save-notification-token');
+        Config.host, 'v3/mfs-customer/registered-devices');
     final headers = Config.getHeaders(
         deviceid: _deviceId, model: _model, osversion: _osVersion)
       ..addAll({
         "key": cipher,
         "user-agent": "okhttp/4.9.0",
-        "Content-Type": "text/plain",
+        // "Content-Type": "application/json",
+        "Accept-Encoding": "application/json",
+        "Accept": "*/*",
         Config.wmtMfsKey: _wmtMfs ?? "",
       });
     try {
       final response = await Future.any([
-        http.get(url, headers: headers),
+        http.patch(url, headers: headers, body: reqBody),
         Future.delayed(
             const Duration(seconds: Config.httpRequestTimeoutSeconds)),
       ]);
 
       if (response is! http.Response) {
-        EasyLoading.showError('get-kyc-info timeout');
-        logger.i('get-kyc-info timeout');
+        EasyLoading.showError('registered-device timeout');
+        logger.i('registered-device timeout');
         return false;
       }
 
@@ -631,8 +536,8 @@ class _AuthPageState extends State<AuthPage> {
             resBody.message ?? 'err code: ${response.statusCode}');
         return false;
       }
-      // EasyLoading.showInfo('get-kyc-info success.');
-      logger.i('get-kyc-info success');
+      // EasyLoading.showInfo('registered-device success.');
+      logger.i('registered-device success');
       return true;
     } catch (e, stackTrace) {
       logger.e('auth err: $e', stackTrace: stackTrace);
@@ -644,6 +549,106 @@ class _AuthPageState extends State<AuthPage> {
     }
   }
 
+  Future<bool> _getBalance() async {
+    final url = Uri.https(Config.host, 'v2/mfs-customer/wallet-balance');
+      final headers = Config.getHeaders(
+          deviceid: _deviceId, model: _model, osversion: _osVersion)
+        ..addAll({
+          'user-agent': 'okhttp/4.9.0',
+          Config.wmtMfsKey: _wmtMfs ?? '',
+        });
+
+      final response = await Future.any([
+        http.get(url, headers: headers),
+        Future.delayed(
+            const Duration(seconds: Config.httpRequestTimeoutSeconds)),
+      ]);
+
+      if (response is! http.Response) {
+        EasyLoading.showError('get wallet balance timeout');
+        logger.i('get wallet balance timeout');
+        return false;
+      }
+
+      _wmtMfs = response.headers[Config.wmtMfsKey] ?? _wmtMfs;
+      logger.i('Response status: ${response.statusCode}');
+      logger.i('Response body: ${response.body}, len: ${response.body.length}');
+      logger.i('$Config.wmtMfsKey: ${response.headers[Config.wmtMfsKey]}');
+      return true;
+  }
+
+  Future<bool> _saveNotificationToken() async {
+
+    // EasyLoading.show(status: 'loading...');
+    logger.i('save notification token start');
+
+    // final String myUid = WaveCrypto.generateRandomUid();
+    // final String myIvB64 = WaveCrypto.generateRandomIvB64();
+
+    // const myUid = '443b1af1';
+    // const myIvB64 = '6z1tByRz2YLkIrdOEPc+zA==';
+
+    // final txt = '$myUid:$myIvB64';
+
+    // logger.i("--- 生成的随机参数 ---");
+    // logger.i("UID    : $myUid");
+    // logger.i("IV B64 : $myIvB64");
+    // final body = 'msisdn=$_phoneNumber&notificationToken=';
+    final body = {
+      'msisdn': _phoneNumber,
+      'notificationToken': '',
+    };
+    // logger.i("txt : $txt");
+
+    // String cipher = WaveCrypto.encryptKeyHeader(myUid, myIvB64, Config.rsaPublicKey);
+    // logger.i("cipher : $cipher");
+
+    final url = Uri.https(
+        Config.host, 'v2/mfs-customer/save-notification-token');
+    final headers = Config.getHeaders(
+        deviceid: _deviceId, model: _model, osversion: _osVersion)
+      ..addAll({
+        // "key": cipher,
+        "user-agent": "okhttp/4.9.0",
+        // "content-type": "application/json;charset=utf-8",
+        Config.wmtMfsKey: _wmtMfs ?? "",
+      });
+    try {
+      final response = await Future.any([
+        http.post(url, headers: headers, body: body),
+        Future.delayed(
+            const Duration(seconds: Config.httpRequestTimeoutSeconds)),
+      ]);
+
+      if (response is! http.Response) {
+        EasyLoading.showError('save notification token timeout');
+        logger.i('save notification token timeout');
+        return false;
+      }
+
+      _wmtMfs = response.headers[Config.wmtMfsKey] ?? _wmtMfs;
+      logger.i('Response status: ${response.statusCode}');
+      logger.i('Response body: ${response.body}');
+      logger.i('$Config.wmtMfsKey: ${response.headers[Config.wmtMfsKey]}');
+
+      final resBody = GeneralResponse.fromJson(jsonDecode(response.body));
+      if (response.statusCode != 200) {
+        EasyLoading.showToast(
+            resBody.message ?? 'err code: ${response.statusCode}');
+        return false;
+      }
+      // EasyLoading.showInfo('save notification token success.');
+      logger.i('save notification token success');
+      return true;
+    } catch (e, stackTrace) {
+      logger.e('auth err: $e', stackTrace: stackTrace);
+      EasyLoading.showError('request err, code: $e',
+          dismissOnTap: true, duration: const Duration(seconds: 60));
+      return false;
+    } finally {
+      // EasyLoading.dismiss();
+    }
+  }
 
   Future<bool> _getKycInfo() async {
 
@@ -856,7 +861,6 @@ class _AuthPageState extends State<AuthPage> {
     }
   }
 
-
   bool _checkInput({bool checkOtp = true}) {
     if (_phoneNumber?.isEmpty ?? true) {
       EasyLoading.showToast('phone number is empty.');
@@ -887,6 +891,21 @@ class _AuthPageState extends State<AuthPage> {
       return false;
     }
     return true;
+  }
+
+  int? _agentId;
+
+  _paseAgentId(String jsonString) {
+    Map<String, dynamic> data = jsonDecode(jsonString);
+
+    logger.i('paseAgent id');
+    // 2. 动态访问路径：responseMap -> agentId
+    // 注意：根据 JSON 显示 agentId 是数字，所以用 int 接收
+    int agentId = data['responseMap']?['agentId'];
+    logger.i('agent id: $agentId');
+
+    logger.i('paseAgent id end');
+    _agentId = agentId;
   }
 
   Future<bool> _login() async {
@@ -952,6 +971,7 @@ class _AuthPageState extends State<AuthPage> {
       logger.i('Response status: ${response.statusCode}');
       logger.i('Response body: ${response.body}, len: ${response.body.length}');
       logger.i('$Config.wmtMfsKey: ${response.headers[Config.wmtMfsKey]}');
+      _paseAgentId(response.body);
 
       if (response.statusCode != 200) {
         logger.e('login wave err: ${response.statusCode}',
@@ -972,13 +992,39 @@ class _AuthPageState extends State<AuthPage> {
     }
     return true;
   }
-
+  
+  // String jsonData = '''{"responseMap":{"accountStatus":2,"agentId":44961545,"googleUrl":"https://wave.mn/apa","subscriberDetails":{"kycStatus":2,"requireKYCUpgrade":true,"name":"Than Lwin Soe"},"directUrl":"https://wave.mn/apd","interstitialData":{"offerType":1,"imageUri":"https://files.wavemoney.io:8199/splash-screens/splash_screen_apr_2019.jpg","headerName":"Announcement!","messageId":"Message145","offerActionName":"","type":1,"title":"This version will be stopped soon. Please upgrade to new WavePay App to enjoy more features!","messageExpiry":"20200930T13:12:28+0530"},"userType":0,"versionInfo":{"iOS":{"appStoreUrl":"https://itunes.apple.com/us/app/wavepay/id1439175549","forcedUpgrade":"false","build":56,"version":"2.5.0"},"Android":{"forcedUpgrade":"false","playStoreUrl":"https://play.google.com/store/apps/details?id=mm.com.wavemoney.wavepay","directUrl":"https://app.adjust.com/pbka9us?campaign=Media+Link&adgroup=Media+link_WP&redirect=https%3A%2F%2Fwavemoney.com.mm%2Fapp%2Fwavepay-app.apk","versionName":"2.5.0","versionCode":1468}},"versionName":"WavePay","config":{"kycRequiredGroups":"10042"},"versionCode":1411,"waveWorldUrl":"http://wavemoneyworld.com/wavemoneywebtest/firstPage.jsp?username=w@veM0ney&password=wM\$123@67&mobile=9791009038&lang=eng"},"respTime":"Wed Jun 10 08:57:47 MMT 2026","message":"Success","statusCode":0}''';    
+  
   void _login1() async {
     if (!_checkInput(checkOtp: false)) return;
 
-    // var ret = await _login();
-    // logger.i('ret: $ret');
-    // if (!ret) return;
+    // {
+    //   const uid = '3f072763';
+    //   const ivB64 = 'qr/cMXr5Ug0R/jWWwqTIMA==';
+    //   const cipherB64 = 'H68V0sPFlwqu0i3doU/XYf0xyVin/PlMkGFMn7cv7hWtKvMpY52vsHzwt0SNAZ/2LWVlCYpW3rkMlIM6n2neg5bahd1ZS2bq372SSEiJQnwlXRoevbg2Tqvx3Iit1WhmwP+koRmjNYcJ3oocFI48n4FyuX70XZt2JH7ZXknQvn0=';
+    //   final dTxt = WaveCrypto.decryptResponse(cipherB64, uid, ivB64);
+    //   final eTxt = WaveCrypto.encryptRequest(dTxt, uid, ivB64);
+    //   logger.i('d txt: $dTxt');
+    //   logger.i('e txt: $eTxt');
+    //   return;
+    // }
+    // {
+    //   paseAgentId(jsonData);
+    //   return;
+    // }
+
+    var ret = await _login();
+    logger.i('ret: $ret');
+    if (!ret) return;
+
+    // {
+    //   await _getBalance();
+    //   // return;
+    // }
+
+    // var ret0 = await _saveNotificationToken();
+    // logger.i('ret0: $ret0');
+    // if (!ret0) return;
 
     var ret1 = await _getKycInfo();
     logger.i('ret1: $ret1');
@@ -993,9 +1039,13 @@ class _AuthPageState extends State<AuthPage> {
     logger.i('ret3: $ret3');
     if (!ret3) return;
 
-    var ret4 = await _selfAuthoriaztion();
-    logger.i('ret4: $ret4');
-    if (!ret4) return;
+    // var ret4 = await _registeredDevice();
+    // logger.i('ret4: $ret4');
+    // if (!ret4) return;
+
+    // var ret4 = await _selfAuthoriaztion();
+    // logger.i('ret4: $ret4');
+    // if (!ret4) return;
 
 
     // aesKey = AesKeyGenerator.generateRandomKey1();
@@ -1012,6 +1062,19 @@ class _AuthPageState extends State<AuthPage> {
 
   void _auth() async {
     if (!_checkInput(checkOtp: false)) return;
+
+    // {
+    //   await _getBalance();
+
+    // var ret3 = await _registeredDevices();
+    // logger.i('ret3: $ret3');
+    // if (!ret3) return;
+
+    //   // var ret4 = await _registeredDevice();
+    //   // logger.i('ret4: $ret4');
+    //   // if (!ret4) return;
+    //   return;
+    // }
 
     try {
       EasyLoading.show(status: 'loading...');

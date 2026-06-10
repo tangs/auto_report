@@ -1,12 +1,226 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:auto_report/banks/wave/data/account/account_data.dart';
 import 'package:auto_report/model/data/log/log_item.dart';
 import 'package:auto_report/manager/data_manager.dart';
 import 'package:auto_report/proto/report/response/get_platforms_response.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:logger/logger.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
 typedef ReLoginCallback = void Function(
     {String phoneNumber, String pin, String token, String remark});
+
+class WaveTnxHistoryWebClient {
+  static const _baseUrl = 'https://api.wavemoney.io:8100/v2/wave-tnx-history/';
+  static WebViewController? _attachedController;
+  static Completer<void>? _readyCompleter;
+  static int _bridgeSeq = 0;
+  static final _pendingRequests = <int, Completer<Map<String, dynamic>>>{};
+
+  static void attachController(WebViewController controller) {
+    _attachedController = controller;
+    _readyCompleter = Completer<void>();
+  }
+
+  static void markReady() {
+    final completer = _readyCompleter;
+    if (completer != null && !completer.isCompleted) {
+      completer.complete();
+    }
+  }
+
+  static Future<Map<String, dynamic>> fetchTnxHistories({
+    required String deviceId,
+    required String model,
+    required String osVersion,
+    required int limit,
+    required int offset,
+    required String wmtMfs,
+    Duration timeout = const Duration(seconds: 35),
+  }) async {
+    final controller = _attachedController;
+    if (controller == null) {
+      throw StateError(
+        'WaveTnxHistoryWebClient.attachController(controller) must be called '
+        'with a WebViewController that is attached to a WebViewWidget first.',
+      );
+    }
+
+    final readyCompleter = _readyCompleter;
+    if (readyCompleter != null && !readyCompleter.isCompleted) {
+      await readyCompleter.future.timeout(timeout);
+    }
+
+    return fetchTnxHistoriesWithController(
+      controller,
+      deviceId: deviceId,
+      model: model,
+      osVersion: osVersion,
+      limit: limit,
+      offset: offset,
+      wmtMfs: wmtMfs,
+      timeout: timeout,
+    );
+  }
+
+  static Future<Map<String, dynamic>> fetchTnxHistoriesWithController(
+    WebViewController controller, {
+    required String deviceId,
+    required String model,
+    required String osVersion,
+    required int limit,
+    required int offset,
+    required String wmtMfs,
+    Duration timeout = const Duration(seconds: 35),
+  }) async {
+    final completer = Completer<Map<String, dynamic>>();
+    final requestId = ++_bridgeSeq;
+    _pendingRequests[requestId] = completer;
+    await controller.runJavaScript(_buildFetchJs(
+      bridgeName: 'TnxBridge',
+      requestId: requestId,
+      deviceId: deviceId,
+      model: model,
+      osVersion: osVersion,
+      limit: limit,
+      offset: offset,
+      wmtMfs: wmtMfs,
+    ));
+    return completer.future.timeout(timeout, onTimeout: () {
+      _pendingRequests.remove(requestId);
+      throw TimeoutException('Wave WebView request timeout', timeout);
+    });
+  }
+
+  static bool handleBridgeMessage(String message) {
+    try {
+      final decoded = jsonDecode(message);
+      if (decoded is! Map) {
+        return false;
+      }
+      final requestId = decoded['requestId'];
+      if (requestId is! int) {
+        return false;
+      }
+      final completer = _pendingRequests.remove(requestId);
+      if (completer == null) {
+        return false;
+      }
+      if (!completer.isCompleted) {
+        completer.complete(_decodeBridgeMessage(message));
+      }
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Map<String, dynamic> _decodeBridgeMessage(String message) {
+    final decoded = jsonDecode(message);
+    if (decoded is! Map) {
+      return {'body': decoded};
+    }
+
+    final result = Map<String, dynamic>.from(decoded);
+    final body = result['body'];
+    if (body is String && body.trim().isNotEmpty) {
+      try {
+        result['body'] = jsonDecode(body);
+      } catch (_) {
+        result['body'] = body;
+      }
+    }
+    return result;
+  }
+
+  static String _jsString(String value) {
+    return value
+        .trim()
+        .replaceAll('\r', '')
+        .replaceAll('\n', '')
+        .replaceAll('\\', '\\\\')
+        .replaceAll('"', '\\"');
+  }
+
+  static String _buildFetchJs({
+    String bridgeName = 'TnxBridge',
+    int requestId = 0,
+    required String deviceId,
+    required String model,
+    required String osVersion,
+    required int limit,
+    required int offset,
+    required String wmtMfs,
+  }) {
+    final cleanDeviceId = _jsString(deviceId);
+    final cleanModel = _jsString(model);
+    final cleanOsVersion = _jsString(osVersion);
+    final cleanWmtMfs = _jsString(wmtMfs);
+
+    return '''
+(function () {
+  async function main() {
+    const requestId = $requestId;
+    const headers = {
+      "accept": "*/*",
+      "content-type": "application/json",
+      "fingerprint": "87EC104C0FFBB8E749CD59D9C64851441B38D1C13C9746DC124BB9E71E66DCB9",
+      "appId": "mm.com.wavemoney.wavepay",
+      "userLanguage": "en",
+      "versionCode": "1470",
+      "appVersion": "2.6.1",
+      "deviceId": "$cleanDeviceId",
+      "device": "",
+      "product": "redfin",
+      "cpuAbi": "arm64-v8a,armeabi-v7a,armeabi",
+      "manufacturer": "Google",
+      "model": "$cleanModel",
+      "osVersion": "$cleanOsVersion",
+      "x-requested-with": "mm.com.wavemoney.wavepay",
+      "wmt-mfs": "$cleanWmtMfs"
+    };
+
+    try {
+      const targetUrl = "/merchant-app/tnxhistory-utility/v2/tnx-histories?limit=$limit&offset=$offset";
+      const fetchPromise = fetch(targetUrl, {
+        method: "GET",
+        headers,
+        credentials: "include",
+        cache: "no-store"
+      });
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("fetch timeout after 25s")), 25000);
+      });
+      const res = await Promise.race([fetchPromise, timeoutPromise]);
+      const text = await res.text();
+
+      $bridgeName.postMessage(JSON.stringify({
+        requestId: requestId,
+        ok: res.ok,
+        status: res.status,
+        statusText: res.statusText,
+        nextWmtMfs: res.headers.get("wmt-mfs"),
+        body: text
+      }));
+    } catch (e) {
+      $bridgeName.postMessage(JSON.stringify({
+        requestId: requestId,
+        ok: false,
+        error: String(e && e.stack ? e.stack : e),
+        origin: location.origin,
+        href: location.href
+      }));
+    }
+  }
+
+  main();
+})();
+''';
+  }
+}
 
 class AccountsPage extends StatefulWidget {
   final List<AccountData> accountsData;
@@ -31,6 +245,236 @@ class AccountsPage extends StatefulWidget {
 
 class _AccountsPageState extends State<AccountsPage> {
   final _platformsCheckboxResults = <String, bool>{};
+  final logger = Logger();
+
+  late final WebViewController controller;
+  final TextEditingController wmtMfsController = TextEditingController();
+  String resultText = '';
+  bool pageReady = false;
+  bool loading = false;
+  int _tnxRequestId = 0;
+  
+  @override
+  void initState() {
+    super.initState();
+    const testHtml = '''
+<!doctype html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+  <h3>Wave request test page</h3>
+  <pre id="log">ready</pre>
+
+  <script>
+    document.getElementById("log").textContent =
+      "origin=" + location.origin + "\\n" +
+      "href=" + location.href + "\\n" +
+      "cookie=" + (document.cookie || "(empty)");
+  </script>
+</body>
+</html>
+''';
+
+    controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..addJavaScriptChannel(
+        'TnxBridge',
+        onMessageReceived: (JavaScriptMessage message) {
+          if (WaveTnxHistoryWebClient.handleBridgeMessage(message.message)) {
+            return;
+          }
+          logger.i(message.message);
+          setState(() {
+            resultText = message.message;
+            loading = false;
+          });
+        },
+      )
+      ..setUserAgent(
+        'Mozilla/5.0 (Linux; Android 11; Pixel 5 Build/RD1A.200810.022.A4; wv) '
+        'AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 '
+        'Chrome/147.0.7727.137 Mobile Safari/537.36',
+      )
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageFinished: (url) {
+            debugPrint('page finished: $url');
+            WaveTnxHistoryWebClient.markReady();
+            setState(() => pageReady = true);
+          },
+          onWebResourceError: (error) {
+            debugPrint('web error: ${error.description}');
+          },
+        ),
+      )
+      // ..loadRequest(Uri.parse(
+      //   'https://api.wavemoney.io:8100/v2/wave-tnx-history/?mixpanel_source=Home+Screen',
+      // ));
+      ..loadHtmlString(
+        testHtml,
+        baseUrl: 'https://api.wavemoney.io:8100/v2/wave-tnx-history/',
+      );
+    WaveTnxHistoryWebClient.attachController(controller);
+  }
+
+  @override
+  void dispose() {
+    wmtMfsController.dispose();
+    super.dispose();
+  }
+
+  String _cleanJsString(String value) {
+    return value
+        .replaceAll('\r', '')
+        .replaceAll('\n', '')
+        .replaceAll('\\', '\\\\')
+        .replaceAll('"', '\\"');
+  }
+
+  Future<void> runTnxTest() async {
+    final wmtMfs = _cleanJsString(wmtMfsController.text.trim());
+    final requestId = ++_tnxRequestId;
+
+    if (wmtMfs.isEmpty) {
+      setState(() => resultText = 'wmt-mfs 不能为空');
+      return;
+    }
+
+    setState(() {
+      loading = true;
+      resultText = 'requesting...';
+    });
+
+    final js = '''
+(function () {
+  async function main() {
+    const requestId = $requestId;
+    const headers = {
+      "accept": "*/*",
+      "content-type": "application/json",
+      "fingerprint": "87EC104C0FFBB8E749CD59D9C64851441B38D1C13C9746DC124BB9E71E66DCB9",
+      "appId": "mm.com.wavemoney.wavepay",
+      "userLanguage": "en",
+      "versionCode": "1470",
+      "appVersion": "2.6.1",
+      "deviceId": "45c5815443d57a7c7d43463dcd8d3e46d188769b",
+      "device": "",
+      "product": "redfin",
+      "cpuAbi": "arm64-v8a,armeabi-v7a,armeabi",
+      "manufacturer": "Google",
+      "model": "Pixel 6",
+      "osVersion": "14",
+      "x-requested-with": "mm.com.wavemoney.wavepay",
+      "wmt-mfs": "$wmtMfs"
+    };
+
+    try {
+      const targetUrl = "/merchant-app/tnxhistory-utility/v2/tnx-histories?limit=20&offset=20";
+      const fetchPromise = fetch(targetUrl, {
+        method: "GET",
+        headers,
+        credentials: "include",
+        cache: "no-store"
+      });
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("fetch timeout after 25s")), 25000);
+      });
+      const res = await Promise.race([fetchPromise, timeoutPromise]);
+
+      const responseHeaders = {};
+      res.headers.forEach((v, k) => responseHeaders[k] = v);
+
+      const text = await res.text();
+      let output = text;
+      try {
+        output = JSON.stringify(JSON.parse(text), null, 2);
+      } catch (_) {}
+
+      TnxBridge.postMessage(output);
+    } catch (e) {
+      TnxBridge.postMessage(JSON.stringify({
+        requestId: requestId,
+        error: String(e && e.stack ? e.stack : e),
+        origin: location.origin,
+        href: location.href,
+        cookie: document.cookie || ""
+      }));
+    }
+  }
+
+  main();
+})();
+''';
+
+    try {
+      await controller.runJavaScript(js);
+      Future.delayed(const Duration(seconds: 30), () {
+        if (!mounted || !loading || requestId != _tnxRequestId) {
+          return;
+        }
+        setState(() {
+          resultText =
+              'request timeout in Flutter after 30s. JS did not post a result. origin should be https://api.wavemoney.io:8100.';
+          loading = false;
+        });
+      });
+    } catch (e) {
+      setState(() {
+        resultText = 'inject js failed v2: $e';
+        loading = false;
+      });
+    }
+  }
+
+  String _formatTnxResult(String rawMessage) {
+    try {
+      final decoded = jsonDecode(rawMessage);
+      if (decoded is! Map) {
+        return const JsonEncoder.withIndent('  ').convert(decoded);
+      }
+
+      final result = Map<String, dynamic>.from(decoded);
+      final body = result['body'];
+      Object? formattedBody = body;
+      if (body is String && body.trim().isNotEmpty) {
+        try {
+          formattedBody = _normalizeJsonStrings(jsonDecode(body));
+        } catch (_) {
+          formattedBody = body;
+        }
+      }
+
+      return const JsonEncoder.withIndent('  ').convert(formattedBody);
+    } catch (_) {
+      return rawMessage;
+    }
+  }
+
+  Object? _normalizeJsonStrings(Object? value) {
+    if (value is Map) {
+      return value.map(
+        (key, item) => MapEntry(key, _normalizeJsonStrings(item)),
+      );
+    }
+    if (value is List) {
+      return value.map(_normalizeJsonStrings).toList();
+    }
+    if (value is String) {
+      final trimmed = value.trim();
+      final looksLikeJson = (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
+          (trimmed.startsWith('[') && trimmed.endsWith(']'));
+      if (looksLikeJson) {
+        try {
+          return _normalizeJsonStrings(jsonDecode(trimmed));
+        } catch (_) {
+          return value;
+        }
+      }
+    }
+    return value;
+  }
 
   List<Widget> _buildList() {
     return widget.accountsData
@@ -425,7 +869,33 @@ class _AccountsPageState extends State<AccountsPage> {
   Widget build(BuildContext context) {
     return Column(
       children: [
+        
         _buildFilter(),
+        Visibility(
+          child: TextField(
+            controller: wmtMfsController,
+            minLines: 1,
+            maxLines: 2,
+            decoration: const InputDecoration(
+              labelText: 'wmt-mfs',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          visible: false,
+        ),
+        // const SizedBox(height: 8),
+        // ElevatedButton(
+        //   onPressed: pageReady && !loading ? runTnxTest : null,
+        //   child: Text(loading ? '请求中...' : '运行请求'),
+        // ),
+        // const SizedBox(height: 8),
+        SizedBox(
+          height: 25,
+          width: double.infinity,
+          child: WebViewWidget(controller: controller),
+        ),
+        const SizedBox(height: 8),
+        // SelectableText(resultText),
         Flexible(child: ListView(children: _buildList())),
       ],
     );

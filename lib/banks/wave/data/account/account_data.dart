@@ -4,6 +4,7 @@ import 'dart:math';
 
 import 'package:auto_report/banks/wave/config/config.dart';
 import 'package:auto_report/banks/wave/data/account/histories_response.dart';
+import 'package:auto_report/banks/wave/pages/accounts_page.dart';
 import 'package:auto_report/banks/wave/utils/wave_crypto.dart';
 import 'package:auto_report/container/limit_set.dart';
 import 'package:auto_report/manager/data_manager.dart';
@@ -21,6 +22,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:http/http.dart' as http;
 import 'package:tuple/tuple.dart';
+import 'package:cronet_http/cronet_http.dart';
 
 enum RequestType { updateOrder, updateBalance, sendCash }
 
@@ -171,6 +173,110 @@ class AccountData implements Account {
         'auth code: $authCode, wmt mfs: $wmtMfs';
   }
 
+  String generateMixpanelCookie({
+    required String distinctId,
+    required String deviceId,
+    required String userId,
+    String mixpanelToken = "39057ddd82d23c6cd2af5c346a1f9d4c",
+  }) {
+    // 1. 构造内部 JSON 结构
+    // 注意：Mixpanel 的 Key 很多是以 $ 开头的，在 Dart 中作为 Map Key 没问题，
+    // 但在 String 模板中要注意转义。
+    final Map<String, dynamic> cookieMap = {
+      "distinct_id": distinctId,
+      "\$device_id": deviceId,
+      "\$user_id": userId,
+      "\$initial_referrer": "\$direct",
+      "\$initial_referring_domain": "\$direct",
+      "__mps": {},
+      "__mpso": {},
+      "__mpus": {},
+      "__mpa": {},
+      "__mpu": {},
+      "__mpr": [],
+      "__mpap": []
+    };
+
+    // 2. 将 Map 转为 JSON 字符串
+    String jsonStr = jsonEncode(cookieMap);
+
+    // 3. 对 JSON 字符串进行 URL 编码 (UrlEncode)
+    // 这是最关键的一步，必须把 { } " : 等符号转为 %xx 格式
+    String encodedJson = Uri.encodeComponent(jsonStr);
+
+    // 4. 拼接最终的 Cookie 字符串
+    return "mp_${mixpanelToken}_mixpanel=$encodedJson";
+  }
+
+  String? _cfBmCookie;
+  Future<void> step1GetCookie() async {
+    final url = Uri.parse("https://api.wavemoney.io:8100/v2/wave-tnx-history/splash");
+    
+    final response = await http.get(url, headers: {
+      "user-agent": "Mozilla/5.0 (Linux; Android 11; Pixel 5 Build/RD1A.200810.022.A4; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/147.0.7727.137 Mobile Safari/537.36",
+            "accept": "*/*",
+            "content-type": "application/json",
+            "referer": "https://api.wavemoney.io:8100/v2/wave-tnx-history/?mixpanel_source=Home+Screen",
+            "accept-encoding": "gzip, deflate, br, zstd",
+
+            "sec-ch-ua": '"Android WebView";v="147", "Not.A/Brand";v="8", "Chromium";v="147"',
+            "sec-ch-ua-mobile": "?1",
+            "sec-ch-ua-platform": "Android",
+
+            "origin": "https://api.wavemoney.io:8100",
+            "x-requested-with": "mm.com.wavemoney.wavepay", 
+
+            "sec-fetch-site": "same-origin",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-dest": "empty",
+            // "cookie": cookie,
+            Config.wmtMfsKey: wmtMfs,
+    });
+
+    // 从 response headers 中提取 set-cookie
+    String? rawCookie = response.headers['set-cookie'];
+    logger.i('raw cookie1: $rawCookie');
+    if (rawCookie != null && rawCookie.contains("__cf_bm=")) {
+      // 提取 __cf_bm 部分（直到第一个分号结束）
+      _cfBmCookie = rawCookie.split(';').firstWhere((c) => c.trim().startsWith('__cf_bm='));
+      logger.i("成功捕获 Cookie: $_cfBmCookie");
+    }
+  }
+
+  static String buildHeader({
+    required String rawSetCookie, // 从 response.headers['set-cookie'] 拿到的原始串
+    required String distinctId,
+    required String deviceId,
+    String mixpanelToken = "39057ddd82d23c6cd2af5c346a1f9d4c",
+  }) {
+    // 1. 清洗 __cf_bm (只保留 key=value)
+    String cfBm = rawSetCookie.split(';').firstWhere((c) => c.trim().startsWith('__cf_bm=')).trim();
+
+    // 2. 构造 Mixpanel JSON
+    final Map<String, dynamic> mixpanelMap = {
+      "distinct_id": distinctId,
+      "\$device_id": deviceId,
+      "\$user_id": distinctId,
+      "\$initial_referrer": "\$direct",
+      "\$initial_referring_domain": "\$direct",
+      "__mps": {},
+      "__mpso": {},
+      "__mpus": {},
+      "__mpa": {},
+      "__mpu": {},
+      "__mpr": [],
+      "__mpap": []
+    };
+    
+    // 3. 对 Mixpanel 进行 URL 编码
+    String encodedMixpanel = Uri.encodeComponent(jsonEncode(mixpanelMap));
+    String mixpanelCookie = "mp_${mixpanelToken}_mixpanel=$encodedMixpanel";
+
+    // 4. 最终合并 (注意中间的分号和空格)
+    return "$cfBm; $mixpanelCookie";
+  }
+
+  String? _orderWmtMfs;
   /// return [isSuccess, hasUnreadOrder]
   Future<Tuple2<bool, bool>> getOrders(
     List<HistoriesResponseResponseMapTnxHistoryList> waitReportList, {
@@ -179,62 +285,117 @@ class AccountData implements Account {
     required ValueChanged<LogItem> onLogged,
   }) async {
     try {
-      final url =
-          // Uri.https(Config.host, 'v3/mfs-customer/utility/tnx-histories', {
-          // Uri.https(Config.host, 'v3/mfs-customer/tnxhistory-utility/tnx-histories', {
-          // Uri.https(Config.host, 'v3/mfs-customer/tnxhistory-utility/v2/tnx-histories', {
-          Uri.https(Config.host, '/merchant-app/tnxhistory-utility/v2/tnx-histories', {
-        'limit': '$limit',
-        'offset': '$offset',
-      });
-      final headers = Config.getHeaders(
-        deviceid: deviceId,
-        model: model,
-        osversion: osVersion,
-      )..addAll({
-          'user-agent':
-              'Mozilla/5.0 (Linux; Android 11; Pixel 5 Build/RD1A.200810.022.A4; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/124.0.6367.123 Mobile Safari/537.36',
-          Config.wmtMfsKey: wmtMfs,
-        });
+      logger.i("start get orders.");
+      var wmtMfs1 = _orderWmtMfs ?? wmtMfs;
+      var ret1 = await WaveTnxHistoryWebClient.fetchTnxHistories(deviceId: deviceId, model: model, osVersion: osVersion, limit: limit, offset: offset, wmtMfs: wmtMfs1);
+      var retJson = jsonEncode(ret1);
+      logger.i("retJson: $retJson");
 
-      logger.i('get order list: offset: $offset.');
-      final response = await Future.any([
-        http.get(url, headers: headers),
-        Future.delayed(
-            const Duration(seconds: Config.httpRequestTimeoutSeconds)),
-      ]);
-
-      if (response is! http.Response) {
-        EasyLoading.showError('get order timeout');
-        logger.i('get order timeout');
+      final state = ret1["status"];
+      if (state != 200) {
+        logger.i("state check fail, state: $state");
         return const Tuple2(false, false);
       }
+      final nextWmtMfs = ret1["nextWmtMfs"];
+      _orderWmtMfs = nextWmtMfs;
+      final body = ret1["body"];
+      // final tnxHistoryList = body["responseMap"]["tnxHistoryList"];
+      // await step1GetCookie();
+      // var cookie = buildHeader(deviceId: deviceId, distinctId: '44961545', rawSetCookie: _cfBmCookie ?? '');
+      // logger.i('dest cookie: $cookie');
+      // // var cookie = generateMixpanelCookie(distinctId: '44961545', deviceId: deviceId, userId: '44961545');
+      // final url =
+      //     // Uri.https(Config.host, 'v3/mfs-customer/utility/tnx-histories', {
+      //     // Uri.https(Config.host, 'v3/mfs-customer/tnxhistory-utility/tnx-histories', {
+      //     // Uri.https(Config.host, 'v3/mfs-customer/tnxhistory-utility/v2/tnx-histories', {
+      //     Uri.https(Config.host, '/merchant-app/tnxhistory-utility/v2/tnx-histories', {
+      //   'limit': '$limit',
+      //   'offset': '$offset',
+      // });
+      // // final url = Uri.https(Config.host, 'v2/wave-tnx-history/?mixpanel_source=Home%20Screen');
+      // final headers = Config.getHeaders(
+      //   deviceid: deviceId,
+      //   model: model,
+      //   osversion: osVersion,
+      // )..addAll({
+      //     // 'user-agent':
+      //     //     'Mozilla/5.0 (Linux; Android 11; Pixel 5 Build/RD1A.200810.022.A4; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/124.0.6367.123 Mobile Safari/537.36',
+      //     "user-agent": "Mozilla/5.0 (Linux; Android 11; Pixel 5 Build/RD1A.200810.022.A4; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/147.0.7727.137 Mobile Safari/537.36",
+      //     "accept": "*/*",
+      //     "content-type": "application/json",
+      //     "referer": "https://api.wavemoney.io:8100/v2/wave-tnx-history/?mixpanel_source=Home+Screen",
 
-      wmtMfs = response.headers[Config.wmtMfsKey] ?? wmtMfs;
-      logger.i('Response status: ${response.statusCode}');
-      logger.i('Response body: ${response.body}, len: ${response.body.length}');
-      logger.i('$Config.wmtMfsKey: ${response.headers[Config.wmtMfsKey]}');
+      //     "origin": "https://api.wavemoney.io:8100",
+      //     "x-requested-with": "mm.com.wavemoney.wavepay", 
 
-      if (response.statusCode != 200) {
-        logger.e('get order err: ${response.statusCode}',
-            stackTrace: StackTrace.current);
-        EasyLoading.showToast('get order err: ${response.statusCode}');
-        if (response.statusCode == 401) {
-          isWmtMfsInvalid = true;
-        }
-        onLogged(
-          _getLogItem(
-            type: LogItemType.err,
-            content: 'get order err.status code: ${response.statusCode}, '
-                'body: ${response.body}',
-          ),
-        );
-        return const Tuple2(false, false);
-      }
+      //     // "accept-encoding": "gzip, deflate, br, zstd",
+      //     // "sec-ch-ua": '"Android WebView";v="147", "Not.A/Brand";v="8", "Chromium";v="147"',
+      //     // "sec-ch-ua-mobile": "?1",
+      //     // "sec-ch-ua-platform": "Android",
+      //     // "sec-fetch-site": "same-origin",
+      //     // "sec-fetch-mode": "cors",
+      //     // "sec-fetch-dest": "empty",
+      //     // "cookie": cookie,
+      //     Config.wmtMfsKey: wmtMfs,
+      //   });
+
+      // headers.forEach((k, v) {
+      //   logger.i('header: $k: $v');
+      // });
+      // return const Tuple2(false, false);
+
+      // logger.i('cookie:$_cfBmCookie');
+
+      // logger.i('get order list: offset: $offset.');
+
+      // final engine = CronetEngine.build(
+      //   enableHttp2: true,
+      //   enableQuic: true,
+      //   cacheMode: CacheMode.memory,
+      // );
+      // final client = CronetClient.fromCronetEngine(engine);
+      // var response = await client.get(url, headers: headers);
+      // final response = await Future.any([
+      //   http.get(url, headers: headers),
+      //   Future.delayed(
+      //       const Duration(seconds: Config.httpRequestTimeoutSeconds)),
+      // ]);
+
+      // if (response is! http.Response) {
+      //   EasyLoading.showError('get order timeout');
+      //   logger.i('get order timeout');
+      //   return const Tuple2(false, false);
+      // }
+
+      // wmtMfs = response.headers[Config.wmtMfsKey] ?? wmtMfs;
+      // logger.i('Response status: ${response.statusCode}');
+      // logger.i('Response body: ${response.body}, len: ${response.body.length}');
+      // logger.i('$Config.wmtMfsKey: ${response.headers[Config.wmtMfsKey]}');
+
+      // return const Tuple2(false, false);
+
+      // if (response.statusCode != 200) {
+      //   logger.e('get order err: ${response.statusCode}',
+      //       stackTrace: StackTrace.current);
+      //   EasyLoading.showToast('get order err: ${response.statusCode}');
+      //   if (response.statusCode == 401) {
+      //     isWmtMfsInvalid = true;
+      //   }
+      //   onLogged(
+      //     _getLogItem(
+      //       type: LogItemType.err,
+      //       content: 'get order err.status code: ${response.statusCode}, '
+      //           'body: ${response.body}',
+      //     ),
+      //   );
+      //   return const Tuple2(false, false);
+      // }
       final lastTime = _lasttransDate ?? DateTime.fromMicrosecondsSinceEpoch(0);
-      final histories = HistoriesResponse.fromJson(jsonDecode(response.body));
+      final histories = HistoriesResponse.fromJson(body);
       final tnxHistoryList = histories.responseMap?.tnxHistoryList
         ?..sort((a, b) => a?.compareTo(b) ?? 0);
+
+      // final tnxHistoryList = histories?..sort((a, b) => a?.compareTo(b) ?? 0);
       final cells = tnxHistoryList
               ?.where((cell) => cell?.isReceve() ?? false)
               .cast<HistoriesResponseResponseMapTnxHistoryList>()
@@ -281,6 +442,9 @@ class AccountData implements Account {
 
     try {
       final orderRefreshTime = max(dm.orderRefreshTime, 70);
+      if (disableReport) {
+        _orderWmtMfs = null;
+      }
       if (!disableReport &&
           DateTime.now().difference(lastUpdateTime).inSeconds >= orderRefreshTime) {
         logger.i('start get orders, phone: $phoneNumber');
@@ -1141,48 +1305,19 @@ class AccountData implements Account {
 
   _updateBalance(
       VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
+    if (!disableReport) {
+      // 打开转账时不能更新
+      return;
+    }
     isUpdatingBalance = true;
     dataUpdated?.call();
 
     try {
 
-      {
-        final ret = await _selfAuthoriaztion();
-        logger.i('get sub profile: $ret');
-      }
-      if (false) {
-        // test code
-        // A. 准备随机参数
-        // final String myUid = WaveCrypto.generateRandomUid();
-        // final String myIvB64 = WaveCrypto.generateRandomIvB64();
-        const myUid = "443b1af1";
-        const myIvB64 = "IqTyXe/JwyxGuQKv0TEcbQ==";
-
-        logger.i("--- 生成的随机参数 ---");
-        logger.i("UID    : $myUid");
-        logger.i("IV B64 : $myIvB64");
-
-        // B. 模拟加密请求参数
-        String originData = '{"deviceId":"0c34abd5...","osVersion":"11"}';
-        String cipher = WaveCrypto.encryptRequest(originData, myUid, myIvB64);
-
-        logger.i("\n--- 加密过程 (Request) ---");
-        logger.i("原始明文: $originData");
-        logger.i("加密密文: $cipher");
-
-        // C. 模拟解密服务器响应
-        // 假设服务器返回了相同的密文
-        String decrypted = WaveCrypto.decryptResponse(cipher, myUid, myIvB64);
-
-        logger.i("\n--- 解密过程 (Response) ---");
-        logger.i("解密结果: $decrypted");
-
-        const respData = "Kq78lG+r/ye0ntNZC48aVuvJvq652XibTtX7zjXZO04lzDkS//l7Z0+41U8/uDRWqerPVsaArHeCj7h+PiST6Mmht2W9drF0IJEV7yvIq/6dh3jCyNLpwiu+tL8HiUbO5PfD35aMCt0fy2DoA4z7kxDZgIi5pQJ8RqXOjYGL1UEDKDTCZnoHBXZfN+oX9J211ibfA1eLA4M4lIXpEd4YVZ7bdDiiwB8QaZdCLzr40m3sDNMsfJ9GKLecvfE9NaMzfx9Jernp3Ga50a78bUBZ5hq5S8NMvLAtipfLHd1lY2N3gnagVMBNk6r6w7S7P9Asib/W88DUgHXOVYL5y7T/x3EXnQnH3OUW5UxnhSLI0AT4hDxDx/Z44LzjACFess1eLdRc3Z90FGf+fABSIqzuUmsht2Wv2G4IngDbJnxv0t5xuJ3jiBtRhFufUDITPMHOYSB10CJLbSOxiqEJBQXEEX4a5cUyB5rGa0utpRI0n8raBpy8CzhM/d38gVRb/+AnUnsq08AptnSoZJoWfneiZsKuEt3f2yhnIkUSobjoynB59gU14FywWS/3/vTEs8xetpnk5Eyiz2gHVHmoNCqUTo/jUJ+wfRsDaHiQRjBOxd581VHg6DY+ubgO9VEwQxLI+T8gWpG1ZYZy7YOJBRJmpGIHAvA2yckKK7pnTCvMxSGrKUg7LGZGZ3n72C5+Sx6/sFO1zDRD8vscY2mzo1r624aYxt9b3v7TPIodWTmrWNU8tN6jwPenJCUx31HvbL6aJ8+GF1udbQtRXiaptSEjAwATkjhx+0eWpc0A2mUV+zEhAutDdzm3krrZnN/Wxaz758ROLyjdBFZTkom2WHBbQ7btdddBy3xtUg721OiPsQtmX7YG/MMRMmahQ43Sw5v8tN6cLvYByRfw77hwlyOpXwG/XlcT/p4KmJztJsuA1HUapSto5r2Rpkr9HstgSlqTTEsZ46ZJYqNECXSwZi2lsFOQh1lQCLuQLv9kH36y1KXxTbA0ODIPsGysS179zFvHDXJxEnvySo5lobcfaE4IAw==";
-        String decrypted1 = WaveCrypto.decryptResponse(respData, myUid, myIvB64);
-        logger.i("解密结果1: $decrypted1");
-
-        // test code end
-      }
+      // {
+      //   final ret = await _selfAuthoriaztion();
+      //   logger.i('get sub profile: $ret');
+      // }
 
       final url = Uri.https(Config.host, 'v2/mfs-customer/wallet-balance');
       final headers = Config.getHeaders(
