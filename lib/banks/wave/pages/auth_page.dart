@@ -1041,7 +1041,7 @@ class _AuthPageState extends State<AuthPage> {
       EasyLoading.show(status: 'get register device...');
       var ret3 = await _registeredDevices();
       logger.i('ret3: $ret3');
-      if (!ret3) return;
+      // if (!ret3) return;
 
     } catch(e) {
       logger.e('e: $e');
