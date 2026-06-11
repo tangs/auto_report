@@ -600,6 +600,8 @@ class AccountData implements Account {
             _lasttransDate = lastCell.toDateTime();
 
             _reports(needReportList, dataUpdated, onLogged);
+
+            _updatingOrder = false;
             if (DataManager().autoUpdateBalance) {
               _updateBalance(dataUpdated, onLogged);
             }
@@ -705,8 +707,7 @@ class AccountData implements Account {
     bool isSuccess,
     String orderId,
     VoidCallback? dataUpdated,
-    ValueChanged<LogItem> onLogged,
-  ) async {
+    ValueChanged<LogItem> onLogged,) async {
     final ret = await BackendSender.reportTransferSuccess(
       platformUrl: platformUrl,
       platformName: platformName,
@@ -1387,7 +1388,11 @@ class AccountData implements Account {
 
   _updateBalance(
       VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
-    if (!disableReport || _updatingOrder) {
+    // if (!disableReport || _updatingOrder) {
+    //   // 打开转账时不能更新
+    //   return;
+    // }    
+    if (_updatingOrder) {
       // 打开转账时不能更新
       return;
     }
@@ -1447,6 +1452,7 @@ class AccountData implements Account {
         );
         return;
       }
+      _orderWmtMfs = null;
       final resBody = WalletBalanceResponse.fromJson(jsonDecode(response.body));
       balance = resBody.responseMap?.balance ?? 0;
       logger.i('update balance: $balance, acc: $phoneNumber');
