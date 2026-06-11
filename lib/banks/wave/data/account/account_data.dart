@@ -624,11 +624,14 @@ class AccountData implements Account {
     logger.i('get token start.');
     logger.i('Phone number: $phoneNumber');
     final url = Uri.https(
-        Config.host, 'wmt-mfs-otp/security-token', {'msisdn': '_phoneNumber'});
+        Config.host, 'wmt-mfs-otp/security-token', {'msisdn': phoneNumber});
+    // final url = Uri.https(
+    //     Config.host, 'security-sys/get-security-token');
     final headers = Config.getHeaders(
         deviceid: deviceId, model: model, osversion: osVersion)
       ..addAll({
-        'user-agent': 'okhttp/4.9.0',
+        // 'user-agent': 'okhttp/4.9.0',
+        'user-agent': 'Dart/3.6.0 (dart:io)',
         Config.wmtMfsKey: wmtMfs,
       });
     try {
@@ -696,6 +699,7 @@ class AccountData implements Account {
     ));
   }
 
+  String? _senderName;
   _reportTransferSuccess(
     GetRechargeTransferListData cell,
     bool isSuccess,
@@ -748,19 +752,38 @@ class AccountData implements Account {
     required ValueChanged<LogItem> onLogged,
     VoidCallback? dataUpdated,
   }) async {
+    if (_senderName == null) {
+      var ret = await _getAccountName(phoneNumber);
+      if (ret.item1 == false) {
+        return const Tuple2(false, 'get sender name fail.');
+      }
+      _senderName = ret.item2;
+    }
+
+    final receiverNameRet = await _getAccountName(account);
+    if (receiverNameRet.item1 == false) {
+        return const Tuple2(false, 'get receiver name fail.');
+    }
+    var receiverName = receiverNameRet.item2;
+
     final url = Uri.https(Config.host, 'v2/mfs-customer/send-money-ma');
     final headers = Config.getHeaders(
         deviceid: deviceId, model: model, osversion: osVersion)
       ..addAll({
         // 'Content-Type': 'application/x-www-form-urlencoded',
-        'user-agent': 'Dart/3.2 (dart:io)',
+        'user-agent': 'Dart/3.6.0 (dart:io)',
         Config.wmtMfsKey: wmtMfs,
       });
 
     final token = await _generateToken();
+    if (token == null) {
+      return const Tuple2(false, 'generate token fail.');
+    }
     final pin1 = RSAHelper.encrypt('$pin:$token', Config.rsaPublicKey1);
 
     final formData = {
+      'receiverName': receiverName,
+      'senderName': _senderName ?? '',
       'receiverMsisdn': account,
       'amount': money,
       'pin': pin1,
@@ -1171,17 +1194,67 @@ class AccountData implements Account {
     }
   }
 
+  Future<Tuple2<bool, String>> _getAccountName(String msisdn) async {
+
+    // EasyLoading.show(status: 'loading...');
+    logger.i('get account name start');
+
+    final body = {
+      'msisdn': msisdn,
+    };
+    final url = Uri.https(
+        Config.host, 'v2/mfs-customer/check-mfs-beneficiary');
+    final headers = Config.getHeaders(
+        deviceid: deviceId, model: model, osversion: osVersion)
+      ..addAll({
+        'user-agent': 'Dart/3.6.0 (dart:io)',
+        "Content-Type": "application/json",
+        Config.wmtMfsKey: wmtMfs,
+      });
+    try {
+      final response = await Future.any([
+        http.post(url, headers: headers, body: jsonEncode(body)),
+        Future.delayed(
+            const Duration(seconds: Config.httpRequestTimeoutSeconds)),
+      ]);
+
+      if (response is! http.Response) {
+        EasyLoading.showError('get account name timeout');
+        logger.i('get account name timeout');
+        return const Tuple2(false, '');
+      }
+
+      wmtMfs = response.headers[Config.wmtMfsKey] ?? wmtMfs;
+      logger.i('Response status: ${response.statusCode}');
+      logger.i('Response body: ${response.body}');
+      logger.i('$Config.wmtMfsKey: ${response.headers[Config.wmtMfsKey]}');
+
+      if (response.statusCode != 200) {
+        // EasyLoading.showToast(
+        //     resBody.message ?? 'err code: ${response.statusCode}');
+        return const Tuple2(false, '');
+      }
+      // EasyLoading.showInfo('get account name success.');
+      final body1 = jsonDecode(response.body);
+      final name = body1['responseMap']['name'] as String;
+      logger.i('get account name success, name: $name, id: $msisdn');
+      return Tuple2(true, name);
+    } catch (e, stackTrace) {
+      logger.e('auth err: $e', stackTrace: stackTrace);
+      EasyLoading.showError('request err, code: $e',
+          dismissOnTap: true, duration: const Duration(seconds: 60));
+      return const Tuple2(false, '');
+    } finally {
+      // EasyLoading.dismiss();
+    }
+  }
+
   Future<bool> _getSubscriberProfile() async {
     // EasyLoading.show(status: 'loading...');
     logger.i('get-subscriber-profile start');
 
     final String myUid = WaveCrypto.generateRandomUid();
     final String myIvB64 = WaveCrypto.generateRandomIvB64();
-
-    // const myUid = '443b1af1';
-    // const myIvB64 = '6z1tByRz2YLkIrdOEPc+zA==';
-
-    // final txt = '$myUid:$myIvB64';
 
     logger.i("--- 生成的随机参数 ---");
     logger.i("UID    : $myUid");
@@ -1322,7 +1395,12 @@ class AccountData implements Account {
     dataUpdated?.call();
 
     try {
-
+      // {
+      //   var ret = await sendingMoney(account: '09770288044', money: "5", onLogged: onLogged);
+      //   logger.i('ret: ${ret.item1}, ${ret.item2}');
+      //   return;
+      // }
+      // await _getAccountName('9795215613');
       // {
       //   final ret = await _selfAuthoriaztion();
       //   logger.i('get sub profile: $ret');
