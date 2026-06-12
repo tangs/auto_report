@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:auto_report/banks/wave/config/config.dart';
 import 'package:auto_report/banks/wave/data/account/account_data.dart';
 import 'package:auto_report/model/data/log/log_item.dart';
 import 'package:auto_report/manager/data_manager.dart';
@@ -17,6 +18,7 @@ class WaveTnxHistoryWebClient {
   static const _baseUrl = 'https://api.wavemoney.io:8100/v2/wave-tnx-history/';
   static WebViewController? _attachedController;
   static Completer<void>? _readyCompleter;
+  static Future<void> _requestQueue = Future<void>.value();
   static int _bridgeSeq = 0;
   static final _pendingRequests = <int, Completer<Map<String, dynamic>>>{};
 
@@ -76,23 +78,36 @@ class WaveTnxHistoryWebClient {
     required String wmtMfs,
     Duration timeout = const Duration(seconds: 35),
   }) async {
+    final previousRequest = _requestQueue;
+    final requestDone = Completer<void>();
+    _requestQueue = requestDone.future;
+
+    await previousRequest;
+
     final completer = Completer<Map<String, dynamic>>();
     final requestId = ++_bridgeSeq;
     _pendingRequests[requestId] = completer;
-    await controller.runJavaScript(_buildFetchJs(
-      bridgeName: 'TnxBridge',
-      requestId: requestId,
-      deviceId: deviceId,
-      model: model,
-      osVersion: osVersion,
-      limit: limit,
-      offset: offset,
-      wmtMfs: wmtMfs,
-    ));
-    return completer.future.timeout(timeout, onTimeout: () {
+    try {
+      await controller.runJavaScript(_buildFetchJs(
+        bridgeName: 'TnxBridge',
+        requestId: requestId,
+        deviceId: deviceId,
+        model: model,
+        osVersion: osVersion,
+        limit: limit,
+        offset: offset,
+        wmtMfs: wmtMfs,
+      ));
+      return await completer.future.timeout(timeout, onTimeout: () {
+        _pendingRequests.remove(requestId);
+        throw TimeoutException('Wave WebView request timeout', timeout);
+      });
+    } finally {
       _pendingRequests.remove(requestId);
-      throw TimeoutException('Wave WebView request timeout', timeout);
-    });
+      if (!requestDone.isCompleted) {
+        requestDone.complete();
+      }
+    }
   }
 
   static bool handleBridgeMessage(String message) {
@@ -159,6 +174,9 @@ class WaveTnxHistoryWebClient {
     final cleanModel = _jsString(model);
     final cleanOsVersion = _jsString(osVersion);
     final cleanWmtMfs = _jsString(wmtMfs);
+    final cleanProduct = _jsString(Config.product);
+    final cleanCpuAbi = _jsString(Config.cpuabi);
+    final cleanManufacturer = _jsString(Config.manufacturer);
 
     return '''
 (function () {
@@ -174,9 +192,9 @@ class WaveTnxHistoryWebClient {
       "appVersion": "2.6.1",
       "deviceId": "$cleanDeviceId",
       "device": "",
-      "product": "redfin",
-      "cpuAbi": "arm64-v8a,armeabi-v7a,armeabi",
-      "manufacturer": "Google",
+      "product": "$cleanProduct",
+      "cpuAbi": "$cleanCpuAbi",
+      "manufacturer": "$cleanManufacturer",
       "model": "$cleanModel",
       "osVersion": "$cleanOsVersion",
       "x-requested-with": "mm.com.wavemoney.wavepay",
@@ -202,7 +220,14 @@ class WaveTnxHistoryWebClient {
         ok: res.ok,
         status: res.status,
         statusText: res.statusText,
+        responseUrl: res.url,
+        contentType: res.headers.get("content-type"),
+        cfRay: res.headers.get("cf-ray"),
         nextWmtMfs: res.headers.get("wmt-mfs"),
+        origin: location.origin,
+        href: location.href,
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
         body: text
       }));
     } catch (e) {
@@ -211,7 +236,9 @@ class WaveTnxHistoryWebClient {
         ok: false,
         error: String(e && e.stack ? e.stack : e),
         origin: location.origin,
-        href: location.href
+        href: location.href,
+        userAgent: navigator.userAgent,
+        platform: navigator.platform
       }));
     }
   }
@@ -253,29 +280,10 @@ class _AccountsPageState extends State<AccountsPage> {
   bool pageReady = false;
   bool loading = false;
   int _tnxRequestId = 0;
-  
+
   @override
   void initState() {
     super.initState();
-    const testHtml = '''
-<!doctype html>
-<html>
-<head>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-</head>
-<body>
-  <h3>Wave request test page</h3>
-  <pre id="log">ready</pre>
-
-  <script>
-    document.getElementById("log").textContent =
-      "origin=" + location.origin + "\\n" +
-      "href=" + location.href + "\\n" +
-      "cookie=" + (document.cookie || "(empty)");
-  </script>
-</body>
-</html>
-''';
 
     controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
@@ -292,30 +300,33 @@ class _AccountsPageState extends State<AccountsPage> {
           });
         },
       )
-      ..setUserAgent(
-        'Mozilla/5.0 (Linux; Android 11; Pixel 5 Build/RD1A.200810.022.A4; wv) '
-        'AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 '
-        'Chrome/147.0.7727.137 Mobile Safari/537.36',
-      )
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageFinished: (url) {
-            debugPrint('page finished: $url');
-            WaveTnxHistoryWebClient.markReady();
-            setState(() => pageReady = true);
+            logger.i('page finished: $url');
+            final uri = Uri.tryParse(url);
+            if (uri?.scheme == 'https' &&
+                uri?.host == 'api.wavemoney.io' &&
+                uri?.port == 8100) {
+              WaveTnxHistoryWebClient.markReady();
+              if (mounted) {
+                setState(() => pageReady = true);
+              }
+            }
           },
           onWebResourceError: (error) {
-            debugPrint('web error: ${error.description}');
+            logger.i(
+              'web error: code=${error.errorCode}, '
+              'type=${error.errorType}, mainFrame=${error.isForMainFrame}, '
+              'description=${error.description}',
+            );
           },
         ),
       )
-      // ..loadRequest(Uri.parse(
-      //   'https://api.wavemoney.io:8100/v2/wave-tnx-history/?mixpanel_source=Home+Screen',
-      // ));
-      ..loadHtmlString(
-        testHtml,
-        baseUrl: 'https://api.wavemoney.io:8100/v2/wave-tnx-history/',
-      );
+      ..loadRequest(Uri.parse(
+        '${WaveTnxHistoryWebClient._baseUrl}'
+        '?mixpanel_source=Home+Screen',
+      ));
     WaveTnxHistoryWebClient.attachController(controller);
   }
 
@@ -463,8 +474,9 @@ class _AccountsPageState extends State<AccountsPage> {
     }
     if (value is String) {
       final trimmed = value.trim();
-      final looksLikeJson = (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
-          (trimmed.startsWith('[') && trimmed.endsWith(']'));
+      final looksLikeJson =
+          (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
+              (trimmed.startsWith('[') && trimmed.endsWith(']'));
       if (looksLikeJson) {
         try {
           return _normalizeJsonStrings(jsonDecode(trimmed));
@@ -869,7 +881,6 @@ class _AccountsPageState extends State<AccountsPage> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        
         _buildFilter(),
         Visibility(
           child: TextField(

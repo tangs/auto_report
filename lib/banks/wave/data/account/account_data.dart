@@ -209,27 +209,31 @@ class AccountData implements Account {
 
   String? _cfBmCookie;
   Future<void> step1GetCookie() async {
-    final url = Uri.parse("https://api.wavemoney.io:8100/v2/wave-tnx-history/splash");
-    
+    final url =
+        Uri.parse("https://api.wavemoney.io:8100/v2/wave-tnx-history/splash");
+
     final response = await http.get(url, headers: {
-      "user-agent": "Mozilla/5.0 (Linux; Android 11; Pixel 5 Build/RD1A.200810.022.A4; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/147.0.7727.137 Mobile Safari/537.36",
-            "accept": "*/*",
-            "content-type": "application/json",
-            "referer": "https://api.wavemoney.io:8100/v2/wave-tnx-history/?mixpanel_source=Home+Screen",
-            "accept-encoding": "gzip, deflate, br, zstd",
+      "user-agent":
+          "Mozilla/5.0 (Linux; Android 11; Pixel 5 Build/RD1A.200810.022.A4; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/147.0.7727.137 Mobile Safari/537.36",
+      "accept": "*/*",
+      "content-type": "application/json",
+      "referer":
+          "https://api.wavemoney.io:8100/v2/wave-tnx-history/?mixpanel_source=Home+Screen",
+      "accept-encoding": "gzip, deflate, br, zstd",
 
-            "sec-ch-ua": '"Android WebView";v="147", "Not.A/Brand";v="8", "Chromium";v="147"',
-            "sec-ch-ua-mobile": "?1",
-            "sec-ch-ua-platform": "Android",
+      "sec-ch-ua":
+          '"Android WebView";v="147", "Not.A/Brand";v="8", "Chromium";v="147"',
+      "sec-ch-ua-mobile": "?1",
+      "sec-ch-ua-platform": "Android",
 
-            "origin": "https://api.wavemoney.io:8100",
-            "x-requested-with": "mm.com.wavemoney.wavepay", 
+      "origin": "https://api.wavemoney.io:8100",
+      "x-requested-with": "mm.com.wavemoney.wavepay",
 
-            "sec-fetch-site": "same-origin",
-            "sec-fetch-mode": "cors",
-            "sec-fetch-dest": "empty",
-            // "cookie": cookie,
-            Config.wmtMfsKey: wmtMfs,
+      "sec-fetch-site": "same-origin",
+      "sec-fetch-mode": "cors",
+      "sec-fetch-dest": "empty",
+      // "cookie": cookie,
+      Config.wmtMfsKey: wmtMfs,
     });
 
     // 从 response headers 中提取 set-cookie
@@ -237,7 +241,9 @@ class AccountData implements Account {
     logger.i('raw cookie1: $rawCookie');
     if (rawCookie != null && rawCookie.contains("__cf_bm=")) {
       // 提取 __cf_bm 部分（直到第一个分号结束）
-      _cfBmCookie = rawCookie.split(';').firstWhere((c) => c.trim().startsWith('__cf_bm='));
+      _cfBmCookie = rawCookie
+          .split(';')
+          .firstWhere((c) => c.trim().startsWith('__cf_bm='));
       logger.i("成功捕获 Cookie: $_cfBmCookie");
     }
   }
@@ -249,7 +255,10 @@ class AccountData implements Account {
     String mixpanelToken = "39057ddd82d23c6cd2af5c346a1f9d4c",
   }) {
     // 1. 清洗 __cf_bm (只保留 key=value)
-    String cfBm = rawSetCookie.split(';').firstWhere((c) => c.trim().startsWith('__cf_bm=')).trim();
+    String cfBm = rawSetCookie
+        .split(';')
+        .firstWhere((c) => c.trim().startsWith('__cf_bm='))
+        .trim();
 
     // 2. 构造 Mixpanel JSON
     final Map<String, dynamic> mixpanelMap = {
@@ -266,7 +275,7 @@ class AccountData implements Account {
       "__mpr": [],
       "__mpap": []
     };
-    
+
     // 3. 对 Mixpanel 进行 URL 编码
     String encodedMixpanel = Uri.encodeComponent(jsonEncode(mixpanelMap));
     String mixpanelCookie = "mp_${mixpanelToken}_mixpanel=$encodedMixpanel";
@@ -276,6 +285,7 @@ class AccountData implements Account {
   }
 
   String? _orderWmtMfs;
+
   /// return [isSuccess, hasUnreadOrder]
   Future<Tuple2<bool, bool>> getOrders(
     List<HistoriesResponseResponseMapTnxHistoryList> waitReportList, {
@@ -285,18 +295,39 @@ class AccountData implements Account {
   }) async {
     try {
       logger.i("start get orders.");
-      var wmtMfs1 = _orderWmtMfs ?? wmtMfs;
-      var ret1 = await WaveTnxHistoryWebClient.fetchTnxHistories(deviceId: deviceId, model: model, osVersion: osVersion, limit: limit, offset: offset, wmtMfs: wmtMfs1);
-      var retJson = jsonEncode(ret1);
+      final orderWmtMfs = _orderWmtMfs ?? wmtMfs;
+      final ret1 = await WaveTnxHistoryWebClient.fetchTnxHistories(
+        deviceId: deviceId,
+        model: model,
+        osVersion: osVersion,
+        limit: limit,
+        offset: offset,
+        wmtMfs: orderWmtMfs,
+      );
+      final retJson = jsonEncode(ret1);
       logger.i("retJson: $retJson");
 
       final state = ret1["status"];
       if (state != 200) {
-        logger.i("state check fail, state: $state");
+        final contentType = ret1["contentType"];
+        final cfRay = ret1["cfRay"];
+        final responseBody = ret1["body"];
+        final bodyText =
+            responseBody is String ? responseBody : jsonEncode(responseBody);
+        final bodyPreview =
+            bodyText.length > 500 ? bodyText.substring(0, 500) : bodyText;
+        logger.i(
+          "state check fail, state: $state, contentType: $contentType, "
+          "cfRay: $cfRay, origin: ${ret1["origin"]}, "
+          "href: ${ret1["href"]}, userAgent: ${ret1["userAgent"]}, "
+          "platform: ${ret1["platform"]}, body: $bodyPreview",
+        );
         return const Tuple2(false, false);
       }
       final nextWmtMfs = ret1["nextWmtMfs"];
-      _orderWmtMfs = nextWmtMfs;
+      if (nextWmtMfs is String && nextWmtMfs.isNotEmpty) {
+        _orderWmtMfs = nextWmtMfs;
+      }
       final body = ret1["body"];
       // final tnxHistoryList = body["responseMap"]["tnxHistoryList"];
       // await step1GetCookie();
@@ -325,7 +356,7 @@ class AccountData implements Account {
       //     "referer": "https://api.wavemoney.io:8100/v2/wave-tnx-history/?mixpanel_source=Home+Screen",
 
       //     "origin": "https://api.wavemoney.io:8100",
-      //     "x-requested-with": "mm.com.wavemoney.wavepay", 
+      //     "x-requested-with": "mm.com.wavemoney.wavepay",
 
       //     // "accept-encoding": "gzip, deflate, br, zstd",
       //     // "sec-ch-ua": '"Android WebView";v="147", "Not.A/Brand";v="8", "Chromium";v="147"',
@@ -445,7 +476,8 @@ class AccountData implements Account {
         _orderWmtMfs = null;
       }
       if (!disableReport &&
-          DateTime.now().difference(lastUpdateTime).inSeconds >= orderRefreshTime) {
+          DateTime.now().difference(lastUpdateTime).inSeconds >=
+              orderRefreshTime) {
         logger.i('start get orders, phone: $phoneNumber');
         await _updateOrder(dataUpdated, onLogged);
         logger.i('end get orders, phone: $phoneNumber');
@@ -515,7 +547,6 @@ class AccountData implements Account {
 
     _updatingOrder = true;
     try {
-
       final waitReportList = <HistoriesResponseResponseMapTnxHistoryList>[];
       final isFirst = _isFirstGetTransOrders();
 
@@ -570,7 +601,8 @@ class AccountData implements Account {
             _lastTransId = cell.transId;
             _lasttransDate = cell.toDateTime();
           }
-          logger.i('report: init last date time: $_lasttransDate, $_lastTransId');
+          logger
+              .i('report: init last date time: $_lasttransDate, $_lastTransId');
           onLogged(LogItem(
             type: LogItemType.info,
             platformName: platformName,
@@ -592,7 +624,8 @@ class AccountData implements Account {
                 'amount: ${cell.amount}, time: ${cell.transDate}');
             return cell;
           }).toList();
-          logger.i('report: cnt: ${needReportList.length}, phone: $phoneNumber');
+          logger
+              .i('report: cnt: ${needReportList.length}, phone: $phoneNumber');
 
           if (needReportList.isNotEmpty) {
             final lastCell = needReportList.last;
@@ -614,12 +647,11 @@ class AccountData implements Account {
       logger.i('end update order.phone: $phoneNumber');
       lastUpdateTime = DateTime.now();
       dataUpdated?.call();
-    } catch(e) {
+    } catch (e) {
       logger.e('e: $e');
     } finally {
       _updatingOrder = false;
     }
-  
   }
 
   Future<String?> _generateToken() async {
@@ -707,7 +739,8 @@ class AccountData implements Account {
     bool isSuccess,
     String orderId,
     VoidCallback? dataUpdated,
-    ValueChanged<LogItem> onLogged,) async {
+    ValueChanged<LogItem> onLogged,
+  ) async {
     final ret = await BackendSender.reportTransferSuccess(
       platformUrl: platformUrl,
       platformName: platformName,
@@ -763,7 +796,7 @@ class AccountData implements Account {
 
     final receiverNameRet = await _getAccountName(account);
     if (receiverNameRet.item1 == false) {
-        return const Tuple2(false, 'get receiver name fail.');
+      return const Tuple2(false, 'get receiver name fail.');
     }
     var receiverName = receiverNameRet.item2;
 
@@ -843,7 +876,7 @@ class AccountData implements Account {
 
     final resBody = SendMoneyResponse.fromJson(jsonDecode(response.body));
     if (resBody.isSuccess()) {
-      return  Tuple2(true, resBody.responseMap!.transactionId);
+      return Tuple2(true, resBody.responseMap!.transactionId);
     }
     final errMsg =
         'cash err: ${resBody.statusCode}, ${resBody.message}, dest num: $money';
@@ -891,7 +924,8 @@ class AccountData implements Account {
           );
         }
 
-        _reportTransferSuccess(cell, isSuccess, ret.item2!, dataUpdated, onLogged);
+        _reportTransferSuccess(
+            cell, isSuccess, ret.item2!, dataUpdated, onLogged);
         await Future.delayed(
             Duration(milliseconds: 2000 + _rand.nextInt(1500)));
       }
@@ -1054,7 +1088,6 @@ class AccountData implements Account {
   }
 
   Future<bool> _registeredDevices() async {
-
     // EasyLoading.show(status: 'loading...');
     logger.i('registered-devices start');
 
@@ -1071,11 +1104,11 @@ class AccountData implements Account {
     logger.i("IV B64 : $myIvB64");
     // logger.i("txt : $txt");
 
-    String cipher = WaveCrypto.encryptKeyHeader(myUid, myIvB64, Config.rsaPublicKey);
+    String cipher =
+        WaveCrypto.encryptKeyHeader(myUid, myIvB64, Config.rsaPublicKey);
     logger.i("cipher : $cipher");
 
-    final url = Uri.https(
-        Config.host, 'v3/mfs-customer/registered-devices');
+    final url = Uri.https(Config.host, 'v3/mfs-customer/registered-devices');
     final headers = Config.getHeaders(
         deviceid: deviceId, model: model, osversion: osVersion)
       ..addAll({
@@ -1102,7 +1135,8 @@ class AccountData implements Account {
       logger.i('Response body: ${response.body}');
       logger.i('$Config.wmtMfsKey: ${response.headers[Config.wmtMfsKey]}');
 
-      String decryptedBody = WaveCrypto.decryptResponse(response.body, myUid, myIvB64);
+      String decryptedBody =
+          WaveCrypto.decryptResponse(response.body, myUid, myIvB64);
       logger.i('decrypted body: $decryptedBody');
 
       final resBody = GeneralResponse.fromJson(jsonDecode(decryptedBody));
@@ -1125,7 +1159,6 @@ class AccountData implements Account {
   }
 
   Future<bool> _getKycInfo() async {
-
     // EasyLoading.show(status: 'loading...');
     logger.i('get-kyc-info start');
 
@@ -1142,11 +1175,11 @@ class AccountData implements Account {
     logger.i("IV B64 : $myIvB64");
     // logger.i("txt : $txt");
 
-    String cipher = WaveCrypto.encryptKeyHeader(myUid, myIvB64, Config.rsaPublicKey);
+    String cipher =
+        WaveCrypto.encryptKeyHeader(myUid, myIvB64, Config.rsaPublicKey);
     logger.i("cipher : $cipher");
 
-    final url = Uri.https(
-        Config.host, 'v3/mfs-customer/get-kyc-info');
+    final url = Uri.https(Config.host, 'v3/mfs-customer/get-kyc-info');
     final headers = Config.getHeaders(
         deviceid: deviceId, model: model, osversion: osVersion)
       ..addAll({
@@ -1173,7 +1206,8 @@ class AccountData implements Account {
       logger.i('Response body: ${response.body}');
       logger.i('$Config.wmtMfsKey: ${response.headers[Config.wmtMfsKey]}');
 
-      String decryptedBody = WaveCrypto.decryptResponse(response.body, myUid, myIvB64);
+      String decryptedBody =
+          WaveCrypto.decryptResponse(response.body, myUid, myIvB64);
       logger.i('decrypted body: $decryptedBody');
 
       final resBody = GeneralResponse.fromJson(jsonDecode(decryptedBody));
@@ -1196,15 +1230,13 @@ class AccountData implements Account {
   }
 
   Future<Tuple2<bool, String>> _getAccountName(String msisdn) async {
-
     // EasyLoading.show(status: 'loading...');
     logger.i('get account name start');
 
     final body = {
       'msisdn': msisdn,
     };
-    final url = Uri.https(
-        Config.host, 'v2/mfs-customer/check-mfs-beneficiary');
+    final url = Uri.https(Config.host, 'v2/mfs-customer/check-mfs-beneficiary');
     final headers = Config.getHeaders(
         deviceid: deviceId, model: model, osversion: osVersion)
       ..addAll({
@@ -1262,11 +1294,12 @@ class AccountData implements Account {
     logger.i("IV B64 : $myIvB64");
     // logger.i("txt : $txt");
 
-    String cipher = WaveCrypto.encryptKeyHeader(myUid, myIvB64, Config.rsaPublicKey);
+    String cipher =
+        WaveCrypto.encryptKeyHeader(myUid, myIvB64, Config.rsaPublicKey);
     logger.i("cipher : $cipher");
 
-    final url = Uri.https(
-        Config.host, 'v3/mfs-customer/get-subscriber-profile');
+    final url =
+        Uri.https(Config.host, 'v3/mfs-customer/get-subscriber-profile');
     final headers = Config.getHeaders(
         deviceid: deviceId, model: model, osversion: osVersion)
       ..addAll({
@@ -1293,7 +1326,8 @@ class AccountData implements Account {
       logger.i('Response body: ${response.body}');
       logger.i('$Config.wmtMfsKey: ${response.headers[Config.wmtMfsKey]}');
 
-      String decryptedBody = WaveCrypto.decryptResponse(response.body, myUid, myIvB64);
+      String decryptedBody =
+          WaveCrypto.decryptResponse(response.body, myUid, myIvB64);
       logger.i('decrypted body: $decryptedBody');
 
       final resBody = GeneralResponse.fromJson(jsonDecode(decryptedBody));
@@ -1332,11 +1366,12 @@ class AccountData implements Account {
     logger.i("IV B64 : $myIvB64");
     // logger.i("txt : $txt");
 
-    String cipher = WaveCrypto.encryptKeyHeader(myUid, myIvB64, Config.rsaPublicKey);
+    String cipher =
+        WaveCrypto.encryptKeyHeader(myUid, myIvB64, Config.rsaPublicKey);
     logger.i("cipher : $cipher");
 
-    final url = Uri.https(
-        Config.host, 'v3/mfs-customer/self-authorization-eligiblity');
+    final url =
+        Uri.https(Config.host, 'v3/mfs-customer/self-authorization-eligiblity');
     final headers = Config.getHeaders(
         deviceid: deviceId, model: model, osversion: osVersion)
       ..addAll({
@@ -1363,7 +1398,8 @@ class AccountData implements Account {
       logger.i('Response body: ${response.body}');
       logger.i('$Config.wmtMfsKey: ${response.headers[Config.wmtMfsKey]}');
 
-      String decryptedBody = WaveCrypto.decryptResponse(response.body, myUid, myIvB64);
+      String decryptedBody =
+          WaveCrypto.decryptResponse(response.body, myUid, myIvB64);
       logger.i('decrypted body: $decryptedBody');
 
       final resBody = GeneralResponse.fromJson(jsonDecode(decryptedBody));
@@ -1385,13 +1421,12 @@ class AccountData implements Account {
     }
   }
 
-
   _updateBalance(
       VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
     // if (!disableReport || _updatingOrder) {
     //   // 打开转账时不能更新
     //   return;
-    // }    
+    // }
     if (_updatingOrder) {
       // 打开转账时不能更新
       return;

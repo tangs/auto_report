@@ -4,7 +4,7 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 
-import 'package:auto_report/banks/kbz/utils/aes_helper.dart';
+// import 'package:auto_report/banks/kbz/utils/aes_helper.dart';
 import 'package:auto_report/banks/wave/config/config.dart';
 import 'package:auto_report/banks/wave/data/account/account_data.dart';
 import 'package:auto_report/banks/wave/data/proto/response/generate_otp_response.dart';
@@ -64,8 +64,51 @@ class _AuthPageState extends State<AuthPage> {
   late String _model;
   late String _osVersion;
 
-  final _modes = ['Pixel 5', 'Pixel 6', 'Pixel 5 pro'];
-  final _osVersions = ['12', '13', '14'];
+  // final _modes = ['Pixel 5', 'Pixel 6', 'Pixel 5 pro'];
+  // final _osVersions = ['12', '13', '14'];
+  final _modes = [
+    // 'Pixel 5',
+    // 'Pixel 6',
+    // 'Pixel 6 Pro',
+    // 'Pixel 7',
+    // 'Pixel 7 Pro',
+    // 'Pixel 8',
+    // 'Pixel 8 Pro',
+    'Xiaomi 11',
+    'Xiaomi 12',
+    'Xiaomi 13',
+    'Xiaomi 14',
+    'Redmi Note 10',
+    'Redmi Note 11',
+    'Redmi Note 12',
+    'Redmi Note 13 Pro',
+    'Redmi K40',
+    'Redmi K50',
+    'Redmi K60',
+    'POCO X3 Pro',
+    'POCO F4',
+    'POCO F5',
+    'Samsung Galaxy S21',
+    'Samsung Galaxy S22',
+    'Samsung Galaxy S23',
+    'Samsung Galaxy A52',
+    'Samsung Galaxy A54',
+    'OPPO Reno8',
+    'OPPO Reno10',
+    'OnePlus 9',
+    'OnePlus 11',
+    'vivo V27',
+    'vivo V29',
+  ];
+
+  final _osVersions = [
+    '10',
+    '11',
+    '12',
+    '13',
+    '14',
+    '15',
+  ];
 
   bool _hasLogin = false;
   bool _hasAuth = false;
