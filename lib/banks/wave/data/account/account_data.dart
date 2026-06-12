@@ -471,7 +471,7 @@ class AccountData implements Account {
     isUpdating = true;
 
     try {
-      final orderRefreshTime = max(dm.orderRefreshTime, 70);
+      final orderRefreshTime = max(dm.orderRefreshTime, 90);
       if (disableReport) {
         _orderWmtMfs = null;
       }
