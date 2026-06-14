@@ -98,10 +98,11 @@ class WaveTnxHistoryWebClient {
         offset: offset,
         wmtMfs: wmtMfs,
       ));
-      return await completer.future.timeout(timeout, onTimeout: () {
+      final result = await completer.future.timeout(timeout, onTimeout: () {
         _pendingRequests.remove(requestId);
         throw TimeoutException('Wave WebView request timeout', timeout);
       });
+      return result;
     } finally {
       _pendingRequests.remove(requestId);
       if (!requestDone.isCompleted) {
@@ -174,6 +175,7 @@ class WaveTnxHistoryWebClient {
     final cleanModel = _jsString(model);
     final cleanOsVersion = _jsString(osVersion);
     final cleanWmtMfs = _jsString(wmtMfs);
+    final cleanDevice = _jsString(Config.device);
     final cleanProduct = _jsString(Config.product);
     final cleanCpuAbi = _jsString(Config.cpuabi);
     final cleanManufacturer = _jsString(Config.manufacturer);
@@ -191,7 +193,7 @@ class WaveTnxHistoryWebClient {
       "versionCode": "1470",
       "appVersion": "2.6.1",
       "deviceId": "$cleanDeviceId",
-      "device": "",
+      "device": "$cleanDevice",
       "product": "$cleanProduct",
       "cpuAbi": "$cleanCpuAbi",
       "manufacturer": "$cleanManufacturer",
@@ -203,17 +205,21 @@ class WaveTnxHistoryWebClient {
 
     try {
       const targetUrl = "/merchant-app/tnxhistory-utility/v2/tnx-histories?limit=$limit&offset=$offset";
+      console.log("[AUTO_REPORT_TNX][$requestId] GET " + targetUrl);
       const fetchPromise = fetch(targetUrl, {
         method: "GET",
         headers,
-        credentials: "include",
-        cache: "no-store"
+        credentials: "include"
       });
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => reject(new Error("fetch timeout after 25s")), 25000);
       });
       const res = await Promise.race([fetchPromise, timeoutPromise]);
       const text = await res.text();
+      console.log(
+        "[AUTO_REPORT_TNX][$requestId] status=" + res.status +
+        " cf-ray=" + (res.headers.get("cf-ray") || "")
+      );
 
       $bridgeName.postMessage(JSON.stringify({
         requestId: requestId,
@@ -279,7 +285,6 @@ class _AccountsPageState extends State<AccountsPage> {
   String resultText = '';
   bool pageReady = false;
   bool loading = false;
-  int _tnxRequestId = 0;
 
   @override
   void initState() {
@@ -300,6 +305,34 @@ class _AccountsPageState extends State<AccountsPage> {
           });
         },
       )
+      ..setOnConsoleMessage((JavaScriptConsoleMessage message) {
+        final text = message.message;
+        final isPageTnxLog =
+            text.contains('tnxhistory-utility/v2/tnx-histories');
+        final isInjectedTnxLog = text.contains('[AUTO_REPORT_TNX]');
+
+        if (isInjectedTnxLog) {
+          logger.i('[WAVE_WEB_CONSOLE] $text');
+          return;
+        }
+
+        if (isPageTnxLog && text.startsWith('Response:')) {
+          final lineBreak = text.indexOf('\n');
+          final summary =
+              lineBreak < 0 ? text.trim() : text.substring(0, lineBreak).trim();
+          final body =
+              lineBreak < 0 ? '' : text.substring(lineBreak + 1).trim();
+          logger.i('[WAVE_PAGE_RESPONSE] $summary');
+          if (body.isNotEmpty) {
+            logger.i('[WAVE_PAGE_BODY] $body');
+          }
+          return;
+        }
+
+        if (isPageTnxLog) {
+          logger.i('[WAVE_PAGE_REQUEST] $text');
+        }
+      })
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageFinished: (url) {
@@ -336,20 +369,15 @@ class _AccountsPageState extends State<AccountsPage> {
     super.dispose();
   }
 
-  String _cleanJsString(String value) {
-    return value
-        .replaceAll('\r', '')
-        .replaceAll('\n', '')
-        .replaceAll('\\', '\\\\')
-        .replaceAll('"', '\\"');
-  }
-
   Future<void> runTnxTest() async {
-    final wmtMfs = _cleanJsString(wmtMfsController.text.trim());
-    final requestId = ++_tnxRequestId;
+    final wmtMfs = wmtMfsController.text.trim();
 
     if (wmtMfs.isEmpty) {
       setState(() => resultText = 'wmt-mfs 不能为空');
+      return;
+    }
+    if (widget.accountsData.isEmpty) {
+      setState(() => resultText = '没有可用于测试的账号设备参数');
       return;
     }
 
@@ -358,82 +386,30 @@ class _AccountsPageState extends State<AccountsPage> {
       resultText = 'requesting...';
     });
 
-    final js = '''
-(function () {
-  async function main() {
-    const requestId = $requestId;
-    const headers = {
-      "accept": "*/*",
-      "content-type": "application/json",
-      "fingerprint": "87EC104C0FFBB8E749CD59D9C64851441B38D1C13C9746DC124BB9E71E66DCB9",
-      "appId": "mm.com.wavemoney.wavepay",
-      "userLanguage": "en",
-      "versionCode": "1470",
-      "appVersion": "2.6.1",
-      "deviceId": "45c5815443d57a7c7d43463dcd8d3e46d188769b",
-      "device": "",
-      "product": "redfin",
-      "cpuAbi": "arm64-v8a,armeabi-v7a,armeabi",
-      "manufacturer": "Google",
-      "model": "Pixel 6",
-      "osVersion": "14",
-      "x-requested-with": "mm.com.wavemoney.wavepay",
-      "wmt-mfs": "$wmtMfs"
-    };
-
     try {
-      const targetUrl = "/merchant-app/tnxhistory-utility/v2/tnx-histories?limit=20&offset=20";
-      const fetchPromise = fetch(targetUrl, {
-        method: "GET",
-        headers,
-        credentials: "include",
-        cache: "no-store"
-      });
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error("fetch timeout after 25s")), 25000);
-      });
-      const res = await Promise.race([fetchPromise, timeoutPromise]);
-
-      const responseHeaders = {};
-      res.headers.forEach((v, k) => responseHeaders[k] = v);
-
-      const text = await res.text();
-      let output = text;
-      try {
-        output = JSON.stringify(JSON.parse(text), null, 2);
-      } catch (_) {}
-
-      TnxBridge.postMessage(output);
-    } catch (e) {
-      TnxBridge.postMessage(JSON.stringify({
-        requestId: requestId,
-        error: String(e && e.stack ? e.stack : e),
-        origin: location.origin,
-        href: location.href,
-        cookie: document.cookie || ""
-      }));
-    }
-  }
-
-  main();
-})();
-''';
-
-    try {
-      await controller.runJavaScript(js);
-      Future.delayed(const Duration(seconds: 30), () {
-        if (!mounted || !loading || requestId != _tnxRequestId) {
-          return;
-        }
-        setState(() {
-          resultText =
-              'request timeout in Flutter after 30s. JS did not post a result. origin should be https://api.wavemoney.io:8100.';
-          loading = false;
-        });
-      });
-    } catch (e) {
+      final account = widget.accountsData.first;
+      final result = await WaveTnxHistoryWebClient.fetchTnxHistories(
+        deviceId: account.deviceId,
+        model: account.model,
+        osVersion: account.osVersion,
+        limit: 20,
+        offset: 0,
+        wmtMfs: wmtMfs,
+      );
+      final body = result['body'];
+      final formatted = body is String
+          ? body
+          : const JsonEncoder.withIndent('  ').convert(body);
+      logger.i(formatted);
+      if (!mounted) return;
       setState(() {
-        resultText = 'inject js failed v2: $e';
+        resultText = formatted;
+        loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        resultText = 'request failed: $e';
         loading = false;
       });
     }

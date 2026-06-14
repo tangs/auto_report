@@ -103,7 +103,7 @@ w8UsJovG2xCw3FHr3Qzl1XRMb19BwYflGgikMbIfAsWhRHC1Gg==''';
   static const appversion = '2.6.1';
 
   // static const deviceid = 'fd701ebde3dcc9342ab647f5b5800f76ba3a7b5d';
-  static const device = '';
+  static var device = '';
   static var product = 'redfin';
   static var cpuabi = 'arm64-v8a,armeabi-v7a,armeabi';
   static var manufacturer = 'Google';
@@ -118,6 +118,8 @@ w8UsJovG2xCw3FHr3Qzl1XRMb19BwYflGgikMbIfAsWhRHC1Gg==''';
 
     EasyLoading.show();
     final deviceInfoPlugin = await DeviceInfoPlugin().androidInfo;
+    final model = deviceInfoPlugin.model.trim();
+    Config.device = model.isEmpty ? '' : '$model($model)';
     Config.product = deviceInfoPlugin.product;
     Config.cpuabi = deviceInfoPlugin.supportedAbis.join(',');
     Config.manufacturer = deviceInfoPlugin.manufacturer;

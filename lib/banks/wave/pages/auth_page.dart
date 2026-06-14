@@ -184,30 +184,49 @@ class _AuthPageState extends State<AuthPage> {
     init();
   }
 
-  void init() async {
+  Future<void> init() async {
     EasyLoading.show();
-    // generate device id
+    final random = Random.secure();
     var deviceId = '';
-    final ran = Random.secure();
     for (var i = 0; i < 40; ++i) {
-      final num = ran.nextInt(16);
-      deviceId += num.toRadixString(16);
+      deviceId += random.nextInt(16).toRadixString(16);
     }
 
-    _model = _modes[ran.nextInt(_modes.length)];
-    _osVersion = _osVersions[ran.nextInt(_osVersions.length)];
     _deviceId = deviceId;
-
+    _model = Platform.isAndroid
+        ? 'Android'
+        : _modes[random.nextInt(_modes.length)];
+    _osVersion = Platform.isAndroid
+        ? ''
+        : _osVersions[random.nextInt(_osVersions.length)];
     aesKey = generateSessionKey();
 
-    if (Platform.isAndroid) {
-      final deviceInfoPlugin = await DeviceInfoPlugin().androidInfo;
-      _model = deviceInfoPlugin.model;
-      _osVersion = deviceInfoPlugin.version.release;
-    }
+    try {
+      if (Platform.isAndroid) {
+        final androidInfo = await DeviceInfoPlugin().androidInfo;
+        final model = androidInfo.model.trim();
+        final osVersion = androidInfo.version.release.trim();
 
-    logger.i('device id: $_deviceId, model: $_model, os version: $_osVersion');
-    EasyLoading.dismiss();
+        _model = model.isNotEmpty ? model : androidInfo.device;
+        _osVersion = osVersion.isNotEmpty
+            ? osVersion
+            : androidInfo.version.sdkInt.toString();
+
+        Config.device = _model.isEmpty ? '' : '$_model($_model)';
+        Config.product = androidInfo.product;
+        Config.manufacturer = androidInfo.manufacturer;
+        Config.cpuabi = androidInfo.supportedAbis.join(',');
+      }
+
+      logger.i(
+        'device id: $_deviceId, model: $_model, '
+        'os version: $_osVersion',
+      );
+    } catch (e, stackTrace) {
+      logger.e('get device info failed', error: e, stackTrace: stackTrace);
+    } finally {
+      EasyLoading.dismiss();
+    }
   }
 
   void _requestOtp() async {

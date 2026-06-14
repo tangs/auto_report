@@ -574,7 +574,8 @@ class AccountData implements Account {
       // } else {}
       // } while (false);
 
-      const limitCnt = 40;
+      // const limitCnt = 40;
+      const limitCnt = 20;
       var offset = 0;
       var isSuccess = false;
       while (!isWmtMfsInvalid) {
@@ -586,7 +587,8 @@ class AccountData implements Account {
         );
         isSuccess = ret.item1;
         if (!ret.item2) break;
-        offset += limitCnt - 5;
+        // offset += limitCnt - 5;
+        offset += limitCnt;
         await Future.delayed(const Duration(milliseconds: 300));
       }
 
