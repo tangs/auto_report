@@ -286,6 +286,41 @@ class AccountData implements Account {
 
   String? _orderWmtMfs;
 
+  void _logTnxResponse(
+    Map<String, dynamic> response,
+    String clientAppVersion,
+  ) {
+    final responseBody = response["body"];
+    String bodyText;
+    if (responseBody == null) {
+      bodyText = "(empty)";
+    } else if (responseBody is String) {
+      bodyText = responseBody;
+    } else {
+      bodyText = const JsonEncoder.withIndent("  ").convert(responseBody);
+    }
+
+    logger.i(
+      "[WAVE_TNX_RESPONSE] appVersion=$clientAppVersion, "
+      "status=${response["status"]}, "
+      "limit=${response["requestLimit"]}, "
+      "offset=${response["requestOffset"]}, "
+      "contentType=${response["contentType"]}, "
+      "cfRay=${response["cfRay"]}, bodyLength=${bodyText.length}",
+    );
+
+    const chunkSize = 2800;
+    final partCount = max(1, (bodyText.length / chunkSize).ceil());
+    for (var part = 0; part < partCount; part++) {
+      final start = part * chunkSize;
+      final end = min(start + chunkSize, bodyText.length);
+      logger.i(
+        "[WAVE_TNX_RESPONSE_BODY ${part + 1}/$partCount]\n"
+        "${bodyText.substring(start, end)}",
+      );
+    }
+  }
+
   /// return [isSuccess, hasUnreadOrder]
   Future<Tuple2<bool, bool>> getOrders(
     List<HistoriesResponseResponseMapTnxHistoryList> waitReportList, {
@@ -307,6 +342,7 @@ class AccountData implements Account {
       final clientAppVersion =
           ret1["clientAppVersion"] ?? DataManager().appVersion ?? "unknown";
       ret1["clientAppVersion"] = clientAppVersion;
+      _logTnxResponse(ret1, clientAppVersion);
       final retJson = jsonEncode(ret1);
       logger.i("retJson: $retJson");
 
