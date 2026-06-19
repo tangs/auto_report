@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:auto_report/banks/wave/config/config.dart';
 import 'package:auto_report/banks/wave/data/account/account_data.dart';
@@ -16,10 +17,15 @@ typedef ReLoginCallback = void Function(
 
 class WaveTnxHistoryWebClient {
   static const _baseUrl = 'https://api.wavemoney.io:8100/v2/wave-tnx-history/';
+  static const _pageUrl = '$_baseUrl?mixpanel_source=Home+Screen';
+  static const _cloudflareCooldown = Duration(minutes: 30);
+  static const _minimumRequestInterval = Duration(seconds: 3);
   static WebViewController? _attachedController;
   static Completer<void>? _readyCompleter;
   static Future<void> _requestQueue = Future<void>.value();
   static int _bridgeSeq = 0;
+  static DateTime? _blockedUntil;
+  static DateTime? _lastNetworkRequestAt;
   static final _pendingRequests = <int, Completer<Map<String, dynamic>>>{};
 
   static void attachController(WebViewController controller) {
@@ -78,33 +84,61 @@ class WaveTnxHistoryWebClient {
     required String wmtMfs,
     Duration timeout = const Duration(seconds: 35),
   }) async {
+    final effectiveLimit = limit.clamp(1, 20);
     final previousRequest = _requestQueue;
     final requestDone = Completer<void>();
     _requestQueue = requestDone.future;
 
     await previousRequest;
 
-    final completer = Completer<Map<String, dynamic>>();
-    final requestId = ++_bridgeSeq;
-    _pendingRequests[requestId] = completer;
+    int? requestId;
     try {
+      final cooldownResult = _buildCooldownResult(
+        limit: effectiveLimit,
+        offset: offset,
+      );
+      if (cooldownResult != null) {
+        return cooldownResult;
+      }
+
+      await _waitForRequestInterval();
+
+      final completer = Completer<Map<String, dynamic>>();
+      requestId = ++_bridgeSeq;
+      _pendingRequests[requestId] = completer;
+      if (!Platform.isAndroid) {
+        await controller.setUserAgent(
+          buildAndroidWebViewUserAgent(
+            model: model,
+            osVersion: osVersion,
+          ),
+        );
+      }
       await controller.runJavaScript(_buildFetchJs(
         bridgeName: 'TnxBridge',
         requestId: requestId,
         deviceId: deviceId,
         model: model,
         osVersion: osVersion,
-        limit: limit,
+        limit: effectiveLimit,
         offset: offset,
         wmtMfs: wmtMfs,
       ));
+      _lastNetworkRequestAt = DateTime.now();
       final result = await completer.future.timeout(timeout, onTimeout: () {
         _pendingRequests.remove(requestId);
         throw TimeoutException('Wave WebView request timeout', timeout);
       });
+      result['clientAppVersion'] =
+          DataManager().appVersion ?? 'unknown';
+      result['requestLimit'] = effectiveLimit;
+      result['requestOffset'] = offset;
+      _updateCloudflareState(result);
       return result;
     } finally {
-      _pendingRequests.remove(requestId);
+      if (requestId != null) {
+        _pendingRequests.remove(requestId);
+      }
       if (!requestDone.isCompleted) {
         requestDone.complete();
       }
@@ -161,6 +195,77 @@ class WaveTnxHistoryWebClient {
         .replaceAll('"', '\\"');
   }
 
+  static String buildAndroidWebViewUserAgent({
+    required String model,
+    required String osVersion,
+  }) {
+    final cleanModel = model.trim().isEmpty ? 'Android' : model.trim();
+    final cleanOsVersion =
+        osVersion.trim().isEmpty ? '14' : osVersion.trim();
+    return 'Mozilla/5.0 (Linux; Android $cleanOsVersion; $cleanModel; wv) '
+        'AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 '
+        'Chrome/147.0.7727.137 Mobile Safari/537.36';
+  }
+
+  static Map<String, dynamic>? _buildCooldownResult({
+    required int limit,
+    required int offset,
+  }) {
+    final blockedUntil = _blockedUntil;
+    if (blockedUntil == null || !blockedUntil.isAfter(DateTime.now())) {
+      return null;
+    }
+
+    return {
+      'ok': false,
+      'status': 403,
+      'cloudflareBlocked': true,
+      'retryAfterSeconds':
+          blockedUntil.difference(DateTime.now()).inSeconds + 1,
+      'blockedUntil': blockedUntil.toIso8601String(),
+      'clientAppVersion': DataManager().appVersion ?? 'unknown',
+      'requestLimit': limit,
+      'requestOffset': offset,
+      'error': 'Cloudflare cooldown is active',
+    };
+  }
+
+  static Future<void> _waitForRequestInterval() async {
+    final lastRequestAt = _lastNetworkRequestAt;
+    if (lastRequestAt == null) {
+      return;
+    }
+
+    final elapsed = DateTime.now().difference(lastRequestAt);
+    final remaining = _minimumRequestInterval - elapsed;
+    if (remaining > Duration.zero) {
+      await Future.delayed(remaining);
+    }
+  }
+
+  static void _updateCloudflareState(Map<String, dynamic> result) {
+    if (result['status'] == 200) {
+      _blockedUntil = null;
+      return;
+    }
+
+    final body = result['body'];
+    final contentType = result['contentType']?.toString().toLowerCase() ?? '';
+    final bodyText = body is String ? body.toLowerCase() : '';
+    final isCloudflareBlock = result['status'] == 403 &&
+        contentType.contains('text/html') &&
+        (bodyText.contains('cloudflare') ||
+            bodyText.contains('sorry, you have been blocked') ||
+            bodyText.contains('attention required'));
+    if (!isCloudflareBlock) {
+      return;
+    }
+
+    _blockedUntil = DateTime.now().add(_cloudflareCooldown);
+    result['cloudflareBlocked'] = true;
+    result['retryAfterSeconds'] = _cloudflareCooldown.inSeconds;
+  }
+
   static String _buildFetchJs({
     String bridgeName = 'TnxBridge',
     int requestId = 0,
@@ -175,10 +280,12 @@ class WaveTnxHistoryWebClient {
     final cleanModel = _jsString(model);
     final cleanOsVersion = _jsString(osVersion);
     final cleanWmtMfs = _jsString(wmtMfs);
-    final cleanDevice = _jsString(Config.device);
-    final cleanProduct = _jsString(Config.product);
-    final cleanCpuAbi = _jsString(Config.cpuabi);
-    final cleanManufacturer = _jsString(Config.manufacturer);
+    final deviceProfile = Config.resolveDeviceProfile(model);
+    final cleanDevice = _jsString(deviceProfile['device'] ?? '');
+    final cleanProduct = _jsString(deviceProfile['product'] ?? '');
+    final cleanCpuAbi = _jsString(deviceProfile['cpuAbi'] ?? '');
+    final cleanManufacturer =
+        _jsString(deviceProfile['manufacturer'] ?? '');
 
     return '''
 (function () {
@@ -209,7 +316,9 @@ class WaveTnxHistoryWebClient {
       const fetchPromise = fetch(targetUrl, {
         method: "GET",
         headers,
-        credentials: "include"
+        credentials: "include",
+        referrer: "$_pageUrl",
+        referrerPolicy: "strict-origin-when-cross-origin"
       });
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => reject(new Error("fetch timeout after 25s")), 25000);
@@ -234,6 +343,8 @@ class WaveTnxHistoryWebClient {
         href: location.href,
         userAgent: navigator.userAgent,
         platform: navigator.platform,
+        cookieEnabled: navigator.cookieEnabled,
+        visibilityState: document.visibilityState,
         body: text
       }));
     } catch (e) {
@@ -244,7 +355,9 @@ class WaveTnxHistoryWebClient {
         origin: location.origin,
         href: location.href,
         userAgent: navigator.userAgent,
-        platform: navigator.platform
+        platform: navigator.platform,
+        cookieEnabled: navigator.cookieEnabled,
+        visibilityState: document.visibilityState
       }));
     }
   }
@@ -290,22 +403,63 @@ class _AccountsPageState extends State<AccountsPage> {
   void initState() {
     super.initState();
 
-    controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..addJavaScriptChannel(
-        'TnxBridge',
-        onMessageReceived: (JavaScriptMessage message) {
-          if (WaveTnxHistoryWebClient.handleBridgeMessage(message.message)) {
-            return;
-          }
-          logger.i(message.message);
-          setState(() {
-            resultText = message.message;
-            loading = false;
-          });
-        },
-      )
-      ..setOnConsoleMessage((JavaScriptConsoleMessage message) {
+    _ensureSingleActiveReceiveAccount();
+    controller = WebViewController();
+    WaveTnxHistoryWebClient.attachController(controller);
+    unawaited(_initializeWebView());
+  }
+
+  void _ensureSingleActiveReceiveAccount() {
+    var hasActiveAccount = false;
+    for (final account in widget.accountsData) {
+      if (account.needRemove || account.disableReport) {
+        continue;
+      }
+      if (!hasActiveAccount) {
+        hasActiveAccount = true;
+        continue;
+      }
+      account.disableReport = true;
+      logger.i(
+        'disabled duplicate receive money account, '
+        'phone: ${account.phoneNumber}',
+      );
+    }
+  }
+
+  Future<void> _initializeWebView() async {
+    await controller.setJavaScriptMode(JavaScriptMode.unrestricted);
+
+    if (!Platform.isAndroid && widget.accountsData.isNotEmpty) {
+      final account = widget.accountsData.first;
+      final userAgent =
+          WaveTnxHistoryWebClient.buildAndroidWebViewUserAgent(
+        model: account.model,
+        osVersion: account.osVersion,
+      );
+      await controller.setUserAgent(userAgent);
+      logger.i(
+        'Wave WebView compatibility UA enabled for '
+        '${account.model}/Android ${account.osVersion}',
+      );
+    }
+
+    await controller.addJavaScriptChannel(
+      'TnxBridge',
+      onMessageReceived: (JavaScriptMessage message) {
+        if (WaveTnxHistoryWebClient.handleBridgeMessage(message.message)) {
+          return;
+        }
+        logger.i(message.message);
+        if (!mounted) return;
+        setState(() {
+          resultText = message.message;
+          loading = false;
+        });
+      },
+    );
+    await controller.setOnConsoleMessage(
+      (JavaScriptConsoleMessage message) {
         final text = message.message;
         final isPageTnxLog =
             text.contains('tnxhistory-utility/v2/tnx-histories');
@@ -332,35 +486,34 @@ class _AccountsPageState extends State<AccountsPage> {
         if (isPageTnxLog) {
           logger.i('[WAVE_PAGE_REQUEST] $text');
         }
-      })
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          onPageFinished: (url) {
-            logger.i('page finished: $url');
-            final uri = Uri.tryParse(url);
-            if (uri?.scheme == 'https' &&
-                uri?.host == 'api.wavemoney.io' &&
-                uri?.port == 8100) {
-              WaveTnxHistoryWebClient.markReady();
-              if (mounted) {
-                setState(() => pageReady = true);
-              }
+      },
+    );
+    await controller.setNavigationDelegate(
+      NavigationDelegate(
+        onPageFinished: (url) {
+          logger.i('page finished: $url');
+          final uri = Uri.tryParse(url);
+          if (uri?.scheme == 'https' &&
+              uri?.host == 'api.wavemoney.io' &&
+              uri?.port == 8100) {
+            WaveTnxHistoryWebClient.markReady();
+            if (mounted) {
+              setState(() => pageReady = true);
             }
-          },
-          onWebResourceError: (error) {
-            logger.i(
-              'web error: code=${error.errorCode}, '
-              'type=${error.errorType}, mainFrame=${error.isForMainFrame}, '
-              'description=${error.description}',
-            );
-          },
-        ),
-      )
-      ..loadRequest(Uri.parse(
-        '${WaveTnxHistoryWebClient._baseUrl}'
-        '?mixpanel_source=Home+Screen',
-      ));
-    WaveTnxHistoryWebClient.attachController(controller);
+          }
+        },
+        onWebResourceError: (error) {
+          logger.i(
+            'web error: code=${error.errorCode}, '
+            'type=${error.errorType}, mainFrame=${error.isForMainFrame}, '
+            'description=${error.description}',
+          );
+        },
+      ),
+    );
+    await controller.loadRequest(
+      Uri.parse(WaveTnxHistoryWebClient._pageUrl),
+    );
   }
 
   @override
@@ -545,14 +698,14 @@ class _AccountsPageState extends State<AccountsPage> {
                 style: DefaultTextStyle.of(context).style,
                 children: [
                   TextSpan(
-                    text: '    succ: ${data.reportSuccessCnt}',
+                    text: ' succ: ${data.reportSuccessCnt}',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       color: Colors.blue,
                     ),
                   ),
                   TextSpan(
-                    text: '    fail: ${data.reportFailCnt}',
+                    text: ' fail: ${data.reportFailCnt}',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       color: Colors.red,
@@ -567,6 +720,30 @@ class _AccountsPageState extends State<AccountsPage> {
               value: !data.disableReport,
               activeColor: Colors.red,
               onChanged: (bool value) {
+                if (value) {
+                  final hasOtherActiveAccount = widget.accountsData.any(
+                    (account) =>
+                        !identical(account, data) &&
+                        !account.needRemove &&
+                        !account.disableReport,
+                  );
+                  if (hasOtherActiveAccount) {
+                    ScaffoldMessenger.of(context)
+                      ..hideCurrentSnackBar()
+                      ..showSnackBar(
+                        const SnackBar(
+                          content:
+                              Text('只能激活一个账号的 Receive money'),
+                        ),
+                      );
+                    logger.i(
+                      'receive money activation rejected, '
+                      'phone: ${data.phoneNumber}',
+                    );
+                    return;
+                  }
+                }
+
                 setState(() => data.disableReport = !value);
                 if (!value) {
                   data.reopenReport();
@@ -591,14 +768,14 @@ class _AccountsPageState extends State<AccountsPage> {
                 style: DefaultTextStyle.of(context).style,
                 children: [
                   TextSpan(
-                    text: '    succ: ${data.cashSuccessCnt}',
+                    text: ' succ: ${data.cashSuccessCnt}',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       color: Colors.blue,
                     ),
                   ),
                   TextSpan(
-                    text: '    fail: ${data.cashFailCnt}',
+                    text: ' fail: ${data.cashFailCnt}',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       color: Colors.red,
@@ -634,14 +811,14 @@ class _AccountsPageState extends State<AccountsPage> {
                 style: DefaultTextStyle.of(context).style,
                 children: [
                   TextSpan(
-                    text: '    succ: ${data.transferSuccessCnt}',
+                    text: ' succ: ${data.transferSuccessCnt}',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       color: Colors.blue,
                     ),
                   ),
                   TextSpan(
-                    text: '    fail: ${data.transferFailCnt}',
+                    text: ' fail: ${data.transferFailCnt}',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       color: Colors.red,

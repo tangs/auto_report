@@ -113,6 +113,70 @@ w8UsJovG2xCw3FHr3Qzl1XRMb19BwYflGgikMbIfAsWhRHC1Gg==''';
   static const httpRequestTimeoutSeconds = 60;
   static const logCountMax = 1024;
 
+  static Map<String, String> resolveDeviceProfile(String model) {
+    if (Platform.isAndroid) {
+      return {
+        'device': device,
+        'product': product,
+        'cpuAbi': cpuabi,
+        'manufacturer': manufacturer,
+      };
+    }
+
+    final normalizedModel = model.trim();
+    final lowerModel = normalizedModel.toLowerCase();
+    var resolvedManufacturer = 'Google';
+
+    if (lowerModel.contains('xiaomi') ||
+        lowerModel.contains('redmi') ||
+        lowerModel.contains('poco')) {
+      resolvedManufacturer = 'Xiaomi';
+    } else if (lowerModel.contains('samsung')) {
+      resolvedManufacturer = 'samsung';
+    } else if (lowerModel.contains('oppo')) {
+      resolvedManufacturer = 'OPPO';
+    } else if (lowerModel.contains('oneplus')) {
+      resolvedManufacturer = 'OnePlus';
+    } else if (lowerModel.contains('vivo')) {
+      resolvedManufacturer = 'vivo';
+    }
+
+    return {
+      'device':
+          normalizedModel.isEmpty ? '' : '$normalizedModel($normalizedModel)',
+      'product': _syntheticProduct(normalizedModel),
+      'cpuAbi': 'arm64-v8a,armeabi-v7a,armeabi',
+      'manufacturer': resolvedManufacturer,
+    };
+  }
+
+  static String _syntheticProduct(String model) {
+    const knownProducts = {
+      'pixel 5': 'redfin',
+      'pixel 6': 'oriole',
+      'pixel 6 pro': 'raven',
+      'pixel 7': 'panther',
+      'pixel 7 pro': 'cheetah',
+      'pixel 8': 'shiba',
+      'pixel 8 pro': 'husky',
+      'xiaomi 11': 'venus',
+      'xiaomi 12': 'cupid',
+      'xiaomi 13': 'fuxi',
+      'xiaomi 14': 'houji',
+      'redmi note 10': 'mojito',
+      'redmi note 11': 'spes',
+      'redmi k40': 'alioth',
+      'redmi k50': 'rubens',
+      'redmi k60': 'mondrian',
+      'poco x3 pro': 'vayu',
+      'poco f4': 'munch',
+      'poco f5': 'marble',
+    };
+    final lowerModel = model.trim().toLowerCase();
+    return knownProducts[lowerModel] ??
+        lowerModel.replaceAll(RegExp(r'[^a-z0-9]+'), '');
+  }
+
   static init() async {
     if (!Platform.isAndroid) return;
 

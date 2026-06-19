@@ -304,6 +304,9 @@ class AccountData implements Account {
         offset: offset,
         wmtMfs: orderWmtMfs,
       );
+      final clientAppVersion =
+          ret1["clientAppVersion"] ?? DataManager().appVersion ?? "unknown";
+      ret1["clientAppVersion"] = clientAppVersion;
       final retJson = jsonEncode(ret1);
       logger.i("retJson: $retJson");
 
@@ -317,10 +320,16 @@ class AccountData implements Account {
         final bodyPreview =
             bodyText.length > 500 ? bodyText.substring(0, 500) : bodyText;
         logger.i(
-          "state check fail, state: $state, contentType: $contentType, "
+          "state check fail, appVersion: $clientAppVersion, state: $state, "
+          "contentType: $contentType, "
           "cfRay: $cfRay, origin: ${ret1["origin"]}, "
           "href: ${ret1["href"]}, userAgent: ${ret1["userAgent"]}, "
-          "platform: ${ret1["platform"]}, body: $bodyPreview",
+          "platform: ${ret1["platform"]}, "
+          "requestLimit: ${ret1["requestLimit"]}, "
+          "requestOffset: ${ret1["requestOffset"]}, "
+          "cloudflareBlocked: ${ret1["cloudflareBlocked"]}, "
+          "retryAfterSeconds: ${ret1["retryAfterSeconds"]}, "
+          "body: $bodyPreview",
         );
         return const Tuple2(false, false);
       }
@@ -425,6 +434,21 @@ class AccountData implements Account {
       final tnxHistoryList = histories.responseMap?.tnxHistoryList
         ?..sort((a, b) => a?.compareTo(b) ?? 0);
 
+      // The initial cursor must use the newest transaction of any type.
+      // Filtering to incoming orders here would turn a valid page containing
+      // only outgoing transactions into the sentinel 1970/-1 state.
+      if (_lasttransDate == null) {
+        final initialTransactions = tnxHistoryList
+                ?.whereType<HistoriesResponseResponseMapTnxHistoryList>()
+                .toList() ??
+            [];
+        if (initialTransactions.isNotEmpty) {
+          initialTransactions.sort((a, b) => a.compareTo(b));
+          waitReportList.add(initialTransactions.last);
+        }
+        return const Tuple2(true, false);
+      }
+
       // final tnxHistoryList = histories?..sort((a, b) => a?.compareTo(b) ?? 0);
       final cells = tnxHistoryList
               ?.where((cell) => cell?.isReceve() ?? false)
@@ -438,8 +462,6 @@ class AccountData implements Account {
       if (cells.isEmpty) return const Tuple2(true, false);
 
       waitReportList.addAll(cells);
-      // 第一次只需要获取最新的订单
-      if (_lasttransDate == null) return const Tuple2(true, false);
       // 没有多余订单了
       if ((tnxHistoryList?.length ?? 0) < 20) return const Tuple2(true, false);
       final ret = !tnxHistoryList!
