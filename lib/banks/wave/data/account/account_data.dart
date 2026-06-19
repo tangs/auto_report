@@ -1085,7 +1085,7 @@ class AccountData implements Account {
         phone: phoneNumber,
         time: DateTime.now(),
         content: 'transId: ${cell.transId}, amount: ${cell.amount}, '
-            'transDate: ${cell.transDate}, report ret: ${!isFail}'
+            'transDate: ${cell.transDate}, report ret: ${!isFail}, '
             'err msg: ${errMsg ?? ''}',
       ));
       if (isFail) {
