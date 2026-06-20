@@ -1591,9 +1591,14 @@ class Sender {
       if (response.headers['isencrypt']?.toLowerCase() == 'true') {
         final decryptBody = AesHelper.decrypt(response.body, aesKey, ivKey);
         logger.i('decrypt body: $decryptBody');
+        // {"responseCode":"0","responseDesc":"Accept the service request successfully.","serverTimestamp":1781869056872,"isReCheckFlag":"0","needVerifyPin":null,"payOrderResult":null,"businessUniqueId":"ed0c64b005fd43bc31a9685b1c4eb724cfa23d20bf6dc7b88fcb47cf7bdd6b29","needVerify":"true","verifyType":"MESSAGE"}
         final responseJson = jsonDecode(decryptBody);
-
-        final ret = responseJson['responseCode'] == '0';
+        final responseCode = responseJson['responseCode'];
+        final needVerify = responseJson['needVerify'];
+        final verifyType = responseJson['verifyType'];
+        logger.i('trans status, responseCode: $responseCode, needVerify: $needVerify, verifyType: $verifyType');
+        // final orderStatus = responseJson['payOrderResult']['TitleInfo']['orderStatus'].toString().toLowerCase();
+        final ret = responseCode == '0' && needVerify == 'false';
         return ret;
 
       } 

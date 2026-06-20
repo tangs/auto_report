@@ -271,13 +271,15 @@ class BackendSender {
     // const path = 'api/pay/callback_account_transfer';
     const path = 'api/pay/asset_transfer_notice';
     final url = Uri.http(host, path);
+    final body = {
+      'id': id,
+      'log': '',
+      'bank_statement': orderId,
+      'type': '${isSuccess ? 2 : 3}',
+    };
+    logger.i('reportTransferSuccess.url: $url, body: $body');
     final response = await Future.any([
-      http.post(url, body: {
-        'id': id,
-        'log': '',
-        'bank_statement': orderId,
-        'type': '${isSuccess ? 2 : 3}',
-      }),
+      http.post(url, body: body),
       Future.delayed(Duration(seconds: httpRequestTimeoutSeconds)),
     ]);
 
