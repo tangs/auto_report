@@ -57,16 +57,15 @@ class Sender {
 
   // String timestamp = '1766640002094';
 
-  Future post(
-      {
-        required String body,
-        required Map<String, String> header,
-        required String address,
-      }) async {
+  Future post({
+    required String body,
+    required Map<String, String> header,
+    required String address,
+  }) async {
     // final timestamp = '${DateTime.now().toUtc().millisecondsSinceEpoch + timeDiff}';
 
     final url = Uri.https(Config.host, address);
- 
+
     // logger.i('aesKey base64: $aesKey, iv: $ivKey');
 
     // final sortedBody = sortKeys(body);
@@ -77,7 +76,7 @@ class Sender {
 
     // var encryptBody = AesHelper.encryptGCM(bodyContent, aesKey, ivKey);
     // // encryptBody = "onqsPmB00s6qhreb4QCP6L2wRpRAdpRPvbP4BwoyO7CKiC/v7BsO3ELZYgx5ThcWO3+VjvWdJZuVT8+VJBhNuJvaOcPwDMbr2SA2lGoW+vBP0wEZ/Ipog9lRiY6VlCvY3L8e5K87Xuw8wHQx20b1Lsc+Pdp4pit2Ab6cMpLwvvVZJqtRc4u4kjnHPAqRWrhSh7/D/acf2lWb/wdGJc8ksaVrXMbzrQBdAH9Db0Zf3yyyQIb5N/+j2zeb0X5sGvSCkyZ0plfjwJaUZKfP37X4ZVLyqu8i66yPPXxHlVn1XWQv8GwFaeiu9DfXOpQ6LXsKxZqVwVO+sOQyVPVIxS2QgrvkPsBIz1K/mJNXzx/MDqPcgGJ2kvEpv5mv23gZC/0ZQChW0L0Sy2c=";
-    
+
     // // logger.i('timestamp: $timestamp');
     // // logger.i('encryptBody: $encryptBody');
     // // logger.i('signContent: $signContent');
@@ -90,7 +89,7 @@ class Sender {
     // // const encryptIV = "HpWmIbfJugUzuwVfD1JMrKzXjWt8jXgJjEpEwuH0cSK2MzIvqELaYAwVEnTBQd1Y/Do6yd+6lerjlL5QaqJNfNySc1NjA20HA7LYA6h8WTvwx6vkhG7HDAHqlSuhSr52gkEzvbm0g35ZajkTt3bSLwLbbZ0k6rfdzdE+1fVflKaKJ4IEk5ms4iVua1IktimOXheCsK7EOAmGAuAczorUbXONrsrAkQDIapZv4ZEKPqJc5SGvUZMtsQOekHw+ZgLNYwv4H5h0IjqxgEhxXkG35N0mcykbi5onm4cErIDPJ/3r8pHApCg+3w7yoUH2wzQFodhdWIExM81lwS8kr8GwkQ==";
     // // const sign = "096c6a6eda0edc808f1efc73d876412ce6f3727ef60507379185bb4d5b50a9b9";
     // // const encryptBody = "/BmCWLONIK9/wM0F8O0XJZkfZXQimiG0w/imkr68u02ZdSaOWVtth4dmPBpCe/MZkjKzemYOYGYqck28b8ZdYzJ+ilmZNHEBqXyn3vmSaabBikEKLEWsMq9C7u/HYn3VkoIYyhIlLXlhvojsIIxNSMBcl0OtfLikQ9UvToHoaJC7nFjtoKxXYD5pNFCZPdvgqhC7R0ZhotanPj7+UkiqwSrGKHli+4tmksZA7ZLP0HpIoVTjYEKMz2nm2dxRu4HleF3GUXGM0FBOuYeMwoLga5jvxyp5I/6QKpQozBSXwin886femEloeqa9mXpUU8XAsYPo4PSVrdBOiGpLP4w2VMFyX79lp/2B1kna2nRPinHjmdAgtSyVHbmi3AnV0nUPyHFfqd8Tro4=";
-    
+
     // final headers = Config.getHeaders()
     //   ..addAll(header)
     //   ..addAll({
@@ -112,21 +111,20 @@ class Sender {
 
   Map<String, String> getTemplateHeader() {
     var headers = {
-        'Content-Type': 'application/json;charset=utf-8',
-        'Version': Config.appVersion,
-        'Accept-Language': Config.language,
-        'Authorization': authorization,
-        'Sentry-Trace': sentryTrace,
-        'Baggage': baggage,
-        'User-Agent': 'okhttp/4.12.0',
-      };
+      'Content-Type': 'application/json;charset=utf-8',
+      'Version': Config.appVersion,
+      'Accept-Language': Config.language,
+      'Authorization': authorization,
+      'Sentry-Trace': sentryTrace,
+      'Baggage': baggage,
+      'User-Agent': 'okhttp/4.12.0',
+    };
 
     // if (needNew) {
     //   headers['MessageType'] = 'NEW';
     // }
     return headers;
   }
-
 
   Map<String, dynamic> getBodyTemplate() {
     return {
@@ -217,7 +215,9 @@ class Sender {
     return false;
   }
 
-  Future<bool> checkPhone({required String phone,}) async {
+  Future<bool> checkPhone({
+    required String phone,
+  }) async {
     try {
       logger.i('start checkPhone');
 
@@ -416,8 +416,7 @@ class Sender {
   Future<double?> getBalance() async {
     try {
       logger.i('start getBalance');
-      final body = {
-      };
+      final body = {};
 
       final bodyContent = jsonEncode(body);
       // logger.i('bodyContent: $bodyContent');
@@ -459,66 +458,66 @@ class Sender {
     required int pageParam,
     required int start,
     required int number,
-    }) async {
-      try {
-        logger.i('start transHistory');
+  }) async {
+    try {
+      logger.i('start transHistory');
 
-        final now = DateTime.now();
-        final yesterday = now.subtract(const Duration(days: 1));
-        final tomorrow = now.add(const Duration(days: 1));
+      final now = DateTime.now();
+      final yesterday = now.subtract(const Duration(days: 1));
+      final tomorrow = now.add(const Duration(days: 1));
 
-        String formatDate(DateTime d) {
-          return '${d.month.toString().padLeft(2, '0')}/${d.day.toString().padLeft(2, '0')}/${d.year}';
-        }
-
-        final startDate = formatDate(yesterday);
-        final endDate = formatDate(tomorrow);
-
-        final body = {
-          'pageParam': pageParam,
-          'start': start,
-          'number': number,
-          'startDate': startDate,
-          'endDate': endDate,
-        };
-
-        final bodyContent = jsonEncode(body);
-
-        final response = await post(
-          body: bodyContent,
-          header: getTemplateHeader(),
-          address: '/api/transaction/transHistory',
-        );
-
-        if (response is! http.Response) {
-          EasyLoading.showError('transHistory timeout');
-          logger.i('transHistory timeout');
-          return null;
-        }
-
-        logger.i('Response status: ${response.statusCode}');
-        logger.i('Response headers: ${response.headers}');
-        logger.i('Response body: ${response.body}');
-
-        final responseData = jsonDecode(response.body);
-        final errCode = responseData['err'];
-        logger.i('Response err code: $errCode');
-
-        if (errCode == 200) {
-          final parsed = NewTransRecordListResqonse.fromJson(responseData);
-          final records = parsed.transRecordList
-              ?.where((e) => e != null)
-              .cast<NewTransRecordListResqonseTransRecordList>()
-              .toList() ?? [];
-          logger.i('transHistory parsed ${records.length} records');
-          return records;
-        }
-      } catch (e, stackTrace) {
-        logger.e('transHistory err: $e', stackTrace: stackTrace);
-        EasyLoading.showError('request err, code: $e',
-            dismissOnTap: true, duration: const Duration(seconds: 60));
+      String formatDate(DateTime d) {
+        return '${d.month.toString().padLeft(2, '0')}/${d.day.toString().padLeft(2, '0')}/${d.year}';
       }
-      return null;
-    }
 
+      final startDate = formatDate(yesterday);
+      final endDate = formatDate(tomorrow);
+
+      final body = {
+        'pageParam': pageParam,
+        'start': start,
+        'number': number,
+        'startDate': startDate,
+        'endDate': endDate,
+      };
+
+      final bodyContent = jsonEncode(body);
+
+      final response = await post(
+        body: bodyContent,
+        header: getTemplateHeader(),
+        address: '/api/transaction/transHistory',
+      );
+
+      if (response is! http.Response) {
+        EasyLoading.showError('transHistory timeout');
+        logger.i('transHistory timeout');
+        return null;
+      }
+
+      logger.i('Response status: ${response.statusCode}');
+      logger.i('Response headers: ${response.headers}');
+      logger.i('Response body: ${response.body}');
+
+      final responseData = jsonDecode(response.body);
+      final errCode = responseData['err'];
+      logger.i('Response err code: $errCode');
+
+      if (errCode == 200) {
+        final parsed = NewTransRecordListResqonse.fromJson(responseData);
+        final records = parsed.transRecordList
+                ?.where((e) => e != null)
+                .cast<NewTransRecordListResqonseTransRecordList>()
+                .toList() ??
+            [];
+        logger.i('transHistory parsed ${records.length} records');
+        return records;
+      }
+    } catch (e, stackTrace) {
+      logger.e('transHistory err: $e', stackTrace: stackTrace);
+      EasyLoading.showError('request err, code: $e',
+          dismissOnTap: true, duration: const Duration(seconds: 60));
+    }
+    return null;
+  }
 }

@@ -82,7 +82,9 @@ class NewTransRecordListResqonseTransRecordList implements Comparable {
     tradeType = json['name']?.toString();
     transRefId = json['transRefId']?.toString();
     amount = (json['amount'] is num) ? (json['amount'] as num).toInt() : null;
-    origAmount = (json['origAmount'] is num) ? (json['origAmount'] as num).toInt() : null;
+    origAmount = (json['origAmount'] is num)
+        ? (json['origAmount'] as num).toInt()
+        : null;
     currency = json['currency']?.toString();
     status = json['status']?.toString();
     icon = json['icon']?.toString();
@@ -110,10 +112,15 @@ class NewTransRecordListResqonseTransRecordList implements Comparable {
       oppositePhone = receiverPhone;
     }
 
-    totalDebit = (json['totalDebit'] is num) ? (json['totalDebit'] as num).toInt() : 0;
-    totalCredit = (json['totalCredit'] is num) ? (json['totalCredit'] as num).toInt() : 0;
-    totalEarn = (json['totalEarn'] is num) ? (json['totalEarn'] as num).toInt() : 0;
-    totalDiscount = (json['totalDiscount'] is num) ? (json['totalDiscount'] as num).toInt() : 0;
+    totalDebit =
+        (json['totalDebit'] is num) ? (json['totalDebit'] as num).toInt() : 0;
+    totalCredit =
+        (json['totalCredit'] is num) ? (json['totalCredit'] as num).toInt() : 0;
+    totalEarn =
+        (json['totalEarn'] is num) ? (json['totalEarn'] as num).toInt() : 0;
+    totalDiscount = (json['totalDiscount'] is num)
+        ? (json['totalDiscount'] as num).toInt()
+        : 0;
 
     // Determine debit or credit
     if (totalCredit != null && totalCredit! > 0) {
@@ -143,7 +150,8 @@ class NewTransRecordListResqonseTransRecordList implements Comparable {
     data['icon'] = icon;
     data['message'] = message;
     if (tradeTime != null) {
-      data['processedAt'] = DateTime.fromMillisecondsSinceEpoch(tradeTime!).toIso8601String();
+      data['processedAt'] =
+          DateTime.fromMillisecondsSinceEpoch(tradeTime!).toIso8601String();
     }
     data['sender'] = {'name': senderName, 'phone': senderPhone};
     data['receiver'] = {'name': receiverName, 'phone': receiverPhone};

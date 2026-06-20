@@ -49,7 +49,14 @@ class _AuthPageState extends State<AuthPage> {
 
   late Sender _sender;
 
-  final _models = ['google Pixel 5', 'google Pixel 6', 'google Pixel 5 pro', 'google Pixel 7', 'google Pixel 8', 'google Pixel 9'];
+  final _models = [
+    'google Pixel 5',
+    'google Pixel 6',
+    'google Pixel 5 pro',
+    'google Pixel 7',
+    'google Pixel 8',
+    'google Pixel 9'
+  ];
   // final _osVersions = ['12', '13', '14'];
 
   AyaLoginStaus _loginStatus = AyaLoginStaus.none;
@@ -124,16 +131,17 @@ class _AuthPageState extends State<AuthPage> {
     return List.generate(16, (index) => hexChars[random.nextInt(16)]).join();
   }
 
-
   String generateFirebaseTokenLikeExample() {
     final Random random = Random();
-    
+
     // Firebase Token 标准字符集
-    const String chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_';
+    const String chars =
+        'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_';
 
     // 内部辅助函数：生成指定长度的随机字符串
     String getRandomString(int length) {
-      return List.generate(length, (index) => chars[random.nextInt(chars.length)]).join();
+      return List.generate(
+          length, (index) => chars[random.nextInt(chars.length)]).join();
     }
 
     // 1. 生成第一部分：22位随机字符
@@ -144,7 +152,7 @@ class _AuthPageState extends State<AuthPage> {
     String prefix2 = "APA91b";
     // 剩余需要生成的长度 = 140 - 6 = 134 位
     String body2 = getRandomString(134);
-    
+
     String part2 = "$prefix2$body2";
 
     // 3. 用冒号拼接
@@ -168,18 +176,18 @@ class _AuthPageState extends State<AuthPage> {
     EasyLoading.show(status: 'loading...');
 
     try {
-      
       if (await _sender.sendDeviceInfo() == false) {
         EasyLoading.showToast('send device info fail.');
         return;
       }
-      
+
       if (await _sender.checkPhone(phone: phoneNumber) == false) {
         EasyLoading.showToast('check phone fail.');
         return;
       }
 
-      final loginRet = await _sender.login(phone: phoneNumber, password: password);
+      final loginRet =
+          await _sender.login(phone: phoneNumber, password: password);
       if (loginRet.item1 == false) {
         EasyLoading.showToast('login fail.');
         return;
@@ -238,7 +246,7 @@ class _AuthPageState extends State<AuthPage> {
 
   String qrSerialNo = '';
   String businessUniqueId = '';
-  
+
   void _verityOTP() async {
     if (!_checkInput()) return;
 
@@ -249,25 +257,28 @@ class _AuthPageState extends State<AuthPage> {
     EasyLoading.show(status: 'loading...');
     try {
       {
+        if (await _sender.loginVerifyOTP(
+              phone: phoneNumber,
+              otp: otpCode,
+            ) ==
+            false) {
+          EasyLoading.showToast('loginVerifyOTP fail.');
+          return;
+        }
 
-      if (await _sender.loginVerifyOTP(phone: phoneNumber, otp: otpCode,) == false) {
-        EasyLoading.showToast('loginVerifyOTP fail.');
-        return;
-      }
+        // if (await _sender.login(phone: phoneNumber, password: _password!) == false) {
+        //   EasyLoading.showToast('login fail.');
+        //   return;
+        // }
 
-      // if (await _sender.login(phone: phoneNumber, password: _password!) == false) {
-      //   EasyLoading.showToast('login fail.');
-      //   return;
-      // }
+        // {
+        //   final balance = await _sender.getBalance();
+        //   if (balance == null) {
+        //     EasyLoading.showToast('get balance fail.');
+        //     return;
+        //   }
+        // }
 
-      // {
-      //   final balance = await _sender.getBalance();
-      //   if (balance == null) {
-      //     EasyLoading.showToast('get balance fail.');
-      //     return;
-      //   }
-      // }
-  
         // var needVerifyNrc = false;
         // {
         //   final ret1 = await _sender.finishQRCode(
@@ -401,7 +412,8 @@ class _AuthPageState extends State<AuthPage> {
 
     EasyLoading.show(status: 'loading...');
     try {
-      final loginRet = await _sender.login(phone: phoneNumber, password: password);
+      final loginRet =
+          await _sender.login(phone: phoneNumber, password: password);
       if (loginRet.item1 == false) {
         EasyLoading.showToast('login fail.');
         return;
@@ -461,8 +473,7 @@ class _AuthPageState extends State<AuthPage> {
         logger.i('host: $host, path: $path');
         final response = await Future.any([
           http.post(url),
-          Future.delayed(
-              const Duration(seconds: 10)),
+          Future.delayed(const Duration(seconds: 10)),
         ]);
 
         if (response is! http.Response) {
@@ -497,8 +508,7 @@ class _AuthPageState extends State<AuthPage> {
       for (var i = 0; i < 10; ++i) {
         final response = await Future.any([
           http.post(url),
-          Future.delayed(
-              const Duration(seconds: 10)),
+          Future.delayed(const Duration(seconds: 10)),
         ]);
 
         if (response is! http.Response) {
@@ -540,7 +550,6 @@ class _AuthPageState extends State<AuthPage> {
       hintText: "Input $hit",
     );
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -636,7 +645,8 @@ class _AuthPageState extends State<AuthPage> {
                   child: Text(switch (_loginStatus) {
                     AyaLoginStaus.none => 'Wait Request OTP',
                     AyaLoginStaus.requestOtp => "Auth OTP",
-                    AyaLoginStaus.waitOldDeviceAuth => "Login(Old Device Authed.)",
+                    AyaLoginStaus.waitOldDeviceAuth =>
+                      "Login(Old Device Authed.)",
                     AyaLoginStaus.logined => "Logined",
                   }),
                 ),
@@ -659,20 +669,20 @@ class _AuthPageState extends State<AuthPage> {
                       Navigator.pop(
                         context,
                         AccountData(
-                          sender: _sender,
-                          token: _token!,
-                          remark: _remark!,
-                          platformName: _platformsResponseData!.name!,
-                          platformUrl: _platformsResponseData!.url!,
-                          platformKey: _platformsResponseData!.key!,
-                          platformMark: _platformsResponseData!.mark!,
-                          phoneNumber: _phoneNumber!,
-                          pin: _password!,
-                          id: _id!,
-                          authCode: _otpCode!,
-                          isLogined: true
-                          // isWmtMfsInvalid: false,
-                        ),
+                            sender: _sender,
+                            token: _token!,
+                            remark: _remark!,
+                            platformName: _platformsResponseData!.name!,
+                            platformUrl: _platformsResponseData!.url!,
+                            platformKey: _platformsResponseData!.key!,
+                            platformMark: _platformsResponseData!.mark!,
+                            phoneNumber: _phoneNumber!,
+                            pin: _password!,
+                            id: _id!,
+                            authCode: _otpCode!,
+                            isLogined: true
+                            // isWmtMfsInvalid: false,
+                            ),
                       );
                     },
               child: const Text('OK'),

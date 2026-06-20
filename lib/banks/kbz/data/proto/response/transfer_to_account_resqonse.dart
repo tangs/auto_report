@@ -16,7 +16,8 @@ class TransferToAccountResqonseResponseBodyResponseDetail {
     this.ServerTimestamp,
     this.OrderNo,
   });
-  TransferToAccountResqonseResponseBodyResponseDetail.fromJson(Map<String, dynamic> json) {
+  TransferToAccountResqonseResponseBodyResponseDetail.fromJson(
+      Map<String, dynamic> json) {
     ServerTimestamp = json['ServerTimestamp']?.toInt();
     OrderNo = json['OrderNo']?.toString();
   }
@@ -52,7 +53,10 @@ class TransferToAccountResqonseResponseBody {
   TransferToAccountResqonseResponseBody.fromJson(Map<String, dynamic> json) {
     ResponseCode = json['ResponseCode']?.toString();
     ResponseDesc = json['ResponseDesc']?.toString();
-    ResponseDetail = (json['ResponseDetail'] != null) ? TransferToAccountResqonseResponseBodyResponseDetail.fromJson(json['ResponseDetail']) : null;
+    ResponseDetail = (json['ResponseDetail'] != null)
+        ? TransferToAccountResqonseResponseBodyResponseDetail.fromJson(
+            json['ResponseDetail'])
+        : null;
   }
   Map<String, dynamic> toJson() {
     final data = <String, dynamic>{};
@@ -118,8 +122,12 @@ class TransferToAccountResqonseResponse {
     this.Body,
   });
   TransferToAccountResqonseResponse.fromJson(Map<String, dynamic> json) {
-    Header = (json['Header'] != null) ? TransferToAccountResqonseResponseHeader.fromJson(json['Header']) : null;
-    Body = (json['Body'] != null) ? TransferToAccountResqonseResponseBody.fromJson(json['Body']) : null;
+    Header = (json['Header'] != null)
+        ? TransferToAccountResqonseResponseHeader.fromJson(json['Header'])
+        : null;
+    Body = (json['Body'] != null)
+        ? TransferToAccountResqonseResponseBody.fromJson(json['Body'])
+        : null;
   }
   Map<String, dynamic> toJson() {
     final data = <String, dynamic>{};
@@ -159,7 +167,9 @@ class TransferToAccountResqonse {
     this.Response,
   });
   TransferToAccountResqonse.fromJson(Map<String, dynamic> json) {
-    Response = (json['Response'] != null) ? TransferToAccountResqonseResponse.fromJson(json['Response']) : null;
+    Response = (json['Response'] != null)
+        ? TransferToAccountResqonseResponse.fromJson(json['Response'])
+        : null;
   }
   Map<String, dynamic> toJson() {
     final data = <String, dynamic>{};

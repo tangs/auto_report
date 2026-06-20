@@ -11,7 +11,8 @@ class WaveCrypto {
     const chars = 'abcdef0123456789';
     final rnd = Random.secure();
     return String.fromCharCodes(
-      Iterable.generate(length, (_) => chars.codeUnitAt(rnd.nextInt(chars.length))),
+      Iterable.generate(
+          length, (_) => chars.codeUnitAt(rnd.nextInt(chars.length))),
     );
   }
 
@@ -68,7 +69,8 @@ class WaveCrypto {
     }
   }
 
-  static String encryptKeyHeader(String uid, String ivB64, String publicKeyPem) {
+  static String encryptKeyHeader(
+      String uid, String ivB64, String publicKeyPem) {
     try {
       // 1. 拼接文本: uid:ivB64
       final String plainText = "$uid:$ivB64";
@@ -79,16 +81,12 @@ class WaveCrypto {
 
       // 3. 配置 RSA 加密器
       // 注意: Java 代码中是 PKCS1Padding，对应 Dart 中的 RSAEncoding.PKCS1
-      final encrypter = encrypt.Encrypter(
-        encrypt.RSA(
-          publicKey: publicKey, 
-          encoding: encrypt.RSAEncoding.PKCS1
-        )
-      );
+      final encrypter = encrypt.Encrypter(encrypt.RSA(
+          publicKey: publicKey, encoding: encrypt.RSAEncoding.PKCS1));
 
       // 4. 执行加密并返回 Base64
       final encrypted = encrypter.encrypt(plainText);
-      
+
       // 对应 Java 的 Base64.encodeToString(..., 2) 即 NO_WRAP
       return encrypted.base64;
     } catch (e) {

@@ -22,12 +22,12 @@ hfqkU1SnxYTFyw==
 -----END PRIVATE KEY-----''';
 
 // 你提供的 Java 加密密文
-const String javaCipherBase64 = 
+const String javaCipherBase64 =
     "SMnuGHqVeKzjA7Lgo/lHcvQAHYntYx3gqjUDLUULem9y7LQtA4HRAZVyaP4s7gjZj4IXWItmDeBJtjqOw+SPfOa62y/tdB2WCnVtdK2SnDgi2Tgd3pIfSm4a24wHnPmPnxYwRKJv7xYQPVXtSqOTNsEPp8sGEbgkZV2+EGjzSCI=";
 
 void main() {
   print("=== 开始 RSA OAEP 暴力匹配测试 ===");
-  
+
   // 1. 准备私钥
   RSAPrivateKey privateKey;
   try {
@@ -49,10 +49,14 @@ void main() {
 
   // 3. 定义 4 种可能的组合
   final combinations = [
-    _Config("方案1 (标准 Java)", SHA256Digest(), SHA1Digest()),   // Main: SHA-256, MGF1: SHA-1
-    _Config("方案2 (Dart 默认)", SHA256Digest(), SHA256Digest()), // Main: SHA-256, MGF1: SHA-256
-    _Config("方案3 (旧版标准)", SHA1Digest(), SHA1Digest()),       // Main: SHA-1,   MGF1: SHA-1
-    _Config("方案4 (混合)", SHA1Digest(), SHA256Digest()),         // Main: SHA-1,   MGF1: SHA-256
+    _Config("方案1 (标准 Java)", SHA256Digest(),
+        SHA1Digest()), // Main: SHA-256, MGF1: SHA-1
+    _Config("方案2 (Dart 默认)", SHA256Digest(),
+        SHA256Digest()), // Main: SHA-256, MGF1: SHA-256
+    _Config(
+        "方案3 (旧版标准)", SHA1Digest(), SHA1Digest()), // Main: SHA-1,   MGF1: SHA-1
+    _Config("方案4 (混合)", SHA1Digest(),
+        SHA256Digest()), // Main: SHA-1,   MGF1: SHA-256
   ];
 
   bool success = false;
@@ -71,7 +75,7 @@ void main() {
         () => config.mainHash, // Main Hash 工厂
         RSAEngine(),
       );
-      
+
       // 强制设置 MGF1
       cipher.mgf1Hash = config.mgf1Hash;
 

@@ -129,8 +129,7 @@ class WaveTnxHistoryWebClient {
         _pendingRequests.remove(requestId);
         throw TimeoutException('Wave WebView request timeout', timeout);
       });
-      result['clientAppVersion'] =
-          DataManager().appVersion ?? 'unknown';
+      result['clientAppVersion'] = DataManager().appVersion ?? 'unknown';
       result['requestLimit'] = effectiveLimit;
       result['requestOffset'] = offset;
       _updateCloudflareState(result);
@@ -200,8 +199,7 @@ class WaveTnxHistoryWebClient {
     required String osVersion,
   }) {
     final cleanModel = model.trim().isEmpty ? 'Android' : model.trim();
-    final cleanOsVersion =
-        osVersion.trim().isEmpty ? '14' : osVersion.trim();
+    final cleanOsVersion = osVersion.trim().isEmpty ? '14' : osVersion.trim();
     return 'Mozilla/5.0 (Linux; Android $cleanOsVersion; $cleanModel; wv) '
         'AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 '
         'Chrome/147.0.7727.137 Mobile Safari/537.36';
@@ -284,8 +282,7 @@ class WaveTnxHistoryWebClient {
     final cleanDevice = _jsString(deviceProfile['device'] ?? '');
     final cleanProduct = _jsString(deviceProfile['product'] ?? '');
     final cleanCpuAbi = _jsString(deviceProfile['cpuAbi'] ?? '');
-    final cleanManufacturer =
-        _jsString(deviceProfile['manufacturer'] ?? '');
+    final cleanManufacturer = _jsString(deviceProfile['manufacturer'] ?? '');
 
     return '''
 (function () {
@@ -432,8 +429,7 @@ class _AccountsPageState extends State<AccountsPage> {
 
     if (!Platform.isAndroid && widget.accountsData.isNotEmpty) {
       final account = widget.accountsData.first;
-      final userAgent =
-          WaveTnxHistoryWebClient.buildAndroidWebViewUserAgent(
+      final userAgent = WaveTnxHistoryWebClient.buildAndroidWebViewUserAgent(
         model: account.model,
         osVersion: account.osVersion,
       );
@@ -732,8 +728,7 @@ class _AccountsPageState extends State<AccountsPage> {
                       ..hideCurrentSnackBar()
                       ..showSnackBar(
                         const SnackBar(
-                          content:
-                              Text('只能激活一个账号的 Receive money'),
+                          content: Text('只能激活一个账号的 Receive money'),
                         ),
                       );
                     logger.i(

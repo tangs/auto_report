@@ -47,7 +47,8 @@ class AesHelper {
     }
   }
 
-  static String encryptGCM(String plaintext, String base64Key, String ivString) {
+  static String encryptGCM(
+      String plaintext, String base64Key, String ivString) {
     try {
       // 1. Key (Base64 -> Bytes)
       final keyBytes = base64.decode(base64Key);
@@ -62,11 +63,11 @@ class AesHelper {
       // 4. 配置 AES-GCM
       final cipher = GCMBlockCipher(AESEngine());
       final params = AEADParameters(
-        KeyParameter(keyBytes),
-        128, // Mac Size (128 bits)
-        Uint8List.fromList(ivBytes),
-        Uint8List(0) // Associated Data
-      );
+          KeyParameter(keyBytes),
+          128, // Mac Size (128 bits)
+          Uint8List.fromList(ivBytes),
+          Uint8List(0) // Associated Data
+          );
 
       cipher.init(true, params);
 
@@ -88,14 +89,14 @@ class AesHelper {
 
       // 9. 转 Base64
       return base64.encode(actualBytes);
-
     } catch (e) {
       print("加密失败: $e");
       return "";
     }
   }
 
-  static String decryptGCM(String ciphertextBase64, String base64Key, String ivString) {
+  static String decryptGCM(
+      String ciphertextBase64, String base64Key, String ivString) {
     try {
       // 1. 解析 Key (Base64 -> Bytes)
       final keyBytes = base64.decode(base64Key);
@@ -111,11 +112,11 @@ class AesHelper {
       // 4. 配置 AES-GCM
       final cipher = GCMBlockCipher(AESEngine());
       final params = AEADParameters(
-        KeyParameter(keyBytes),
-        128, // Mac Size (128 bits)
-        Uint8List.fromList(ivBytes),
-        Uint8List(0) // Associated Data
-      );
+          KeyParameter(keyBytes),
+          128, // Mac Size (128 bits)
+          Uint8List.fromList(ivBytes),
+          Uint8List(0) // Associated Data
+          );
 
       // ★关键点★: init 第一个参数为 false，表示解密
       cipher.init(false, params);
@@ -126,17 +127,17 @@ class AesHelper {
 
       // 6. 执行解密
       // PointyCastle 会自动处理末尾的 Tag
-      int len = cipher.processBytes(encryptedBytes, 0, encryptedBytes.length, out, 0);
-      
+      int len =
+          cipher.processBytes(encryptedBytes, 0, encryptedBytes.length, out, 0);
+
       // doFinal 会进行 Tag 校验。如果校验失败，这里会抛出异常。
       int lenMac = cipher.doFinal(out, len);
 
       // 7. 截取有效数据并转为 UTF-8 字符串
       // 解密后的数据不包含 Tag，所以总长度就是 len + lenMac (lenMac 在解密时通常为0，因为没有写入额外数据)
       final actualBytes = out.sublist(0, len + lenMac);
-      
-      return utf8.decode(actualBytes);
 
+      return utf8.decode(actualBytes);
     } catch (e) {
       print("解密失败: $e");
       // 如果 Tag 校验失败，PointyCastle 会抛出 InvalidCipherTextException

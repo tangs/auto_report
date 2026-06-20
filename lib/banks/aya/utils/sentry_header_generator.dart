@@ -2,18 +2,24 @@ import 'dart:convert';
 import 'dart:math';
 
 class SentryHeaderGenerator {
-  static const String _alphanumericChars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  static const String _alphanumericChars =
+      'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   static const String _hexChars = '0123456789abcdef';
   static final Random _random = Random();
 
   /// 生成指定长度的随机字符串（大小写字母+数字）
   static String _generateRandomString(int length) {
-    return List.generate(length, (index) => _alphanumericChars[_random.nextInt(_alphanumericChars.length)]).join();
+    return List.generate(
+            length,
+            (index) =>
+                _alphanumericChars[_random.nextInt(_alphanumericChars.length)])
+        .join();
   }
 
   /// 生成指定长度的十六进制字符串
   static String _generateHex(int length) {
-    return List.generate(length, (index) => _hexChars[_random.nextInt(16)]).join();
+    return List.generate(length, (index) => _hexChars[_random.nextInt(16)])
+        .join();
   }
 
   /// 一键生成整套模拟 Headers
@@ -28,20 +34,22 @@ class SentryHeaderGenerator {
     return {
       // Sentry 链路追踪
       'Sentry-Trace': '$traceId-$spanId-1',
-      
+
       // Baggage 上下文 (trace_id 必须与上面一致)
-      'Baggage': 'sentry-environment=production,sentry-public_key=dc90897854163b60850b69daf43b68e6,sentry-trace_id=$traceId,sentry-org_id=1016539',
-      
+      'Baggage':
+          'sentry-environment=production,sentry-public_key=dc90897854163b60850b69daf43b68e6,sentry-trace_id=$traceId,sentry-org_id=1016539',
+
       // 身份认证
       'Authorization': 'Basic $authCredentials',
-      
+
       // 其他常见的固定 Header (可选)
       'Content-Type': 'application/json',
       'Accept': '*/*',
     };
   }
 
-  static Map<String, String> generateSentryHeaders(String username, String password) {
+  static Map<String, String> generateSentryHeaders(
+      String username, String password) {
     // 1. 生成 Authorization (Basic Auth)
     // 格式：Basic base64(username:password)
     String authString = '$username:$password';
@@ -52,7 +60,8 @@ class SentryHeaderGenerator {
     String generateHex(int length) {
       final random = Random();
       const chars = '0123456789abcdef';
-      return List.generate(length, (index) => chars[random.nextInt(chars.length)]).join();
+      return List.generate(
+          length, (index) => chars[random.nextInt(chars.length)]).join();
     }
 
     // 2. 生成 sentry-trace
@@ -66,7 +75,7 @@ class SentryHeaderGenerator {
     // 注意：sentry-public_key 通常是你的 DSN 中的 Key 部分
     String baggage = 'sentry-environment=production,'
         'sentry-release=1.0.0,'
-        'sentry-public_key=your_public_key_here,' 
+        'sentry-public_key=your_public_key_here,'
         'sentry-trace_id=$traceId,'
         'sentry-sample_rate=1.0';
 
@@ -82,7 +91,7 @@ class SentryHeaderGenerator {
 // void main() {
 //   // 生成并打印
 //   var headers = SentryHeaderGenerator.generateSentryHeaders();
-  
+
 //   print("Generated Headers:");
 //   headers.forEach((key, value) {
 //     print("$key: $value");

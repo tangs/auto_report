@@ -15,7 +15,7 @@ import 'package:auto_report/utils/log_helper.dart';
 import 'package:flutter/material.dart';
 
 typedef OnLogCallback = void Function(LogItem item);
-  
+
 class HomePage extends StatefulWidget {
   const HomePage({
     super.key,

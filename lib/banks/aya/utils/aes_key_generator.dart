@@ -71,7 +71,6 @@ class AesKeyGenerator {
     return base64Encode(key);
   }
 
-  
   static const _keySize1 = 32;
   static String generateRandomKey1() {
     final random = Random.secure();

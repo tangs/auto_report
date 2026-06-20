@@ -114,45 +114,61 @@ class _AuthPageState extends State<AuthPage> {
   bool _hasAuth = false;
 
   static String generateSessionKey() {
-      // 生成UUID并取前8个字符
+    // 生成UUID并取前8个字符
     final uuid = _generateUUID();
     return uuid.substring(0, 8);
   }
-  
+
   // 生成UUID的简化实现
   static String _generateUUID() {
     final random = Random.secure();
     final bytes = List<int>.generate(16, (i) => random.nextInt(256));
-    
+
     // 设置版本位 (version 4)
     bytes[6] = (bytes[6] & 0x0f) | 0x40;
     // 设置变体位
     bytes[8] = (bytes[8] & 0x3f) | 0x80;
-    
+
     return [
       bytes.take(4).map((b) => b.toRadixString(16).padLeft(2, '0')).join(),
-      bytes.skip(4).take(2).map((b) => b.toRadixString(16).padLeft(2, '0')).join(),
-      bytes.skip(6).take(2).map((b) => b.toRadixString(16).padLeft(2, '0')).join(),
-      bytes.skip(8).take(2).map((b) => b.toRadixString(16).padLeft(2, '0')).join(),
-      bytes.skip(10).take(6).map((b) => b.toRadixString(16).padLeft(2, '0')).join(),
+      bytes
+          .skip(4)
+          .take(2)
+          .map((b) => b.toRadixString(16).padLeft(2, '0'))
+          .join(),
+      bytes
+          .skip(6)
+          .take(2)
+          .map((b) => b.toRadixString(16).padLeft(2, '0'))
+          .join(),
+      bytes
+          .skip(8)
+          .take(2)
+          .map((b) => b.toRadixString(16).padLeft(2, '0'))
+          .join(),
+      bytes
+          .skip(10)
+          .take(6)
+          .map((b) => b.toRadixString(16).padLeft(2, '0'))
+          .join(),
     ].join('-');
   }
-  
+
   // 2. 生成IV（每次请求）
   // static String generateIV() {
   //   final random = Random.secure();
   //   final iv = List<int>.generate(16, (i) => random.nextInt(256));
   //   return base64Url.encode(iv);
   // }
-  
+
   // 3. 将8字符Key转换为128位AES密钥
   static Uint8List _convertKeyToAESKey(String key) {
     // 1. 将8字符Key转换为字节数组
     final keyBytes = utf8.encode(key);
-    
+
     // 2. 计算SHA-1哈希
     final hash = sha1.convert(keyBytes);
-    
+
     // 3. 取前16字节（128位）
     return Uint8List.fromList(hash.bytes.take(16).toList());
   }
@@ -193,9 +209,8 @@ class _AuthPageState extends State<AuthPage> {
     }
 
     _deviceId = deviceId;
-    _model = Platform.isAndroid
-        ? 'Android'
-        : _modes[random.nextInt(_modes.length)];
+    _model =
+        Platform.isAndroid ? 'Android' : _modes[random.nextInt(_modes.length)];
     _osVersion = Platform.isAndroid
         ? ''
         : _osVersions[random.nextInt(_osVersions.length)];
@@ -239,8 +254,8 @@ class _AuthPageState extends State<AuthPage> {
     logger.i('request auth code start');
     logger.i('Phone number: $_phoneNumber');
 
-    final url = Uri.https(
-        Config.host, 'v3/wmt-mfs-otp/generate-otp', {'msisdn': '$_phoneNumber'});
+    final url = Uri.https(Config.host, 'v3/wmt-mfs-otp/generate-otp',
+        {'msisdn': '$_phoneNumber'});
     final headers = Config.getHeaders(
         deviceid: _deviceId, model: _model, osversion: _osVersion)
       ..addAll({
@@ -288,8 +303,8 @@ class _AuthPageState extends State<AuthPage> {
     logger.i('Phone number: $_phoneNumber');
     // final url = Uri.https(
     //     Config.host, 'wmt-mfs-otp/security-token', {'msisdn': '$_phoneNumber'});
-    final url = Uri.https(
-        Config.host, 'v3/wmt-mfs-otp/security-token', {'msisdn': '$_phoneNumber'});
+    final url = Uri.https(Config.host, 'v3/wmt-mfs-otp/security-token',
+        {'msisdn': '$_phoneNumber'});
     final headers = Config.getHeaders(
         deviceid: _deviceId, model: _model, osversion: _osVersion)
       ..addAll({
@@ -385,54 +400,52 @@ class _AuthPageState extends State<AuthPage> {
   String _getSelfAuthoirizedDeviceBody(String nrc, String msisdn) {
     // Parse NRC format: [前缀]/[区代码][国籍]([类型])[号码]
     // Example: 5/MaMaTa(N)028788
-    
+
     // Extract prefix (before the first '/')
     final prefix = nrc.split('/').first;
-    
+
     // Extract the part after '/' and before the last ')'
     final afterSlash = nrc.split('/').last;
-    
+
     // Find the last '(' to get the type
     final lastOpenParenIndex = afterSlash.lastIndexOf('(');
     final lastCloseParenIndex = afterSlash.lastIndexOf(')');
-    
+
     if (lastOpenParenIndex == -1 || lastCloseParenIndex == -1) {
       throw FormatException('Invalid NRC format: $nrc');
     }
-    
+
     // Extract type (between last '(' and ')')
     // final type = afterSlash.substring(lastOpenParenIndex + 1, lastCloseParenIndex);
-    
+
     // Extract number (after the last ')')
     final number = afterSlash.substring(lastCloseParenIndex + 1);
-    
+
     // Extract township code and citizenship (before the last '(')
     final beforeLastParen = afterSlash.substring(0, lastOpenParenIndex);
-    
+
     // Find the citizenship character (should be the last character before '(')
     String citizenship = '';
     String townshipCode = '';
-    
+
     if (beforeLastParen.isNotEmpty) {
       citizenship = beforeLastParen.substring(beforeLastParen.length - 1);
       townshipCode = beforeLastParen.substring(0, beforeLastParen.length - 1);
     }
-    
+
     // Create the identification object
     final identification = {
       "msisdn": msisdn,
       "citizenship": citizenship,
       "number": number,
-      "idNumber": nrc,  // Complete NRC number
+      "idNumber": nrc, // Complete NRC number
       "prefix": prefix,
       "townshipCode": townshipCode,
       "type": "NRC"
     };
-    
+
     // Return as JSON string
-    return jsonEncode({
-      "identification": identification
-    });
+    return jsonEncode({"identification": identification});
   }
 
   String _getKeyAndIV() {
@@ -445,11 +458,12 @@ class _AuthPageState extends State<AuthPage> {
   }
 
   printHaders(Map<String, String> header) {
-    header.forEach((k, v) {logger.i('key: $k, val: $v');});
+    header.forEach((k, v) {
+      logger.i('key: $k, val: $v');
+    });
   }
 
   Future<bool> _registeredDevices() async {
-
     // EasyLoading.show(status: 'loading...');
     logger.i('registered-devices start');
 
@@ -466,11 +480,11 @@ class _AuthPageState extends State<AuthPage> {
     logger.i("IV B64 : $myIvB64");
     // logger.i("txt : $txt");
 
-    String cipher = WaveCrypto.encryptKeyHeader(myUid, myIvB64, Config.rsaPublicKey);
+    String cipher =
+        WaveCrypto.encryptKeyHeader(myUid, myIvB64, Config.rsaPublicKey);
     logger.i("cipher : $cipher");
 
-    final url = Uri.https(
-        Config.host, 'v3/mfs-customer/registered-devices');
+    final url = Uri.https(Config.host, 'v3/mfs-customer/registered-devices');
     final headers = Config.getHeaders(
         deviceid: _deviceId, model: _model, osversion: _osVersion)
       ..addAll({
@@ -479,7 +493,7 @@ class _AuthPageState extends State<AuthPage> {
         "Content-Type": "text/plain",
         Config.wmtMfsKey: _wmtMfs ?? "",
       });
-      // headers.remove("");
+    // headers.remove("");
     // printHaders(headers);
 
     try {
@@ -500,7 +514,8 @@ class _AuthPageState extends State<AuthPage> {
       logger.i('Response body: ${response.body}');
       logger.i('$Config.wmtMfsKey: ${response.headers[Config.wmtMfsKey]}');
 
-      String decryptedBody = WaveCrypto.decryptResponse(response.body, myUid, myIvB64);
+      String decryptedBody =
+          WaveCrypto.decryptResponse(response.body, myUid, myIvB64);
       logger.i('decrypted body: $decryptedBody');
 
       final resBody = GeneralResponse.fromJson(jsonDecode(decryptedBody));
@@ -523,7 +538,6 @@ class _AuthPageState extends State<AuthPage> {
   }
 
   Future<bool> _registeredDevice() async {
-
     // EasyLoading.show(status: 'loading...');
     logger.i('registered-device start');
 
@@ -550,17 +564,15 @@ class _AuthPageState extends State<AuthPage> {
     final bodyStr = jsonEncode(body);
     logger.i("body str : $bodyStr");
 
-    String cipher = WaveCrypto.encryptKeyHeader(myUid, myIvB64, Config.rsaPublicKey);
+    String cipher =
+        WaveCrypto.encryptKeyHeader(myUid, myIvB64, Config.rsaPublicKey);
     String encodedData = Uri.encodeQueryComponent(cipher);
     logger.i("cipher : $cipher");
     logger.i("encodedData : $encodedData");
 
-    var reqBody = {
-      "data": encodedData
-    };
+    var reqBody = {"data": encodedData};
 
-    final url = Uri.https(
-        Config.host, 'v3/mfs-customer/registered-devices');
+    final url = Uri.https(Config.host, 'v3/mfs-customer/registered-devices');
     final headers = Config.getHeaders(
         deviceid: _deviceId, model: _model, osversion: _osVersion)
       ..addAll({
@@ -589,7 +601,8 @@ class _AuthPageState extends State<AuthPage> {
       logger.i('Response body: ${response.body}');
       logger.i('$Config.wmtMfsKey: ${response.headers[Config.wmtMfsKey]}');
 
-      String decryptedBody = WaveCrypto.decryptResponse(response.body, myUid, myIvB64);
+      String decryptedBody =
+          WaveCrypto.decryptResponse(response.body, myUid, myIvB64);
       logger.i('decrypted body: $decryptedBody');
 
       final resBody = GeneralResponse.fromJson(jsonDecode(decryptedBody));
@@ -613,34 +626,32 @@ class _AuthPageState extends State<AuthPage> {
 
   Future<bool> _getBalance() async {
     final url = Uri.https(Config.host, 'v2/mfs-customer/wallet-balance');
-      final headers = Config.getHeaders(
-          deviceid: _deviceId, model: _model, osversion: _osVersion)
-        ..addAll({
-          'user-agent': 'okhttp/4.9.0',
-          Config.wmtMfsKey: _wmtMfs ?? '',
-        });
+    final headers = Config.getHeaders(
+        deviceid: _deviceId, model: _model, osversion: _osVersion)
+      ..addAll({
+        'user-agent': 'okhttp/4.9.0',
+        Config.wmtMfsKey: _wmtMfs ?? '',
+      });
 
-      final response = await Future.any([
-        http.get(url, headers: headers),
-        Future.delayed(
-            const Duration(seconds: Config.httpRequestTimeoutSeconds)),
-      ]);
+    final response = await Future.any([
+      http.get(url, headers: headers),
+      Future.delayed(const Duration(seconds: Config.httpRequestTimeoutSeconds)),
+    ]);
 
-      if (response is! http.Response) {
-        EasyLoading.showError('get wallet balance timeout');
-        logger.i('get wallet balance timeout');
-        return false;
-      }
+    if (response is! http.Response) {
+      EasyLoading.showError('get wallet balance timeout');
+      logger.i('get wallet balance timeout');
+      return false;
+    }
 
-      _wmtMfs = response.headers[Config.wmtMfsKey] ?? _wmtMfs;
-      logger.i('Response status: ${response.statusCode}');
-      logger.i('Response body: ${response.body}, len: ${response.body.length}');
-      logger.i('$Config.wmtMfsKey: ${response.headers[Config.wmtMfsKey]}');
-      return true;
+    _wmtMfs = response.headers[Config.wmtMfsKey] ?? _wmtMfs;
+    logger.i('Response status: ${response.statusCode}');
+    logger.i('Response body: ${response.body}, len: ${response.body.length}');
+    logger.i('$Config.wmtMfsKey: ${response.headers[Config.wmtMfsKey]}');
+    return true;
   }
 
   Future<bool> _saveNotificationToken() async {
-
     // EasyLoading.show(status: 'loading...');
     logger.i('save notification token start');
 
@@ -665,8 +676,8 @@ class _AuthPageState extends State<AuthPage> {
     // String cipher = WaveCrypto.encryptKeyHeader(myUid, myIvB64, Config.rsaPublicKey);
     // logger.i("cipher : $cipher");
 
-    final url = Uri.https(
-        Config.host, 'v2/mfs-customer/save-notification-token');
+    final url =
+        Uri.https(Config.host, 'v2/mfs-customer/save-notification-token');
     final headers = Config.getHeaders(
         deviceid: _deviceId, model: _model, osversion: _osVersion)
       ..addAll({
@@ -713,7 +724,6 @@ class _AuthPageState extends State<AuthPage> {
   }
 
   Future<bool> _getKycInfo() async {
-
     // EasyLoading.show(status: 'loading...');
     logger.i('get-kyc-info start');
 
@@ -730,11 +740,11 @@ class _AuthPageState extends State<AuthPage> {
     logger.i("IV B64 : $myIvB64");
     // logger.i("txt : $txt");
 
-    String cipher = WaveCrypto.encryptKeyHeader(myUid, myIvB64, Config.rsaPublicKey);
+    String cipher =
+        WaveCrypto.encryptKeyHeader(myUid, myIvB64, Config.rsaPublicKey);
     logger.i("cipher : $cipher");
 
-    final url = Uri.https(
-        Config.host, 'v3/mfs-customer/get-kyc-info');
+    final url = Uri.https(Config.host, 'v3/mfs-customer/get-kyc-info');
     final headers = Config.getHeaders(
         deviceid: _deviceId, model: _model, osversion: _osVersion)
       ..addAll({
@@ -761,7 +771,8 @@ class _AuthPageState extends State<AuthPage> {
       logger.i('Response body: ${response.body}');
       logger.i('$Config.wmtMfsKey: ${response.headers[Config.wmtMfsKey]}');
 
-      String decryptedBody = WaveCrypto.decryptResponse(response.body, myUid, myIvB64);
+      String decryptedBody =
+          WaveCrypto.decryptResponse(response.body, myUid, myIvB64);
       logger.i('decrypted body: $decryptedBody');
 
       final resBody = GeneralResponse.fromJson(jsonDecode(decryptedBody));
@@ -800,11 +811,12 @@ class _AuthPageState extends State<AuthPage> {
     logger.i("IV B64 : $myIvB64");
     // logger.i("txt : $txt");
 
-    String cipher = WaveCrypto.encryptKeyHeader(myUid, myIvB64, Config.rsaPublicKey);
+    String cipher =
+        WaveCrypto.encryptKeyHeader(myUid, myIvB64, Config.rsaPublicKey);
     logger.i("cipher : $cipher");
 
-    final url = Uri.https(
-        Config.host, 'v3/mfs-customer/get-subscriber-profile');
+    final url =
+        Uri.https(Config.host, 'v3/mfs-customer/get-subscriber-profile');
     final headers = Config.getHeaders(
         deviceid: _deviceId, model: _model, osversion: _osVersion)
       ..addAll({
@@ -831,7 +843,8 @@ class _AuthPageState extends State<AuthPage> {
       logger.i('Response body: ${response.body}');
       logger.i('$Config.wmtMfsKey: ${response.headers[Config.wmtMfsKey]}');
 
-      String decryptedBody = WaveCrypto.decryptResponse(response.body, myUid, myIvB64);
+      String decryptedBody =
+          WaveCrypto.decryptResponse(response.body, myUid, myIvB64);
       logger.i('decrypted body: $decryptedBody');
 
       final resBody = GeneralResponse.fromJson(jsonDecode(decryptedBody));
@@ -870,11 +883,12 @@ class _AuthPageState extends State<AuthPage> {
     logger.i("IV B64 : $myIvB64");
     // logger.i("txt : $txt");
 
-    String cipher = WaveCrypto.encryptKeyHeader(myUid, myIvB64, Config.rsaPublicKey);
+    String cipher =
+        WaveCrypto.encryptKeyHeader(myUid, myIvB64, Config.rsaPublicKey);
     logger.i("cipher : $cipher");
 
-    final url = Uri.https(
-        Config.host, 'v3/mfs-customer/self-authorization-eligiblity');
+    final url =
+        Uri.https(Config.host, 'v3/mfs-customer/self-authorization-eligiblity');
     final headers = Config.getHeaders(
         deviceid: _deviceId, model: _model, osversion: _osVersion)
       ..addAll({
@@ -901,7 +915,8 @@ class _AuthPageState extends State<AuthPage> {
       logger.i('Response body: ${response.body}');
       logger.i('$Config.wmtMfsKey: ${response.headers[Config.wmtMfsKey]}');
 
-      String decryptedBody = WaveCrypto.decryptResponse(response.body, myUid, myIvB64);
+      String decryptedBody =
+          WaveCrypto.decryptResponse(response.body, myUid, myIvB64);
       logger.i('decrypted body: $decryptedBody');
 
       final resBody = GeneralResponse.fromJson(jsonDecode(decryptedBody));
@@ -1048,15 +1063,15 @@ class _AuthPageState extends State<AuthPage> {
       logger.e('err: $e', stackTrace: stackTrace);
       EasyLoading.showError('request err, code: $e',
           dismissOnTap: true, duration: const Duration(seconds: 60));
-        return false;
+      return false;
     } finally {
       EasyLoading.dismiss();
     }
     return true;
   }
-  
-  // String jsonData = '''{"responseMap":{"accountStatus":2,"agentId":44961545,"googleUrl":"https://wave.mn/apa","subscriberDetails":{"kycStatus":2,"requireKYCUpgrade":true,"name":"Than Lwin Soe"},"directUrl":"https://wave.mn/apd","interstitialData":{"offerType":1,"imageUri":"https://files.wavemoney.io:8199/splash-screens/splash_screen_apr_2019.jpg","headerName":"Announcement!","messageId":"Message145","offerActionName":"","type":1,"title":"This version will be stopped soon. Please upgrade to new WavePay App to enjoy more features!","messageExpiry":"20200930T13:12:28+0530"},"userType":0,"versionInfo":{"iOS":{"appStoreUrl":"https://itunes.apple.com/us/app/wavepay/id1439175549","forcedUpgrade":"false","build":56,"version":"2.5.0"},"Android":{"forcedUpgrade":"false","playStoreUrl":"https://play.google.com/store/apps/details?id=mm.com.wavemoney.wavepay","directUrl":"https://app.adjust.com/pbka9us?campaign=Media+Link&adgroup=Media+link_WP&redirect=https%3A%2F%2Fwavemoney.com.mm%2Fapp%2Fwavepay-app.apk","versionName":"2.5.0","versionCode":1468}},"versionName":"WavePay","config":{"kycRequiredGroups":"10042"},"versionCode":1411,"waveWorldUrl":"http://wavemoneyworld.com/wavemoneywebtest/firstPage.jsp?username=w@veM0ney&password=wM\$123@67&mobile=9791009038&lang=eng"},"respTime":"Wed Jun 10 08:57:47 MMT 2026","message":"Success","statusCode":0}''';    
-  
+
+  // String jsonData = '''{"responseMap":{"accountStatus":2,"agentId":44961545,"googleUrl":"https://wave.mn/apa","subscriberDetails":{"kycStatus":2,"requireKYCUpgrade":true,"name":"Than Lwin Soe"},"directUrl":"https://wave.mn/apd","interstitialData":{"offerType":1,"imageUri":"https://files.wavemoney.io:8199/splash-screens/splash_screen_apr_2019.jpg","headerName":"Announcement!","messageId":"Message145","offerActionName":"","type":1,"title":"This version will be stopped soon. Please upgrade to new WavePay App to enjoy more features!","messageExpiry":"20200930T13:12:28+0530"},"userType":0,"versionInfo":{"iOS":{"appStoreUrl":"https://itunes.apple.com/us/app/wavepay/id1439175549","forcedUpgrade":"false","build":56,"version":"2.5.0"},"Android":{"forcedUpgrade":"false","playStoreUrl":"https://play.google.com/store/apps/details?id=mm.com.wavemoney.wavepay","directUrl":"https://app.adjust.com/pbka9us?campaign=Media+Link&adgroup=Media+link_WP&redirect=https%3A%2F%2Fwavemoney.com.mm%2Fapp%2Fwavepay-app.apk","versionName":"2.5.0","versionCode":1468}},"versionName":"WavePay","config":{"kycRequiredGroups":"10042"},"versionCode":1411,"waveWorldUrl":"http://wavemoneyworld.com/wavemoneywebtest/firstPage.jsp?username=w@veM0ney&password=wM\$123@67&mobile=9791009038&lang=eng"},"respTime":"Wed Jun 10 08:57:47 MMT 2026","message":"Success","statusCode":0}''';
+
   void _login1() async {
     if (!_checkInput(checkOtp: false)) return;
 
@@ -1099,18 +1114,16 @@ class _AuthPageState extends State<AuthPage> {
       var ret2 = await _getSubscriberProfile();
       logger.i('ret2: $ret2');
       if (!ret2) return;
-    
+
       EasyLoading.show(status: 'get register device...');
       var ret3 = await _registeredDevices();
       logger.i('ret3: $ret3');
       // if (!ret3) return;
-
-    } catch(e) {
+    } catch (e) {
       logger.e('e: $e');
     } finally {
       EasyLoading.dismiss();
     }
-    
 
     // var ret4 = await _registeredDevice();
     // logger.i('ret4: $ret4');
@@ -1119,7 +1132,6 @@ class _AuthPageState extends State<AuthPage> {
     // var ret4 = await _selfAuthoriaztion();
     // logger.i('ret4: $ret4');
     // if (!ret4) return;
-
 
     // aesKey = AesKeyGenerator.generateRandomKey1();
     // aesKey = generateSessionKey();

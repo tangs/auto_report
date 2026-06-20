@@ -4,7 +4,6 @@ import 'package:basic_utils/basic_utils.dart';
 import 'package:pointycastle/export.dart';
 
 class RSAHelper1 {
-  
   /// 对应 Java 的 encrypt 方法
   /// [str]: 需要加密的明文
   /// [publicKeyStr]: 公钥字符串 (PEM 格式或 Base64)
@@ -17,7 +16,7 @@ class RSAHelper1 {
       // 修正点：OAEPEncoding 构造函数不再接收 Digest 参数。
       // 先实例化，使用默认的 RSAEngine
       // final cipher = OAEPEncoding(RSAEngine());
-      
+
       // // 3. 配置具体的 Hash 算法
       // // 对应 Java: RSA/ECB/OAEPWithSHA-256AndMGF1Padding
       // // 主哈希设置 (SHA-256)
@@ -42,7 +41,6 @@ class RSAHelper1 {
 
       // 6. Base64 编码返回
       return base64Encode(encryptedBytes);
-      
     } catch (e) {
       print("Encryption error: $e");
       return "";
@@ -56,26 +54,25 @@ class RSAHelper1 {
       final encryptedBytes = base64Decode(cleanStr);
 
       // 2. 解析私钥
-      RSAPrivateKey privateKey = CryptoUtils.rsaPrivateKeyFromPem(privateKeyPem);
+      RSAPrivateKey privateKey =
+          CryptoUtils.rsaPrivateKeyFromPem(privateKeyPem);
 
       // -------------------------------------------------------------
       // 3. 核心配置：完全对标 Java 截图中的 "OAEPWithSHA-256AndMGF1Padding"
       // -------------------------------------------------------------
-      
+
       // 步骤 A: 对应 "SHA-256" (主哈希)
       // 使用 withCustomDigest 是最稳妥的，防止 PointyCastle 内部工厂的默认干扰
-      final Uint8List emptyLabel = Uint8List(0); 
+      final Uint8List emptyLabel = Uint8List(0);
 
       final cipher = OAEPEncoding.withCustomDigest(
-        () => SHA256Digest(), 
-        RSAEngine(),
-        emptyLabel // <--- 传在这里
-      );
+          () => SHA256Digest(), RSAEngine(), emptyLabel // <--- 传在这里
+          );
 
       // 步骤 B: 对应 "MGF1Padding"
       // 在 Android/Java 标准中，即使主Hash是256，MGF1 默认依然是 SHA-1
       // 且你的 Java 代码显式写了 MGF1ParameterSpec.SHA1
-      cipher.mgf1Hash = SHA1Digest(); 
+      cipher.mgf1Hash = SHA1Digest();
 
       // -------------------------------------------------------------
 
@@ -85,12 +82,10 @@ class RSAHelper1 {
       // 5. 执行
       final decryptedBytes = cipher.process(encryptedBytes);
       return utf8.decode(decryptedBytes);
-
     } catch (e) {
       print("解密失败: $e");
       // 如果还报 decoding error，那只剩下一种可能：Key不对。
       return null;
     }
   }
-
 }

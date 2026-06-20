@@ -31,6 +31,7 @@ class AccountData implements Account {
   late String authCode;
 
   bool isLogined = false;
+
   /// 上报服务器授权失败
   bool isAuthInvidWithReport = false;
   bool needRemove = false;
@@ -129,11 +130,11 @@ class AccountData implements Account {
       sentryTrace: json['sentryTrace'],
       baggage: json['baggage'],
     );
-    
+
     login();
   }
 
-  login() async{
+  login() async {
     sender.authorization = 'Basic hQCOKs75uoYxakySqIA7qrjzdj2Z9PYn';
     final result = await sender.login(phone: phoneNumber, password: pin);
     if (result.item1 && result.item2) {
@@ -258,8 +259,8 @@ class AccountData implements Account {
     final waitReportList = <NewTransRecordListResqonseTransRecordList>[];
     var offset = 0;
 
-    while (!isWmtMfsInvalid &&
-        await getOrders(waitReportList, offset, onLogged)) {
+    while (
+        !isWmtMfsInvalid && await getOrders(waitReportList, offset, onLogged)) {
       offset += 15;
       await Future.delayed(const Duration(milliseconds: 100));
     }

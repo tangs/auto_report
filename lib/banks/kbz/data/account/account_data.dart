@@ -141,7 +141,6 @@ class AccountData implements Account {
     disableCash = json['disableCash'];
     disableRechargeTransfer = json['disableRechargeTransfer'];
 
-    
     final keys = AeskeyGetter.getRandomKeys();
     final ivs = AeskeyGetter.getRandomIvs();
 
@@ -488,14 +487,16 @@ class AccountData implements Account {
 
     final note = 'n${receiverAccount.substring(4)}';
 
-    final ret = await sender.preCheckoutTransferToAccount(phoneNumber, receiverAccount, amount, note);
+    final ret = await sender.preCheckoutTransferToAccount(
+        phoneNumber, receiverAccount, amount, note);
     logger.i('preCheckoutTransferToAccount ret: ${ret.item1}, ${ret.item2}');
     if (ret.item1 == false) {
       return const Tuple2(false, '');
     }
-      final prepayId = ret.item2;
-      final ret1 = await sender.transferToAccount(pin, phoneNumber, receiverAccount, amount, note, prepayId);
-      logger.i('transferToAccount ret: $ret1.');
+    final prepayId = ret.item2;
+    final ret1 = await sender.transferToAccount(
+        pin, phoneNumber, receiverAccount, amount, note, prepayId);
+    logger.i('transferToAccount ret: $ret1.');
     // final ret = await sender.transferMsg(
     //   pin,
     //   phoneNumber,
