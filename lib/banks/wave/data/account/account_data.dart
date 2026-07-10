@@ -538,7 +538,7 @@ class AccountData implements Account {
     isUpdating = true;
 
     try {
-      final orderRefreshTime = max(dm.orderRefreshTime, 90);
+      final orderRefreshTime = max(dm.orderRefreshTime, 100);
       if (disableReport) {
         _orderWmtMfs = null;
       }
@@ -733,6 +733,7 @@ class AccountData implements Account {
     } catch (e) {
       logger.e('e: $e');
     } finally {
+      lastUpdateTime = DateTime.now();
       _updatingOrder = false;
     }
   }
