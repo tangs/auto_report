@@ -12,8 +12,13 @@ import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
-typedef ReLoginCallback = void Function(
-    {String phoneNumber, String pin, String token, String remark});
+typedef ReLoginCallback =
+    void Function({
+      String phoneNumber,
+      String pin,
+      String token,
+      String remark,
+    });
 
 class WaveTnxHistoryWebClient {
   static const _baseUrl = 'https://api.wavemoney.io:8100/v2/wave-tnx-history/';
@@ -108,27 +113,29 @@ class WaveTnxHistoryWebClient {
       _pendingRequests[requestId] = completer;
       if (!Platform.isAndroid) {
         await controller.setUserAgent(
-          buildAndroidWebViewUserAgent(
-            model: model,
-            osVersion: osVersion,
-          ),
+          buildAndroidWebViewUserAgent(model: model, osVersion: osVersion),
         );
       }
-      await controller.runJavaScript(_buildFetchJs(
-        bridgeName: 'TnxBridge',
-        requestId: requestId,
-        deviceId: deviceId,
-        model: model,
-        osVersion: osVersion,
-        limit: effectiveLimit,
-        offset: offset,
-        wmtMfs: wmtMfs,
-      ));
+      await controller.runJavaScript(
+        _buildFetchJs(
+          bridgeName: 'TnxBridge',
+          requestId: requestId,
+          deviceId: deviceId,
+          model: model,
+          osVersion: osVersion,
+          limit: effectiveLimit,
+          offset: offset,
+          wmtMfs: wmtMfs,
+        ),
+      );
       _lastNetworkRequestAt = DateTime.now();
-      final result = await completer.future.timeout(timeout, onTimeout: () {
-        _pendingRequests.remove(requestId);
-        throw TimeoutException('Wave WebView request timeout', timeout);
-      });
+      final result = await completer.future.timeout(
+        timeout,
+        onTimeout: () {
+          _pendingRequests.remove(requestId);
+          throw TimeoutException('Wave WebView request timeout', timeout);
+        },
+      );
       result['clientAppVersion'] = DataManager().appVersion ?? 'unknown';
       result['requestLimit'] = effectiveLimit;
       result['requestOffset'] = offset;
@@ -250,7 +257,8 @@ class WaveTnxHistoryWebClient {
     final body = result['body'];
     final contentType = result['contentType']?.toString().toLowerCase() ?? '';
     final bodyText = body is String ? body.toLowerCase() : '';
-    final isCloudflareBlock = result['status'] == 403 &&
+    final isCloudflareBlock =
+        result['status'] == 403 &&
         contentType.contains('text/html') &&
         (bodyText.contains('cloudflare') ||
             bodyText.contains('sorry, you have been blocked') ||
@@ -454,36 +462,33 @@ class _AccountsPageState extends State<AccountsPage> {
         });
       },
     );
-    await controller.setOnConsoleMessage(
-      (JavaScriptConsoleMessage message) {
-        final text = message.message;
-        final isPageTnxLog =
-            text.contains('tnxhistory-utility/v2/tnx-histories');
-        final isInjectedTnxLog = text.contains('[AUTO_REPORT_TNX]');
+    await controller.setOnConsoleMessage((JavaScriptConsoleMessage message) {
+      final text = message.message;
+      final isPageTnxLog = text.contains('tnxhistory-utility/v2/tnx-histories');
+      final isInjectedTnxLog = text.contains('[AUTO_REPORT_TNX]');
 
-        if (isInjectedTnxLog) {
-          logger.i('[WAVE_WEB_CONSOLE] $text');
-          return;
-        }
+      if (isInjectedTnxLog) {
+        logger.i('[WAVE_WEB_CONSOLE] $text');
+        return;
+      }
 
-        if (isPageTnxLog && text.startsWith('Response:')) {
-          final lineBreak = text.indexOf('\n');
-          final summary =
-              lineBreak < 0 ? text.trim() : text.substring(0, lineBreak).trim();
-          final body =
-              lineBreak < 0 ? '' : text.substring(lineBreak + 1).trim();
-          logger.i('[WAVE_PAGE_RESPONSE] $summary');
-          if (body.isNotEmpty) {
-            logger.i('[WAVE_PAGE_BODY] $body');
-          }
-          return;
+      if (isPageTnxLog && text.startsWith('Response:')) {
+        final lineBreak = text.indexOf('\n');
+        final summary = lineBreak < 0
+            ? text.trim()
+            : text.substring(0, lineBreak).trim();
+        final body = lineBreak < 0 ? '' : text.substring(lineBreak + 1).trim();
+        logger.i('[WAVE_PAGE_RESPONSE] $summary');
+        if (body.isNotEmpty) {
+          logger.i('[WAVE_PAGE_BODY] $body');
         }
+        return;
+      }
 
-        if (isPageTnxLog) {
-          logger.i('[WAVE_PAGE_REQUEST] $text');
-        }
-      },
-    );
+      if (isPageTnxLog) {
+        logger.i('[WAVE_PAGE_REQUEST] $text');
+      }
+    });
     await controller.setNavigationDelegate(
       NavigationDelegate(
         onPageFinished: (url) {
@@ -507,9 +512,7 @@ class _AccountsPageState extends State<AccountsPage> {
         },
       ),
     );
-    await controller.loadRequest(
-      Uri.parse(WaveTnxHistoryWebClient._pageUrl),
-    );
+    await controller.loadRequest(Uri.parse(WaveTnxHistoryWebClient._pageUrl));
   }
 
   @override
@@ -601,7 +604,7 @@ class _AccountsPageState extends State<AccountsPage> {
       final trimmed = value.trim();
       final looksLikeJson =
           (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
-              (trimmed.startsWith('[') && trimmed.endsWith(']'));
+          (trimmed.startsWith('[') && trimmed.endsWith(']'));
       if (looksLikeJson) {
         try {
           return _normalizeJsonStrings(jsonDecode(trimmed));
@@ -643,8 +646,8 @@ class _AccountsPageState extends State<AccountsPage> {
     final state = !invalid
         ? 'normal'
         : data.isWmtMfsInvalid
-            ? 'Wave invalid'
-            : 'Report invalid';
+        ? 'Wave invalid'
+        : 'Report invalid';
     return ExpansionTile(
       title: Row(
         children: [
@@ -658,9 +661,9 @@ class _AccountsPageState extends State<AccountsPage> {
               Text(
                 style: TextStyle(color: invalid ? Colors.red : Colors.blue),
                 state,
-              )
+              ),
             ],
-          )
+          ),
         ],
       ),
       children: [
@@ -743,14 +746,16 @@ class _AccountsPageState extends State<AccountsPage> {
                 if (!value) {
                   data.reopenReport();
                 }
-                widget.onLogged(LogItem(
-                  type: LogItemType.info,
-                  platformName: data.platformName,
-                  platformKey: data.platformKey,
-                  phone: data.phoneNumber,
-                  time: DateTime.now(),
-                  content: '${value ? 'open' : 'close'} receive money.',
-                ));
+                widget.onLogged(
+                  LogItem(
+                    type: LogItemType.info,
+                    platformName: data.platformName,
+                    platformKey: data.platformKey,
+                    phone: data.phoneNumber,
+                    time: DateTime.now(),
+                    content: '${value ? 'open' : 'close'} receive money.',
+                  ),
+                );
               },
             ),
           ],
@@ -786,14 +791,16 @@ class _AccountsPageState extends State<AccountsPage> {
               activeColor: Colors.red,
               onChanged: (bool value) {
                 setState(() => data.disableCash = !value);
-                widget.onLogged(LogItem(
-                  type: LogItemType.info,
-                  platformName: data.platformName,
-                  platformKey: data.platformKey,
-                  phone: data.phoneNumber,
-                  time: DateTime.now(),
-                  content: '${value ? 'open' : 'close'} send money.',
-                ));
+                widget.onLogged(
+                  LogItem(
+                    type: LogItemType.info,
+                    platformName: data.platformName,
+                    platformKey: data.platformKey,
+                    phone: data.phoneNumber,
+                    time: DateTime.now(),
+                    content: '${value ? 'open' : 'close'} send money.',
+                  ),
+                );
               },
             ),
           ],
@@ -829,14 +836,16 @@ class _AccountsPageState extends State<AccountsPage> {
               activeColor: Colors.red,
               onChanged: (bool value) {
                 setState(() => data.disableRechargeTransfer = !value);
-                widget.onLogged(LogItem(
-                  type: LogItemType.info,
-                  platformName: data.platformName,
-                  platformKey: data.platformKey,
-                  phone: data.phoneNumber,
-                  time: DateTime.now(),
-                  content: '${value ? 'open' : 'close'} recharge transfer.',
-                ));
+                widget.onLogged(
+                  LogItem(
+                    type: LogItemType.info,
+                    platformName: data.platformName,
+                    platformKey: data.platformKey,
+                    phone: data.phoneNumber,
+                    time: DateTime.now(),
+                    content: '${value ? 'open' : 'close'} recharge transfer.',
+                  ),
+                );
               },
             ),
           ],
@@ -864,24 +873,24 @@ class _AccountsPageState extends State<AccountsPage> {
         //         ? null
         //         : () => data.updateBalance(() => setState(() => data = data))),
         _buildSub(
-            'Balance update time',
-            data.lastUpdateBalanceTime.millisecondsSinceEpoch == 0
-                ? 'never updated'
-                : dateFormat.format(data.lastUpdateBalanceTime),
-            null,
-            null),
+          'Balance update time',
+          data.lastUpdateBalanceTime.millisecondsSinceEpoch == 0
+              ? 'never updated'
+              : dateFormat.format(data.lastUpdateBalanceTime),
+          null,
+          null,
+        ),
         _buildSub(
-            'Orders update time',
-            data.lastUpdateTime.microsecondsSinceEpoch == 0
-                ? 'never updated'
-                : dateFormat.format(data.lastUpdateTime),
-            null,
-            null),
+          'Orders update time',
+          data.lastUpdateTime.microsecondsSinceEpoch == 0
+              ? 'never updated'
+              : dateFormat.format(data.lastUpdateTime),
+          null,
+          null,
+        ),
         Visibility(
           visible: showDetail,
-          child: Column(
-            children: _buildDetails(data),
-          ),
+          child: Column(children: _buildDetails(data)),
         ),
         // Visibility(
         //   visible: !invalid,
@@ -898,7 +907,7 @@ class _AccountsPageState extends State<AccountsPage> {
         // ),
         Row(
           children: [
-            Text('state: ${data.isUpdating ? 'Updating' : 'Waiting'}')
+            Text('state: ${data.isUpdating ? 'Updating' : 'Waiting'}'),
           ],
         ),
         Visibility(
@@ -945,7 +954,7 @@ class _AccountsPageState extends State<AccountsPage> {
                   );
                 },
               ),
-            )
+            ),
           ],
         ),
       ],
@@ -953,7 +962,11 @@ class _AccountsPageState extends State<AccountsPage> {
   }
 
   Widget _buildSub(
-      String title, String value, String? button, VoidCallback? callback) {
+    String title,
+    String value,
+    String? button,
+    VoidCallback? callback,
+  ) {
     //可以设置撑满宽度的盒子 称之为百分百布局
     return Padding(
       padding: const EdgeInsets.only(top: 8, bottom: 8),
@@ -993,32 +1006,36 @@ class _AccountsPageState extends State<AccountsPage> {
   }
 
   bool _isAllPlatformsSelected() {
-    return !widget.platforms!.any((platform) =>
-        (_platformsCheckboxResults[platform!.key] ?? true) == false);
+    return !widget.platforms!.any(
+      (platform) => (_platformsCheckboxResults[platform!.key] ?? true) == false,
+    );
   }
 
   Widget _buildFilter() {
-    final widgets = widget.platforms
+    final widgets =
+        widget.platforms
             ?.map((platform) => _buildCheckbox(platform))
             .toList() ??
         [];
     widgets.insert(
-        0,
-        Padding(
-          padding: const EdgeInsets.fromLTRB(10, 0, 0, 10),
-          child: Row(
-            children: [
-              const Text('ALL'),
-              Checkbox(
-                  value: _isAllPlatformsSelected(),
-                  onChanged: (value) => setState(() {
-                        for (var platform in widget.platforms!) {
-                          _platformsCheckboxResults[platform!.key!] = value!;
-                        }
-                      })),
-            ],
-          ),
-        ));
+      0,
+      Padding(
+        padding: const EdgeInsets.fromLTRB(10, 0, 0, 10),
+        child: Row(
+          children: [
+            const Text('ALL'),
+            Checkbox(
+              value: _isAllPlatformsSelected(),
+              onChanged: (value) => setState(() {
+                for (var platform in widget.platforms!) {
+                  _platformsCheckboxResults[platform!.key!] = value!;
+                }
+              }),
+            ),
+          ],
+        ),
+      ),
+    );
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(children: widgets),

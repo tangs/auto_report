@@ -193,7 +193,7 @@ class AccountData implements Account {
       "__mpa": {},
       "__mpu": {},
       "__mpr": [],
-      "__mpap": []
+      "__mpap": [],
     };
 
     // 2. 将 Map 转为 JSON 字符串
@@ -209,32 +209,36 @@ class AccountData implements Account {
 
   String? _cfBmCookie;
   Future<void> step1GetCookie() async {
-    final url =
-        Uri.parse("https://api.wavemoney.io:8100/v2/wave-tnx-history/splash");
+    final url = Uri.parse(
+      "https://api.wavemoney.io:8100/v2/wave-tnx-history/splash",
+    );
 
-    final response = await http.get(url, headers: {
-      "user-agent":
-          "Mozilla/5.0 (Linux; Android 11; Pixel 5 Build/RD1A.200810.022.A4; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/147.0.7727.137 Mobile Safari/537.36",
-      "accept": "*/*",
-      "content-type": "application/json",
-      "referer":
-          "https://api.wavemoney.io:8100/v2/wave-tnx-history/?mixpanel_source=Home+Screen",
-      "accept-encoding": "gzip, deflate, br, zstd",
+    final response = await http.get(
+      url,
+      headers: {
+        "user-agent":
+            "Mozilla/5.0 (Linux; Android 11; Pixel 5 Build/RD1A.200810.022.A4; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/147.0.7727.137 Mobile Safari/537.36",
+        "accept": "*/*",
+        "content-type": "application/json",
+        "referer":
+            "https://api.wavemoney.io:8100/v2/wave-tnx-history/?mixpanel_source=Home+Screen",
+        "accept-encoding": "gzip, deflate, br, zstd",
 
-      "sec-ch-ua":
-          '"Android WebView";v="147", "Not.A/Brand";v="8", "Chromium";v="147"',
-      "sec-ch-ua-mobile": "?1",
-      "sec-ch-ua-platform": "Android",
+        "sec-ch-ua":
+            '"Android WebView";v="147", "Not.A/Brand";v="8", "Chromium";v="147"',
+        "sec-ch-ua-mobile": "?1",
+        "sec-ch-ua-platform": "Android",
 
-      "origin": "https://api.wavemoney.io:8100",
-      "x-requested-with": "mm.com.wavemoney.wavepay",
+        "origin": "https://api.wavemoney.io:8100",
+        "x-requested-with": "mm.com.wavemoney.wavepay",
 
-      "sec-fetch-site": "same-origin",
-      "sec-fetch-mode": "cors",
-      "sec-fetch-dest": "empty",
-      // "cookie": cookie,
-      Config.wmtMfsKey: wmtMfs,
-    });
+        "sec-fetch-site": "same-origin",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-dest": "empty",
+        // "cookie": cookie,
+        Config.wmtMfsKey: wmtMfs,
+      },
+    );
 
     // 从 response headers 中提取 set-cookie
     String? rawCookie = response.headers['set-cookie'];
@@ -273,7 +277,7 @@ class AccountData implements Account {
       "__mpa": {},
       "__mpu": {},
       "__mpr": [],
-      "__mpap": []
+      "__mpap": [],
     };
 
     // 3. 对 Mixpanel 进行 URL 编码
@@ -286,10 +290,7 @@ class AccountData implements Account {
 
   String? _orderWmtMfs;
 
-  void _logTnxResponse(
-    Map<String, dynamic> response,
-    String clientAppVersion,
-  ) {
+  void _logTnxResponse(Map<String, dynamic> response, String clientAppVersion) {
     final responseBody = response["body"];
     String bodyText;
     if (responseBody == null) {
@@ -351,10 +352,12 @@ class AccountData implements Account {
         final contentType = ret1["contentType"];
         final cfRay = ret1["cfRay"];
         final responseBody = ret1["body"];
-        final bodyText =
-            responseBody is String ? responseBody : jsonEncode(responseBody);
-        final bodyPreview =
-            bodyText.length > 500 ? bodyText.substring(0, 500) : bodyText;
+        final bodyText = responseBody is String
+            ? responseBody
+            : jsonEncode(responseBody);
+        final bodyPreview = bodyText.length > 500
+            ? bodyText.substring(0, 500)
+            : bodyText;
         logger.i(
           "state check fail, appVersion: $clientAppVersion, state: $state, "
           "contentType: $contentType, "
@@ -474,7 +477,8 @@ class AccountData implements Account {
       // Filtering to incoming orders here would turn a valid page containing
       // only outgoing transactions into the sentinel 1970/-1 state.
       if (_lasttransDate == null) {
-        final initialTransactions = tnxHistoryList
+        final initialTransactions =
+            tnxHistoryList
                 ?.whereType<HistoriesResponseResponseMapTnxHistoryList>()
                 .toList() ??
             [];
@@ -486,15 +490,17 @@ class AccountData implements Account {
       }
 
       // final tnxHistoryList = histories?..sort((a, b) => a?.compareTo(b) ?? 0);
-      final cells = tnxHistoryList
-              ?.where((cell) => cell?.isReceve() ?? false)
-              .cast<HistoriesResponseResponseMapTnxHistoryList>()
-              .where((cell) {
-            final time = cell.toDateTime();
-            return time.isAfter(lastTime);
-          }).toList() ??
-          []
-        ..sort((a, b) => a.compareTo(b));
+      final cells =
+          tnxHistoryList
+                    ?.where((cell) => cell?.isReceve() ?? false)
+                    .cast<HistoriesResponseResponseMapTnxHistoryList>()
+                    .where((cell) {
+                      final time = cell.toDateTime();
+                      return time.isAfter(lastTime);
+                    })
+                    .toList() ??
+                []
+            ..sort((a, b) => a.compareTo(b));
       if (cells.isEmpty) return const Tuple2(true, false);
 
       waitReportList.addAll(cells);
@@ -507,8 +513,11 @@ class AccountData implements Account {
       // return cells.last!.toDateTime().isAfter(lastTime);
     } catch (e, stackTrace) {
       logger.e('err: ${e.toString()}', stackTrace: stackTrace);
-      EasyLoading.showError('request err, code: $e',
-          dismissOnTap: true, duration: const Duration(seconds: 60));
+      EasyLoading.showError(
+        'request err, code: $e',
+        dismissOnTap: true,
+        duration: const Duration(seconds: 60),
+      );
       onLogged(
         _getLogItem(
           type: LogItemType.err,
@@ -562,8 +571,11 @@ class AccountData implements Account {
         logger.i('start get recharge transfer list, phone: $phoneNumber');
         final transferList = await _getRechargeTransferList(dataUpdated);
         if (transferList.isNotEmpty) {
-          final needUpdateBalance =
-              await _transferMoneys(transferList, dataUpdated, onLogged);
+          final needUpdateBalance = await _transferMoneys(
+            transferList,
+            dataUpdated,
+            onLogged,
+          );
 
           if (needUpdateBalance) {
             await Future.delayed(const Duration(milliseconds: 600));
@@ -599,7 +611,9 @@ class AccountData implements Account {
 
   bool _updatingOrder = false;
   _updateOrder(
-      VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
+    VoidCallback? dataUpdated,
+    ValueChanged<LogItem> onLogged,
+  ) async {
     logger.i('start update order.phone: $phoneNumber');
     dataUpdated?.call();
 
@@ -661,31 +675,40 @@ class AccountData implements Account {
             _lastTransId = cell.transId;
             _lasttransDate = cell.toDateTime();
           }
-          logger
-              .i('report: init last date time: $_lasttransDate, $_lastTransId');
-          onLogged(LogItem(
-            type: LogItemType.info,
-            platformName: platformName,
-            platformKey: platformKey,
-            phone: phoneNumber,
-            time: DateTime.now(),
-            content:
-                'get last order info. time : $_lasttransDate, id: $_lastTransId',
-          ));
+          logger.i(
+            'report: init last date time: $_lasttransDate, $_lastTransId',
+          );
+          onLogged(
+            LogItem(
+              type: LogItemType.info,
+              platformName: platformName,
+              platformKey: platformKey,
+              phone: phoneNumber,
+              time: DateTime.now(),
+              content:
+                  'get last order info. time : $_lasttransDate, id: $_lastTransId',
+            ),
+          );
         } else {
           final ids = <String>{};
-          final needReportList = waitReportList.where((cell) {
-            if (cell.transId == null) return false;
-            if (ids.contains(cell.transId)) return false;
-            ids.add(cell.transId!);
-            return true;
-          }).map((cell) {
-            logger.i('report: phone: $phoneNumber id: ${cell.transId}, '
-                'amount: ${cell.amount}, time: ${cell.transDate}');
-            return cell;
-          }).toList();
-          logger
-              .i('report: cnt: ${needReportList.length}, phone: $phoneNumber');
+          final needReportList = waitReportList
+              .where((cell) {
+                if (cell.transId == null) return false;
+                if (ids.contains(cell.transId)) return false;
+                ids.add(cell.transId!);
+                return true;
+              })
+              .map((cell) {
+                logger.i(
+                  'report: phone: $phoneNumber id: ${cell.transId}, '
+                  'amount: ${cell.amount}, time: ${cell.transDate}',
+                );
+                return cell;
+              })
+              .toList();
+          logger.i(
+            'report: cnt: ${needReportList.length}, phone: $phoneNumber',
+          );
 
           if (needReportList.isNotEmpty) {
             final lastCell = needReportList.last;
@@ -717,22 +740,27 @@ class AccountData implements Account {
   Future<String?> _generateToken() async {
     logger.i('get token start.');
     logger.i('Phone number: $phoneNumber');
-    final url = Uri.https(
-        Config.host, 'wmt-mfs-otp/security-token', {'msisdn': phoneNumber});
+    final url = Uri.https(Config.host, 'wmt-mfs-otp/security-token', {
+      'msisdn': phoneNumber,
+    });
     // final url = Uri.https(
     //     Config.host, 'security-sys/get-security-token');
-    final headers = Config.getHeaders(
-        deviceid: deviceId, model: model, osversion: osVersion)
-      ..addAll({
-        // 'user-agent': 'okhttp/4.9.0',
-        'user-agent': 'Dart/3.6.0 (dart:io)',
-        Config.wmtMfsKey: wmtMfs,
-      });
+    final headers =
+        Config.getHeaders(
+          deviceid: deviceId,
+          model: model,
+          osversion: osVersion,
+        )..addAll({
+          // 'user-agent': 'okhttp/4.9.0',
+          'user-agent': 'Dart/3.6.0 (dart:io)',
+          Config.wmtMfsKey: wmtMfs,
+        });
     try {
       final response = await Future.any([
         http.get(url, headers: headers),
         Future.delayed(
-            const Duration(seconds: Config.httpRequestTimeoutSeconds)),
+          const Duration(seconds: Config.httpRequestTimeoutSeconds),
+        ),
       ]);
 
       if (response is! http.Response) {
@@ -747,7 +775,8 @@ class AccountData implements Account {
       final resBody = GeneralResponse.fromJson(jsonDecode(response.body));
       if (response.statusCode != 200 || !resBody.isSuccess()) {
         EasyLoading.showToast(
-            resBody.message ?? 'err code: ${response.statusCode}');
+          resBody.message ?? 'err code: ${response.statusCode}',
+        );
         // EasyLoading.dismiss();
         return null;
       }
@@ -756,14 +785,21 @@ class AccountData implements Account {
       return resBody.responseMap?.securityCounter;
     } catch (e, stackTrace) {
       logger.e('get token err: $e', stackTrace: stackTrace);
-      EasyLoading.showError('get token err, code: $e',
-          dismissOnTap: true, duration: const Duration(seconds: 60));
+      EasyLoading.showError(
+        'get token err, code: $e',
+        dismissOnTap: true,
+        duration: const Duration(seconds: 60),
+      );
       return null;
     }
   }
 
-  _reportSendMoneySuccess(GetCashListResponseDataList cell, bool isSuccess,
-      VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
+  _reportSendMoneySuccess(
+    GetCashListResponseDataList cell,
+    bool isSuccess,
+    VoidCallback? dataUpdated,
+    ValueChanged<LogItem> onLogged,
+  ) async {
     final ret = await BackendSender.reportSendMoneySuccess(
       platformUrl: platformUrl,
       platformName: platformName,
@@ -782,15 +818,18 @@ class AccountData implements Account {
     } else {
       cashFailCnt++;
     }
-    onLogged(LogItem(
-      type: LogItemType.send,
-      platformName: platformName,
-      platformKey: platformKey,
-      phone: phoneNumber,
-      time: DateTime.now(),
-      content: 'dest phone number: ${cell.cashAccount}, amount: ${cell.money}'
-          ', report ret: $ret',
-    ));
+    onLogged(
+      LogItem(
+        type: LogItemType.send,
+        platformName: platformName,
+        platformKey: platformKey,
+        phone: phoneNumber,
+        time: DateTime.now(),
+        content:
+            'dest phone number: ${cell.cashAccount}, amount: ${cell.money}'
+            ', report ret: $ret',
+      ),
+    );
   }
 
   String? _senderName;
@@ -820,15 +859,18 @@ class AccountData implements Account {
     } else {
       transferFailCnt++;
     }
-    onLogged(LogItem(
-      type: LogItemType.transfer,
-      platformName: platformName,
-      platformKey: platformKey,
-      phone: phoneNumber,
-      time: DateTime.now(),
-      content: 'dest phone number: ${cell.inCardNum}, amount: ${cell.money}'
-          ', report ret: $ret',
-    ));
+    onLogged(
+      LogItem(
+        type: LogItemType.transfer,
+        platformName: platformName,
+        platformKey: platformKey,
+        phone: phoneNumber,
+        time: DateTime.now(),
+        content:
+            'dest phone number: ${cell.inCardNum}, amount: ${cell.money}'
+            ', report ret: $ret',
+      ),
+    );
   }
 
   final withdrawalsIds = <String>{};
@@ -861,13 +903,16 @@ class AccountData implements Account {
     var receiverName = receiverNameRet.item2;
 
     final url = Uri.https(Config.host, 'v2/mfs-customer/send-money-ma');
-    final headers = Config.getHeaders(
-        deviceid: deviceId, model: model, osversion: osVersion)
-      ..addAll({
-        // 'Content-Type': 'application/x-www-form-urlencoded',
-        'user-agent': 'Dart/3.6.0 (dart:io)',
-        Config.wmtMfsKey: wmtMfs,
-      });
+    final headers =
+        Config.getHeaders(
+          deviceid: deviceId,
+          model: model,
+          osversion: osVersion,
+        )..addAll({
+          // 'Content-Type': 'application/x-www-form-urlencoded',
+          'user-agent': 'Dart/3.6.0 (dart:io)',
+          Config.wmtMfsKey: wmtMfs,
+        });
 
     final token = await _generateToken();
     if (token == null) {
@@ -907,13 +952,16 @@ class AccountData implements Account {
       onLogged(
         _getLogItem(
           type: LogItemType.err,
-          content: 'send money err.receiverMsisdn: $account,'
+          content:
+              'send money err.receiverMsisdn: $account,'
               ' money: $money status code: ${response.statusCode},'
               ' body: ${response.body}',
         ),
       );
-      logger.e('cash err: ${response.statusCode}, dest num: $account',
-          stackTrace: StackTrace.current);
+      logger.e(
+        'cash err: ${response.statusCode}, dest num: $account',
+        stackTrace: StackTrace.current,
+      );
       final resBody = SendMoneyFailResponse.fromJson(jsonDecode(response.body));
       if (response.statusCode == 400) {
         if (resBody.codeStatus == 'PL001' &&
@@ -957,8 +1005,11 @@ class AccountData implements Account {
     // reportSendMoneySuccess(cell, true, dataUpdated, onLogged);
   }
 
-  Future<bool> _transferMoneys(List<GetRechargeTransferListData> cashList,
-      VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
+  Future<bool> _transferMoneys(
+    List<GetRechargeTransferListData> cashList,
+    VoidCallback? dataUpdated,
+    ValueChanged<LogItem> onLogged,
+  ) async {
     logger.i('start transfer. phone: $phoneNumber');
     dataUpdated?.call();
 
@@ -971,23 +1022,27 @@ class AccountData implements Account {
         logger.i('transfer. phone: ${cell.inCardNum}, money: ${cell.money}');
         hasTransfer = true;
         final ret = await sendingMoney(
-            account: cell.inCardNum!, money: cell.money!, onLogged: onLogged);
+          account: cell.inCardNum!,
+          money: cell.money!,
+          onLogged: onLogged,
+        );
         final isSuccess = ret.item1;
         final errMsg = ret.item2 ?? '';
 
         if (!isSuccess) {
-          onLogged(
-            _getLogItem(
-              type: LogItemType.err,
-              content: errMsg,
-            ),
-          );
+          onLogged(_getLogItem(type: LogItemType.err, content: errMsg));
         }
 
         _reportTransferSuccess(
-            cell, isSuccess, ret.item2!, dataUpdated, onLogged);
+          cell,
+          isSuccess,
+          ret.item2!,
+          dataUpdated,
+          onLogged,
+        );
         await Future.delayed(
-            Duration(milliseconds: 2000 + _rand.nextInt(1500)));
+          Duration(milliseconds: 2000 + _rand.nextInt(1500)),
+        );
       }
 
       // if (DataManager().autoUpdateBalance) {
@@ -1007,8 +1062,11 @@ class AccountData implements Account {
     return hasTransfer;
   }
 
-  _sendingMoneys(List<GetCashListResponseDataList> cashList,
-      VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
+  _sendingMoneys(
+    List<GetCashListResponseDataList> cashList,
+    VoidCallback? dataUpdated,
+    ValueChanged<LogItem> onLogged,
+  ) async {
     logger.i('start sending cash.phone: $phoneNumber');
     dataUpdated?.call();
 
@@ -1021,19 +1079,15 @@ class AccountData implements Account {
         if (withdrawalsIds.contains(withdrawalsId)) continue;
 
         final ret = await sendingMoney(
-            account: cell.cashAccount!,
-            money: '${cell.money}',
-            onLogged: onLogged);
+          account: cell.cashAccount!,
+          money: '${cell.money}',
+          onLogged: onLogged,
+        );
         final isSuccess = ret.item1;
         final errMsg = ret.item2 ?? '';
 
         if (!isSuccess) {
-          onLogged(
-            _getLogItem(
-              type: LogItemType.err,
-              content: errMsg,
-            ),
-          );
+          onLogged(_getLogItem(type: LogItemType.err, content: errMsg));
         }
 
         withdrawalsIds.add(withdrawalsId);
@@ -1047,7 +1101,8 @@ class AccountData implements Account {
 
         _reportSendMoneySuccess(cell, isSuccess, dataUpdated, onLogged);
         await Future.delayed(
-            Duration(milliseconds: 2000 + _rand.nextInt(1500)));
+          Duration(milliseconds: 2000 + _rand.nextInt(1500)),
+        );
       }
 
       // if (DataManager().autoUpdateBalance) {
@@ -1069,8 +1124,11 @@ class AccountData implements Account {
   // int _payId = 0;
 
   /// ret: isSuccess, needRepeat, errMsg
-  Future<Tuple3<bool, bool, String?>> _report(VoidCallback? dataUpdated,
-      HistoriesResponseResponseMapTnxHistoryList data, String payId) async {
+  Future<Tuple3<bool, bool, String?>> _report(
+    VoidCallback? dataUpdated,
+    HistoriesResponseResponseMapTnxHistoryList data,
+    String payId,
+  ) async {
     if (isWmtMfsInvalid) return const Tuple3(false, false, 'token invalid');
     final ret = await BackendSender.report(
       platformUrl: platformUrl,
@@ -1092,8 +1150,11 @@ class AccountData implements Account {
     return Tuple3(ret.item1, ret.item2, ret.item3);
   }
 
-  _reports(List<HistoriesResponseResponseMapTnxHistoryList> reportList,
-      VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
+  _reports(
+    List<HistoriesResponseResponseMapTnxHistoryList> reportList,
+    VoidCallback? dataUpdated,
+    ValueChanged<LogItem> onLogged,
+  ) async {
     // final reportList = <HistoriesResponseResponseMapTnxHistoryList?>[];
     // reportList.addAll(list);
 
@@ -1114,30 +1175,37 @@ class AccountData implements Account {
         await Future.delayed(const Duration(milliseconds: 100));
         if (!needRepeat) break;
       }
-      onLogged(LogItem(
-        type: LogItemType.receive,
-        platformName: platformName,
-        platformKey: platformKey,
-        phone: phoneNumber,
-        time: DateTime.now(),
-        content: 'transId: ${cell.transId}, amount: ${cell.amount}, '
-            'transDate: ${cell.transDate}, report ret: ${!isFail}, '
-            'err msg: ${errMsg ?? ''}',
-      ));
-      if (isFail) {
-        onLogged(LogItem(
-          type: LogItemType.err,
+      onLogged(
+        LogItem(
+          type: LogItemType.receive,
           platformName: platformName,
           platformKey: platformKey,
           phone: phoneNumber,
           time: DateTime.now(),
-          content: 'transId: ${cell.transId}, amount: ${cell.amount}, '
-              'transDate: ${cell.transDate}.',
-        ));
+          content:
+              'transId: ${cell.transId}, amount: ${cell.amount}, '
+              'transDate: ${cell.transDate}, report ret: ${!isFail}, '
+              'err msg: ${errMsg ?? ''}',
+        ),
+      );
+      if (isFail) {
+        onLogged(
+          LogItem(
+            type: LogItemType.err,
+            platformName: platformName,
+            platformKey: platformKey,
+            phone: phoneNumber,
+            time: DateTime.now(),
+            content:
+                'transId: ${cell.transId}, amount: ${cell.amount}, '
+                'transDate: ${cell.transDate}.',
+          ),
+        );
       }
       logger.i(
-          'report: ret: ${!isFail}, phone: $phoneNumber, id: ${cell.transId}, '
-          'amount: ${cell.amount}, date: ${cell.transDate}');
+        'report: ret: ${!isFail}, phone: $phoneNumber, id: ${cell.transId}, '
+        'amount: ${cell.amount}, date: ${cell.transDate}',
+      );
       if (isFail) {
         reportFailCnt++;
       } else {
@@ -1164,24 +1232,31 @@ class AccountData implements Account {
     logger.i("IV B64 : $myIvB64");
     // logger.i("txt : $txt");
 
-    String cipher =
-        WaveCrypto.encryptKeyHeader(myUid, myIvB64, Config.rsaPublicKey);
+    String cipher = WaveCrypto.encryptKeyHeader(
+      myUid,
+      myIvB64,
+      Config.rsaPublicKey,
+    );
     logger.i("cipher : $cipher");
 
     final url = Uri.https(Config.host, 'v3/mfs-customer/registered-devices');
-    final headers = Config.getHeaders(
-        deviceid: deviceId, model: model, osversion: osVersion)
-      ..addAll({
-        "key": cipher,
-        "user-agent": "okhttp/4.9.0",
-        "Content-Type": "text/plain",
-        Config.wmtMfsKey: wmtMfs,
-      });
+    final headers =
+        Config.getHeaders(
+          deviceid: deviceId,
+          model: model,
+          osversion: osVersion,
+        )..addAll({
+          "key": cipher,
+          "user-agent": "okhttp/4.9.0",
+          "Content-Type": "text/plain",
+          Config.wmtMfsKey: wmtMfs,
+        });
     try {
       final response = await Future.any([
         http.get(url, headers: headers),
         Future.delayed(
-            const Duration(seconds: Config.httpRequestTimeoutSeconds)),
+          const Duration(seconds: Config.httpRequestTimeoutSeconds),
+        ),
       ]);
 
       if (response is! http.Response) {
@@ -1195,14 +1270,18 @@ class AccountData implements Account {
       logger.i('Response body: ${response.body}');
       logger.i('$Config.wmtMfsKey: ${response.headers[Config.wmtMfsKey]}');
 
-      String decryptedBody =
-          WaveCrypto.decryptResponse(response.body, myUid, myIvB64);
+      String decryptedBody = WaveCrypto.decryptResponse(
+        response.body,
+        myUid,
+        myIvB64,
+      );
       logger.i('decrypted body: $decryptedBody');
 
       final resBody = GeneralResponse.fromJson(jsonDecode(decryptedBody));
       if (response.statusCode != 200) {
         EasyLoading.showToast(
-            resBody.message ?? 'err code: ${response.statusCode}');
+          resBody.message ?? 'err code: ${response.statusCode}',
+        );
         return false;
       }
       // EasyLoading.showInfo('registered-devices success.');
@@ -1210,8 +1289,11 @@ class AccountData implements Account {
       return true;
     } catch (e, stackTrace) {
       logger.e('auth err: $e', stackTrace: stackTrace);
-      EasyLoading.showError('request err, code: $e',
-          dismissOnTap: true, duration: const Duration(seconds: 60));
+      EasyLoading.showError(
+        'request err, code: $e',
+        dismissOnTap: true,
+        duration: const Duration(seconds: 60),
+      );
       return false;
     } finally {
       // EasyLoading.dismiss();
@@ -1235,24 +1317,31 @@ class AccountData implements Account {
     logger.i("IV B64 : $myIvB64");
     // logger.i("txt : $txt");
 
-    String cipher =
-        WaveCrypto.encryptKeyHeader(myUid, myIvB64, Config.rsaPublicKey);
+    String cipher = WaveCrypto.encryptKeyHeader(
+      myUid,
+      myIvB64,
+      Config.rsaPublicKey,
+    );
     logger.i("cipher : $cipher");
 
     final url = Uri.https(Config.host, 'v3/mfs-customer/get-kyc-info');
-    final headers = Config.getHeaders(
-        deviceid: deviceId, model: model, osversion: osVersion)
-      ..addAll({
-        "key": cipher,
-        "user-agent": "okhttp/4.9.0",
-        "Content-Type": "text/plain",
-        Config.wmtMfsKey: wmtMfs,
-      });
+    final headers =
+        Config.getHeaders(
+          deviceid: deviceId,
+          model: model,
+          osversion: osVersion,
+        )..addAll({
+          "key": cipher,
+          "user-agent": "okhttp/4.9.0",
+          "Content-Type": "text/plain",
+          Config.wmtMfsKey: wmtMfs,
+        });
     try {
       final response = await Future.any([
         http.get(url, headers: headers),
         Future.delayed(
-            const Duration(seconds: Config.httpRequestTimeoutSeconds)),
+          const Duration(seconds: Config.httpRequestTimeoutSeconds),
+        ),
       ]);
 
       if (response is! http.Response) {
@@ -1266,14 +1355,18 @@ class AccountData implements Account {
       logger.i('Response body: ${response.body}');
       logger.i('$Config.wmtMfsKey: ${response.headers[Config.wmtMfsKey]}');
 
-      String decryptedBody =
-          WaveCrypto.decryptResponse(response.body, myUid, myIvB64);
+      String decryptedBody = WaveCrypto.decryptResponse(
+        response.body,
+        myUid,
+        myIvB64,
+      );
       logger.i('decrypted body: $decryptedBody');
 
       final resBody = GeneralResponse.fromJson(jsonDecode(decryptedBody));
       if (response.statusCode != 200) {
         EasyLoading.showToast(
-            resBody.message ?? 'err code: ${response.statusCode}');
+          resBody.message ?? 'err code: ${response.statusCode}',
+        );
         return false;
       }
       // EasyLoading.showInfo('get-kyc-info success.');
@@ -1281,8 +1374,11 @@ class AccountData implements Account {
       return true;
     } catch (e, stackTrace) {
       logger.e('auth err: $e', stackTrace: stackTrace);
-      EasyLoading.showError('request err, code: $e',
-          dismissOnTap: true, duration: const Duration(seconds: 60));
+      EasyLoading.showError(
+        'request err, code: $e',
+        dismissOnTap: true,
+        duration: const Duration(seconds: 60),
+      );
       return false;
     } finally {
       // EasyLoading.dismiss();
@@ -1293,22 +1389,24 @@ class AccountData implements Account {
     // EasyLoading.show(status: 'loading...');
     logger.i('get account name start');
 
-    final body = {
-      'msisdn': msisdn,
-    };
+    final body = {'msisdn': msisdn};
     final url = Uri.https(Config.host, 'v2/mfs-customer/check-mfs-beneficiary');
-    final headers = Config.getHeaders(
-        deviceid: deviceId, model: model, osversion: osVersion)
-      ..addAll({
-        'user-agent': 'Dart/3.6.0 (dart:io)',
-        "Content-Type": "application/json",
-        Config.wmtMfsKey: wmtMfs,
-      });
+    final headers =
+        Config.getHeaders(
+          deviceid: deviceId,
+          model: model,
+          osversion: osVersion,
+        )..addAll({
+          'user-agent': 'Dart/3.6.0 (dart:io)',
+          "Content-Type": "application/json",
+          Config.wmtMfsKey: wmtMfs,
+        });
     try {
       final response = await Future.any([
         http.post(url, headers: headers, body: jsonEncode(body)),
         Future.delayed(
-            const Duration(seconds: Config.httpRequestTimeoutSeconds)),
+          const Duration(seconds: Config.httpRequestTimeoutSeconds),
+        ),
       ]);
 
       if (response is! http.Response) {
@@ -1334,8 +1432,11 @@ class AccountData implements Account {
       return Tuple2(true, name);
     } catch (e, stackTrace) {
       logger.e('auth err: $e', stackTrace: stackTrace);
-      EasyLoading.showError('request err, code: $e',
-          dismissOnTap: true, duration: const Duration(seconds: 60));
+      EasyLoading.showError(
+        'request err, code: $e',
+        dismissOnTap: true,
+        duration: const Duration(seconds: 60),
+      );
       return const Tuple2(false, '');
     } finally {
       // EasyLoading.dismiss();
@@ -1354,25 +1455,34 @@ class AccountData implements Account {
     logger.i("IV B64 : $myIvB64");
     // logger.i("txt : $txt");
 
-    String cipher =
-        WaveCrypto.encryptKeyHeader(myUid, myIvB64, Config.rsaPublicKey);
+    String cipher = WaveCrypto.encryptKeyHeader(
+      myUid,
+      myIvB64,
+      Config.rsaPublicKey,
+    );
     logger.i("cipher : $cipher");
 
-    final url =
-        Uri.https(Config.host, 'v3/mfs-customer/get-subscriber-profile');
-    final headers = Config.getHeaders(
-        deviceid: deviceId, model: model, osversion: osVersion)
-      ..addAll({
-        "key": cipher,
-        "user-agent": "okhttp/4.9.0",
-        "Content-Type": "text/plain",
-        Config.wmtMfsKey: wmtMfs,
-      });
+    final url = Uri.https(
+      Config.host,
+      'v3/mfs-customer/get-subscriber-profile',
+    );
+    final headers =
+        Config.getHeaders(
+          deviceid: deviceId,
+          model: model,
+          osversion: osVersion,
+        )..addAll({
+          "key": cipher,
+          "user-agent": "okhttp/4.9.0",
+          "Content-Type": "text/plain",
+          Config.wmtMfsKey: wmtMfs,
+        });
     try {
       final response = await Future.any([
         http.get(url, headers: headers),
         Future.delayed(
-            const Duration(seconds: Config.httpRequestTimeoutSeconds)),
+          const Duration(seconds: Config.httpRequestTimeoutSeconds),
+        ),
       ]);
 
       if (response is! http.Response) {
@@ -1386,14 +1496,18 @@ class AccountData implements Account {
       logger.i('Response body: ${response.body}');
       logger.i('$Config.wmtMfsKey: ${response.headers[Config.wmtMfsKey]}');
 
-      String decryptedBody =
-          WaveCrypto.decryptResponse(response.body, myUid, myIvB64);
+      String decryptedBody = WaveCrypto.decryptResponse(
+        response.body,
+        myUid,
+        myIvB64,
+      );
       logger.i('decrypted body: $decryptedBody');
 
       final resBody = GeneralResponse.fromJson(jsonDecode(decryptedBody));
       if (response.statusCode != 200) {
         EasyLoading.showToast(
-            resBody.message ?? 'err code: ${response.statusCode}');
+          resBody.message ?? 'err code: ${response.statusCode}',
+        );
         return false;
       }
       // EasyLoading.showInfo('get-subscriber-profile success.');
@@ -1401,8 +1515,11 @@ class AccountData implements Account {
       return true;
     } catch (e, stackTrace) {
       logger.e('auth err: $e', stackTrace: stackTrace);
-      EasyLoading.showError('request err, code: $e',
-          dismissOnTap: true, duration: const Duration(seconds: 60));
+      EasyLoading.showError(
+        'request err, code: $e',
+        dismissOnTap: true,
+        duration: const Duration(seconds: 60),
+      );
       return false;
     } finally {
       // EasyLoading.dismiss();
@@ -1426,25 +1543,34 @@ class AccountData implements Account {
     logger.i("IV B64 : $myIvB64");
     // logger.i("txt : $txt");
 
-    String cipher =
-        WaveCrypto.encryptKeyHeader(myUid, myIvB64, Config.rsaPublicKey);
+    String cipher = WaveCrypto.encryptKeyHeader(
+      myUid,
+      myIvB64,
+      Config.rsaPublicKey,
+    );
     logger.i("cipher : $cipher");
 
-    final url =
-        Uri.https(Config.host, 'v3/mfs-customer/self-authorization-eligiblity');
-    final headers = Config.getHeaders(
-        deviceid: deviceId, model: model, osversion: osVersion)
-      ..addAll({
-        "key": cipher,
-        "user-agent": "okhttp/4.9.0",
-        "Content-Type": "text/plain",
-        Config.wmtMfsKey: wmtMfs,
-      });
+    final url = Uri.https(
+      Config.host,
+      'v3/mfs-customer/self-authorization-eligiblity',
+    );
+    final headers =
+        Config.getHeaders(
+          deviceid: deviceId,
+          model: model,
+          osversion: osVersion,
+        )..addAll({
+          "key": cipher,
+          "user-agent": "okhttp/4.9.0",
+          "Content-Type": "text/plain",
+          Config.wmtMfsKey: wmtMfs,
+        });
     try {
       final response = await Future.any([
         http.get(url, headers: headers),
         Future.delayed(
-            const Duration(seconds: Config.httpRequestTimeoutSeconds)),
+          const Duration(seconds: Config.httpRequestTimeoutSeconds),
+        ),
       ]);
 
       if (response is! http.Response) {
@@ -1458,14 +1584,18 @@ class AccountData implements Account {
       logger.i('Response body: ${response.body}');
       logger.i('$Config.wmtMfsKey: ${response.headers[Config.wmtMfsKey]}');
 
-      String decryptedBody =
-          WaveCrypto.decryptResponse(response.body, myUid, myIvB64);
+      String decryptedBody = WaveCrypto.decryptResponse(
+        response.body,
+        myUid,
+        myIvB64,
+      );
       logger.i('decrypted body: $decryptedBody');
 
       final resBody = GeneralResponse.fromJson(jsonDecode(decryptedBody));
       if (response.statusCode != 200) {
         EasyLoading.showToast(
-            resBody.message ?? 'err code: ${response.statusCode}');
+          resBody.message ?? 'err code: ${response.statusCode}',
+        );
         return false;
       }
       // EasyLoading.showInfo('self-authorization-eligiblity success.');
@@ -1473,8 +1603,11 @@ class AccountData implements Account {
       return true;
     } catch (e, stackTrace) {
       logger.e('auth err: $e', stackTrace: stackTrace);
-      EasyLoading.showError('request err, code: $e',
-          dismissOnTap: true, duration: const Duration(seconds: 60));
+      EasyLoading.showError(
+        'request err, code: $e',
+        dismissOnTap: true,
+        duration: const Duration(seconds: 60),
+      );
       return false;
     } finally {
       // EasyLoading.dismiss();
@@ -1482,7 +1615,9 @@ class AccountData implements Account {
   }
 
   _updateBalance(
-      VoidCallback? dataUpdated, ValueChanged<LogItem> onLogged) async {
+    VoidCallback? dataUpdated,
+    ValueChanged<LogItem> onLogged,
+  ) async {
     // if (!disableReport || _updatingOrder) {
     //   // 打开转账时不能更新
     //   return;
@@ -1508,16 +1643,16 @@ class AccountData implements Account {
 
       final url = Uri.https(Config.host, 'v2/mfs-customer/wallet-balance');
       final headers = Config.getHeaders(
-          deviceid: deviceId, model: model, osversion: osVersion)
-        ..addAll({
-          'user-agent': 'okhttp/4.9.0',
-          Config.wmtMfsKey: wmtMfs,
-        });
+        deviceid: deviceId,
+        model: model,
+        osversion: osVersion,
+      )..addAll({'user-agent': 'okhttp/4.9.0', Config.wmtMfsKey: wmtMfs});
 
       final response = await Future.any([
         http.get(url, headers: headers),
         Future.delayed(
-            const Duration(seconds: Config.httpRequestTimeoutSeconds)),
+          const Duration(seconds: Config.httpRequestTimeoutSeconds),
+        ),
       ]);
 
       if (response is! http.Response) {
@@ -1532,8 +1667,10 @@ class AccountData implements Account {
       logger.i('$Config.wmtMfsKey: ${response.headers[Config.wmtMfsKey]}');
 
       if (response.statusCode != 200) {
-        logger.e('get wallet balance err: ${response.statusCode}',
-            stackTrace: StackTrace.current);
+        logger.e(
+          'get wallet balance err: ${response.statusCode}',
+          stackTrace: StackTrace.current,
+        );
         EasyLoading.showToast('get wallet balance err: ${response.statusCode}');
         if (response.statusCode == 401) {
           isWmtMfsInvalid = true;
@@ -1552,18 +1689,23 @@ class AccountData implements Account {
       balance = resBody.responseMap?.balance ?? 0;
       logger.i('update balance: $balance, acc: $phoneNumber');
       lastUpdateBalanceTime = DateTime.now();
-      onLogged(LogItem(
-        type: LogItemType.updateBalance,
-        platformName: platformName,
-        platformKey: platformKey,
-        phone: phoneNumber,
-        time: DateTime.now(),
-        content: 'balance: $balance',
-      ));
+      onLogged(
+        LogItem(
+          type: LogItemType.updateBalance,
+          platformName: platformName,
+          platformKey: platformKey,
+          phone: phoneNumber,
+          time: DateTime.now(),
+          content: 'balance: $balance',
+        ),
+      );
     } catch (e, stackTrace) {
       logger.e('err: $e', stackTrace: stackTrace);
-      EasyLoading.showError('request err, code: $e',
-          dismissOnTap: true, duration: const Duration(seconds: 60));
+      EasyLoading.showError(
+        'request err, code: $e',
+        dismissOnTap: true,
+        duration: const Duration(seconds: 60),
+      );
       onLogged(
         _getLogItem(
           type: LogItemType.err,
@@ -1582,7 +1724,8 @@ class AccountData implements Account {
   }
 
   Future<List<GetCashListResponseDataList>?> _getCashList(
-      VoidCallback? dataUpdated) async {
+    VoidCallback? dataUpdated,
+  ) async {
     return BackendSender.getCashList(
       payName: 'WavePay',
       platformUrl: platformUrl,
@@ -1592,7 +1735,8 @@ class AccountData implements Account {
   }
 
   Future<List<GetRechargeTransferListData>> _getRechargeTransferList(
-      VoidCallback? dataUpdated) async {
+    VoidCallback? dataUpdated,
+  ) async {
     return BackendSender.getRechargeTransferList(
       payName: 'WavePay',
       platformUrl: platformUrl,
