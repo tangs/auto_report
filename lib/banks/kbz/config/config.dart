@@ -93,7 +93,7 @@ MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0UQfZRSV8UYTsK+LhuiFpvjrxaX6m726PKMD
   static const acceptEncoding = 'gzip, deflate, br';
   // static const versioncode = '1460';
 
-  static const appversion = '5.8.5';
+  static const appversion = '5.9.0';
   static const osType = 'Android';
   static const language = 'zh';
   static const deviceVersion = '30';

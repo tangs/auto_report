@@ -372,6 +372,7 @@ class Sender {
           'myServiceVersion': '',
           'smsCode': otpCode,
           'initiatorMSISDN': phoneNumber,
+          'useLiveDB': false,
         });
       if (businessUniqueId != null) {
         body.addAll({
