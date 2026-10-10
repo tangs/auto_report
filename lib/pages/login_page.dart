@@ -47,7 +47,59 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  bool get _useLocalTestBackend =>
+      _platform?.trim().toLowerCase() == GlobalConfig.localTestPlatform;
+
+  String get _localPlatformName {
+    switch (GlobalConfig.bankType) {
+      case BankType.wave:
+        return 'WavePay';
+      case BankType.kbz:
+        return 'KBZPay';
+      case BankType.kbiz:
+        return 'KBZ';
+      case BankType.aya:
+        return 'AYA';
+    }
+  }
+
+  Future<GetPlatformsResponse?> _getLocalTestPlatform() async {
+    const backendUrl = GlobalConfig.localTestBackendUrl;
+    try {
+      final response = await http
+          .get(Uri.parse('$backendUrl/health'))
+          .timeout(const Duration(seconds: 5));
+      if (response.statusCode != 200) {
+        throw Exception('health check returned ${response.statusCode}');
+      }
+
+      StatisticalSender.host = backendUrl;
+      logger.i('using local test backend: $backendUrl');
+      return GetPlatformsResponse(
+        status: true,
+        msg: 'success',
+        logUrl: backendUrl,
+        data: [
+          GetPlatformsResponseData(
+            name: _localPlatformName,
+            url: backendUrl,
+            key: GlobalConfig.localTestPlatform,
+            mark: GlobalConfig.localTestPlatform,
+          ),
+        ],
+      );
+    } catch (e, stackTrace) {
+      logger.e('local test backend unavailable: $e', stackTrace: stackTrace);
+      EasyLoading.showError('local test backend unavailable.');
+      return null;
+    }
+  }
+
   Future<GetPlatformsResponse?> getPlatformUrl() async {
+    if (_useLocalTestBackend) {
+      return _getLocalTestPlatform();
+    }
+
     // final url = Uri.http('www.diyibuyu.com', 'api/getPlatformUrl');
     // final url = Uri.http('www.diyibuyu.com', 'api/getAllPlatformUrl');
     final url = Uri.http('www.diyibuyu.com', 'api/getGamePlatformUrl');
@@ -100,6 +152,7 @@ class _LoginPageState extends State<LoginPage> {
       GetPlatformsResponse? resData;
       if (GlobalConfig.bankType.needLogin) {
         resData = await getPlatformUrl();
+        if (resData == null) return;
       }
 
       if (!mounted) return;
